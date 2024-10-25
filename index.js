@@ -406,7 +406,7 @@ let scene,
   // Observe the document body for changes
   observer.observe(document.body, { childList: true, subtree: true });
 
-  const scrollState = {};
+  const displayState = {};
 
   function triggerConfig() {
     CONFIG.map(config => {
@@ -505,15 +505,9 @@ let scene,
             const path = window.location.href;
 
             if((config.match === 'equals' ? path === config.pagePath : path.includes(config.pagePath)) && Number(scrollPercent)>Number(config.scrollValue)){
-              if(config.delay){
-                if(scrollState[config.id]) return;
-                scrollState[config.id] = true;
+                if(displayState[config.id]) return;
+                displayState[config.id] = true;
                 showUIAnimation(config);
-              } else{
-                if(scrollState[config.id]) return;
-                scrollState[config.id] = true;
-                showUIAnimation(config);
-              }
             }
           });
           break;
@@ -526,8 +520,14 @@ let scene,
             const pagePath = window.location.href;
             if((config.match === 'equals' ? pagePath === config.pagePath : pagePath.includes(config.pagePath))){
               if(config.delay){
-                setTimeout(() => showUIAnimation(config), config.delay);
+                if(displayState[config.id]) return;
+                setTimeout(() => {
+                  displayState[config.id] = true;
+                  showUIAnimation(config), config.delay
+                });
               } else{
+                if(displayState[config.id]) return;
+                displayState[config.id] = true;
                 showUIAnimation(config);
               }
             }
@@ -556,26 +556,26 @@ let scene,
       });
     } else {
       let innerHTML = `<></>`;
-      if(config.orientation === 'landscape'){
+      // if(config.orientation === 'landscape'){
+      //   innerHTML = `
+      //     <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:425px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.5)">
+      //       <img src=${config.imageUrl} style="height:180px;border-radius:10px;margin-right:12px"/>
+      //       <div id="text-area">
+      //         <div style="color:${config.tooltip_color}">${config.text}</div>
+      //       </div>
+      //     </div>
+      //   `;
+      // } else {
         innerHTML = `
-          <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:280px">
-            <img src=${config.imageUrl} style="height:90px;border-radius:10px;margin-right:12px"/>
+          <div style="display:flex;flex-direction:row;align-items:center;background:${iconfig.tooltip_bg};padding:8px;border-radius:12px;max-width:${isMobile? '240px': '360px'};box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
+            <img src=${config.imageUrl} style="height:140px;border-radius:10px;margin-right:12px"/>
             <div id="text-area">
               <div style="color:${config.tooltip_color}">${config.text}</div>
             </div>
           </div>
         `;
-      } else {
-        innerHTML = `
-          <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:280px">
-            <img src=${config.imageUrl} style="height:124px;border-radius:10px;margin-right:12px"/>
-            <div id="text-area">
-              <div style="color:${config.tooltip_color}">${config.text}</div>
-            </div>
-          </div>
-        `;
-      }
-      showOverlay(config.id, innerHTML, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
+      // }
+      showOverlay(config.id, innerHTML, config.tooltip_bg, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
         if(config.onEnd) showUIAnimation(CONFIG.filter(c => c.id === config.onEnd)[0])
         else showInput();
       });
@@ -606,11 +606,13 @@ let scene,
     tooltip.style.color = color;
     tooltip.style.padding = '10px 14px';
     tooltip.style.borderRadius = '16px';
-    tooltip.style.fontSize = '16px';
+    tooltip.style.fontSize = isMobile ? '14px': '16px';
+    tooltip.style.lineHeight = isMobile ? '18px': '20px';
+    tooltip.style.fontFamily = 'sans-serif';
     tooltip.style.pointerEvents = 'none';
     tooltip.style.whiteSpace = 'wrap';
     tooltip.style.zIndex = '10'
-    tooltip.style.boxShadow = '0 0 4px black';
+    tooltip.style.boxShadow = '0 0 4px rgba(0, 0, 0, 0.3)';
     // Arrow style for the tooltip using a pseudo element
     tooltip.style.setProperty('--tooltip-arrow-size', '5px');
     tooltip.style.setProperty('--tooltip-arrow-color', bg)
@@ -662,7 +664,9 @@ let scene,
       closeBtn.style.left = '-4px';
       closeBtn.style.width = '16px';
       closeBtn.style.height = '16px';
-      closeBtn.style.fontSize = '10px';
+      tooltip.style.fontSize = isMobile ? '12px': '14px';
+      tooltip.style.lineHeight = isMobile ? '16px': '18px';
+      tooltip.style.fontFamily = 'sans-serif';
       closeBtn.style.borderRadius = '50%';
       closeBtn.style.zIndex = '99';
       closeBtn.style.cursor = 'pointer';
@@ -729,7 +733,9 @@ let scene,
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = '12px';
         btn.style.border = '0';
-        btn.style.fontSize = '14px';
+        tooltip.style.fontSize = isMobile ? '12px': '14px';
+        tooltip.style.lineHeight = isMobile ? '16px': '18px';
+        tooltip.style.fontFamily = 'sans-serif';
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
         btn.style.padding = '6px 12px';
@@ -773,15 +779,29 @@ let scene,
     }
   }
 
-  function showOverlay(id, innerHTML, time, ctaList, hasClose,onClickClose, timerCountdown, animationCB) {
+  function showOverlay(id, innerHTML, bg, time, ctaList, hasClose,onClickClose, timerCountdown, animationCB) {
     currentlyAnimating = true;
     currentAnimationID = id;
     hideInput();
     const tooltipContainer = document.createElement('div');
     tooltipContainer.id = 'tooltipContainer';
     tooltipContainer.style.position = 'fixed';
-    tooltipContainer.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25)';
+    tooltipContainer.style.fontSize = isMobile ? '14px': '16px';
+    tooltipContainer.style.lineHeight = isMobile ? '18px': '20px';
+    tooltipContainer.style.fontFamily = 'sans-serif';
     tooltipContainer.innerHTML = innerHTML;
+
+
+    const arrow = document.createElement('div');
+    arrow.style.position = 'absolute';
+    arrow.style.width = '16px'; // Width of the arrow
+    arrow.style.height = '10px'; // Height of the arrow
+    arrow.style.backgroundColor = bg; // Main arrow color
+    arrow.style.clipPath = 'polygon(0% 100%, 100% 100%, 50% 0%)'; // Triangle shape
+    arrow.style.top = '40%'; // Positioning
+    arrow.style.right = '-11px'; // Positioning
+    arrow.style.transform = 'rotate(90deg)';
+    tooltipContainer.appendChild(arrow);
 
     function closeUI(){
       if(currentAnimationID !== id) return;
@@ -797,8 +817,8 @@ let scene,
       closeBtn.style.padding = '2px';
       closeBtn.style.border = '1px solid black';
       closeBtn.style.position = 'absolute';
-      closeBtn.style.top = '-4px';
-      closeBtn.style.right = '-4px';
+      closeBtn.style.top = '-6px';
+      closeBtn.style.left = '-6px';
       closeBtn.style.width = '16px';
       closeBtn.style.height = '16px';
       closeBtn.style.fontSize = '10px';
@@ -902,7 +922,7 @@ let scene,
     const canvas = document.getElementById('threejs-canvas');
     const canvasBounds = canvas.getBoundingClientRect();
     tooltipContainer.style.right  = isMobile ? '90px' : '120px';
-    tooltipContainer.style.top = (canvasBounds.top + 88) + 'px';
+    tooltipContainer.style.bottom = isMobile ? '12px' : '20px';
     tooltipContainer.style.display = 'block';
 
     if(time){
