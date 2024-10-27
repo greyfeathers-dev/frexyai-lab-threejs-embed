@@ -567,7 +567,7 @@ let scene,
       //   `;
       // } else {
         innerHTML = `
-          <div style="display:flex;flex-direction:row;align-items:center;background:${iconfig.tooltip_bg};padding:8px;border-radius:12px;max-width:${isMobile? '240px': '360px'};box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
+          <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:${isMobile? '240px': '360px'};box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
             <img src=${config.imageUrl} style="height:140px;border-radius:10px;margin-right:12px"/>
             <div id="text-area">
               <div style="color:${config.tooltip_color}">${config.text}</div>
@@ -946,33 +946,50 @@ let scene,
 
   function appendInput() {
     // Create an input element (rounded input box)
+    const inputContainer = document.createElement('div');
+    inputContainer.id = 'input';
+    inputContainer.style.background = 'linear-gradient(45deg, purple, blue)';
+    inputContainer.style.padding = '2px';
+    inputContainer.style.position = 'relative';
+    inputContainer.style.borderRadius = '20px';  // Rounded corners
     const input = document.createElement('input');
-    input.id = 'input';
     input.placeholder = 'Ask me anything';  // Set the input value to the message
+    inputContainer.appendChild(input);
+    inputContainer.style.display = 'none';
 
     // Styling the input to make it look like a rounded box
-    input.style.position = 'fixed';
-    input.style.border = '1px solid black';
+    input.style.border = 0;
     input.style.color = '#000';
+    input.style.background = '#fff';
     input.style.padding = '8px 16px';
+    input.style.width = '180px';
     input.style.borderRadius = '20px';  // Rounded corners
     input.style.fontSize = '14px';
     input.style.outline = 'none';       // Remove input focus outline
-    input.style.display = 'none';
     input.style.whiteSpace = 'wrap';
     input.style.zIndex = '10';
 
+    const imageIcon = document.createElement('img');
+    imageIcon.src= "https://i.postimg.cc/KzWnjTw7/chat-gif.gif";
+    imageIcon.style.position = 'absolute';
+    imageIcon.style.top = '2px';
+    imageIcon.style.right = '2px';
+    imageIcon.style.width = '32px';
+    imageIcon.style.height = '32px';
+    inputContainer.appendChild(imageIcon);
+
     // Positioning of the input box
-    input.style.bottom = isMobile ? '24px' : '40px';
-    input.style.right = isMobile ? '60px' : '80px';
+    inputContainer.style.position = 'fixed';
+    inputContainer.style.bottom = isMobile ? '28px' : '32px';
+    inputContainer.style.right = isMobile ? '80px' : '108px';
 
     // Add the input element to the body
-    document.body.appendChild(input);
+    document.body.appendChild(inputContainer);
 
     appendChatWindow();
 
     // Show the input box for the given time, then hide it
-    if(currentlyAnimating){
+    if(!currentlyAnimating){
       showInput();
     } else{
       hideInput();
@@ -981,6 +998,7 @@ let scene,
   }
 
   function showInput(){
+    console.log('~~~~ here')
     if(currentlyAnimating) return;
     const input = document.getElementById('input');
     input.style.display = 'block';
