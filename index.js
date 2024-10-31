@@ -1,125 +1,3 @@
-// const CONFIG = [
-//   {
-//     id: 'first-land',
-//     type: 'onFirstLand',
-//     animation: 'wave',
-//     hasClose: false,
-//     text: 'So excited to have you here! 😄 ',
-//     time: 2000,
-//     onEnd: 'introduction',
-//     cta: [],
-//   },
-//   {
-//     id: 'introduction',
-//     hasClose: false,
-//     text: 'I\'m Frexy, your coolest assistant 😎. Feel free to ask me anything! 💬',
-//     time: 3000,
-//     cta: [],
-//   },
-//   {
-//     id: 'inactivity',
-//     type: 'inActive',
-//     inActiveTime: 25000,
-//     hasClose: false,
-//     text: 'Hey! You there? 👀👋',
-//     animation: 'wave',
-//     time: 3000,
-//     cta: [],
-//   },
-//   {
-//     id: 'test-1',
-//     type: 'scroll',
-//     scrollValue: 70,
-//     pagePath: '/',
-//     match: 'equals',
-//     animation: 'shrug',
-//     hasClose: true,
-//     time: 15000,
-//     text: 'Did you know the chatbot market is projected to hit $102.26 billion?',
-//     cta: [{
-//       text: 'Read More',
-//       bg: '#1F8527',
-//       color: 'white',
-//       onClick: () => {
-//         window.open('file.docx');
-//       }
-//     }]
-//   },
-//   {
-//     id: 'test-2',
-//     type: 'scroll',
-//     scrollValue: 50,
-//     pagePath: '/customers',
-//     match: 'includes',
-//     animation: 'shrug',
-//     hasClose: true,
-//     time: 15000,
-//     text: 'I boosted site engagement by 200% for CompanyX',
-//     cta: [{
-//       text: 'See How',
-//       bg: '#1F8527',
-//       color: 'white',
-//       onClick: () => {
-//         window.open('file.docx');
-//       }
-//     }]
-//   },
-//   {
-//     id: 'test-3',
-//     type: 'popstate',
-//     pagePath: '/pricing',
-//     match: 'includes',
-//     animation: 'shrug',
-//     hasClose: true,
-//     delay: 10000,
-//     time: 15000,
-//     text: 'Hey! I\'ve got a special discount 🎉 just for you! Wanna check it out?',
-//     cta: [{
-//       text: 'Yes',
-//       bg: '#1F8527',
-//       color: 'white',
-//       nextInteraction: 'offer-1'
-//     }, {
-//       text: 'No',
-//       bg: '#FF0000',
-//       color: 'white',
-//       alertText: 'No worries! 😎 Maybe next time. We\'ll save the good stuff for you!'
-//     }]
-//   },
-//   {
-//     id: 'test-4',
-//     type: 'popstate',
-//     pagePath: '/demo',
-//     match: 'includes',
-//     animation: 'shrug',
-//     hasClose: true,
-//     time: 15000,
-//     text: 'Awesome! 🎉 Need help scheduling a call? I can set it up for you! 📅',
-//     cta: [{
-//       text: 'Yes',
-//       bg: '#1F8527',
-//       color: 'white',
-//       nextInteraction: 'openChatbot'
-//     }, {
-//       text: 'No',
-//       bg: '#FF0000',
-//       color: 'white',
-//       alertText: 'No worries! 😎'
-//     }],
-//     onClickClose: {
-//       alertText: 'Wait! You didn\'t book the call? 🤔'
-//     }
-//   },
-//   {
-//     id: 'offer-1',
-//     hasClose: true,
-//     timerCountdown: 120,
-//     innerHTML: `<img src="https://cdn.prod.website-files.com/61813b089ddadb7ca3b7468d/6391c522fe77f1de7bad14a2_pop-up-example-6.jpg" style="width:160px;height:100px;border-radius:10px"/>`,
-//     cta: []
-//   },
-// ];
-
-
 (function() {
 // Set our main variables
 let scene,  
@@ -134,6 +12,12 @@ let scene,
   clock = new THREE.Clock(),          // Used for anims, which run to a clock instead of frame rate 
   raycaster = new THREE.Raycaster();  // Used to detect the click on our character
 
+
+  let country = null;
+  let source = null;
+  let sourceLink = 'https://saas-dashboard-henna.vercel.app/chat';
+  let firstPageVisited = null;
+
   init();
 
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -143,6 +27,9 @@ let scene,
   function init() {
     fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    firstPageVisited = window.location.href;
+    country = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    source=getSource();
     const MODEL_PATH = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb';
 
     const fallbackLoader = document.createElement('div');
@@ -325,6 +212,24 @@ let scene,
     scene.add(floor);
   }
 
+  function getSource () {
+    const referrer = document.referrer;
+    const path = window.location.href;
+    if(referrer==='https://www.google.com/') return 'google';
+    else if(referrer==='https://www.yahoo.com/')  return 'yahoo';
+    else if(referrer==='https://www.bing.com/')  return 'bing';
+    else if(referrer==='https://www.youtube.com/') return 'youtube';
+    else if(referrer==='https://www.linkedin.com/') return 'linkedin';
+    else if(referrer==='https://www.reddit.com/') return 'reddit';
+    else if(path.includes('gclid')) return 'paid_google';
+    else if(path.includes('msclkid')) return 'paid_bing';
+    else if(path.includes('li_fat_id'))return 'paid_linkedin';
+    else if(path.includes('fbclid')) return 'paid_meta';
+    else if(path.includes('wbraid')) return 'paid_youtube';
+    else if(path.includes('cid')) return 'paid_reddit';
+    else return 'direct';
+  }
+
   async function fetchConfig() {
     try {
       const response = await fetch('https://node-service-lovat.vercel.app/api/get-interaction', {
@@ -340,6 +245,49 @@ let scene,
       const config = await response.json();
       CONFIG =  config.data;
       triggerConfig();
+    } catch (error) {
+      console.error('Error fetching config:', error);
+    }
+  }
+
+  async function incrementClick(id) {
+    try {
+      const response = await fetch('https://node-service-lovat.vercel.app/api/increment-click', {
+        method: 'POST',
+        body: JSON.stringify({ id }), 
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        // throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching config:', error);
+    }
+  }
+
+  async function incrementImpression(id) {
+    const existingOfferIds = JSON.parse(localStorage.getItem('offerIds')) || [];
+
+    if(existingOfferIds.includes(id)) return;
+
+    existingOfferIds.push(id);
+    localStorage.setItem('offerIds', JSON.stringify(existingOfferIds));
+
+    try {
+      const response = await fetch('https://node-service-lovat.vercel.app/api/increment-impressions', {
+        method: 'POST',
+        body: JSON.stringify({ id }), 
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        // throw new Error(`HTTP error! Status: ${response.status}`);
+      }
     } catch (error) {
       console.error('Error fetching config:', error);
     }
@@ -433,6 +381,9 @@ let scene,
                 break;
               case 'youtube':
                 if(referrer==='https://www.youtube.com/') isTrafficSourceValid = true;
+                break;
+              case 'linkedin':
+                if(referrer==='https://www.linkedin.com/') isTrafficSourceValid = true;
                 break;
               case 'reddit':
                 if(referrer==='https://www.reddit.com/') isTrafficSourceValid = true;
@@ -549,8 +500,9 @@ let scene,
     if(animationIdx>=0){
       playModifierAnimation(idle, 0.25, possibleAnims[animationIdx], 0.25)
     }
+    incrementImpression(config.id);
     if(type === 'tooltip'){
-      showTooltip(config.id, config.text, config.tooltip_bg, config.tooltip_color, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
+      showTooltip(config.id, config.format, config.destination_page, config.text, config.tooltip_bg, config.tooltip_color, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
         if(config.onEnd) showUIAnimation(CONFIG.filter(c => c.id === config.onEnd)[0])
         else showInput();
       });
@@ -575,14 +527,14 @@ let scene,
           </div>
         `;
       // }
-      showOverlay(config.id, innerHTML, config.tooltip_bg, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
+      showOverlay(config.id, config.format, config.destination_page, innerHTML, config.tooltip_bg, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
         if(config.onEnd) showUIAnimation(CONFIG.filter(c => c.id === config.onEnd)[0])
         else showInput();
       });
     }
   }
 
-  function showTooltip(id, text, bg, color, time, ctaList, hasClose, onClickClose, timerCountdown, animationCB) {
+  function showTooltip(id, format, destination_page, text, bg, color, time, ctaList, hasClose, onClickClose, timerCountdown, animationCB) {
     currentlyAnimating = true;
     currentAnimationID = id;
     hideInput();
@@ -654,7 +606,6 @@ let scene,
       timeoutDisappear = null;
     }
 
-    // if(hasClose){
       const closeBtn = document.createElement('button');
       closeBtn.style.background = 'white';
       closeBtn.style.padding = '2px';
@@ -687,7 +638,6 @@ let scene,
         closeUI();
       });
       tooltipContainer.appendChild(closeBtn);
-    // }
 
     if(timerCountdown){
       const timer = document.createElement('div');
@@ -743,23 +693,12 @@ let scene,
         btn.style.cursor = 'pointer';
         btn.style.border = '1px solid black';
         btn.addEventListener('click', () => {
-          if(ctaItem.onClick){
-            ctaItem.onClick();
-            closeUI();
-          } else if(ctaItem.alertText){
-            closeUI();
-            showUIAnimation({
-              hasClose: false,
-              text: ctaItem.alertText,
-              time: 2000,
-              cta: [],
-            })
-          } else if(ctaItem.nextInteraction){
-            closeUI();
-            if(ctaItem.nextInteraction === 'openChatbot'){
-              showChatWindow();
-            }
-            else showUIAnimation(CONFIG.filter(c => c.id === ctaItem.nextInteraction)[0]);
+          closeUI();
+          if(format === 'leadGen'){
+            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}`
+            showChatWindow();
+          } else if(format === 'pageVisit'){
+            if(destination_page) window.location.href = destination_page;
           }
         });
         ctaContainer.appendChild(btn);
@@ -779,7 +718,7 @@ let scene,
     }
   }
 
-  function showOverlay(id, innerHTML, bg, time, ctaList, hasClose,onClickClose, timerCountdown, animationCB) {
+  function showOverlay(id, format, destination_page , innerHTML, bg, time, ctaList, hasClose,onClickClose, timerCountdown, animationCB) {
     currentlyAnimating = true;
     currentAnimationID = id;
     hideInput();
@@ -811,38 +750,36 @@ let scene,
       timeoutDisappear = null;
     }
 
-    // if(hasClose){
-      const closeBtn = document.createElement('button');
-      closeBtn.style.background = 'white';
-      closeBtn.style.padding = '2px';
-      closeBtn.style.border = '1px solid black';
-      closeBtn.style.position = 'absolute';
-      closeBtn.style.top = '-6px';
-      closeBtn.style.left = '-6px';
-      closeBtn.style.width = '16px';
-      closeBtn.style.height = '16px';
-      closeBtn.style.fontSize = '10px';
-      closeBtn.style.borderRadius = '50%';
-      closeBtn.style.zIndex = '99';
-      closeBtn.innerHTML = 'X';
-      closeBtn.style.cursor = 'pointer';
-      closeBtn.addEventListener('click', () => {
-        if(onClickClose){
-          if(onClickClose.alertText){
-            closeUI();
-            showUIAnimation({
-              hasClose: false,
-              text: onClickClose.alertText,
-              time: 2000,
-              cta: [],
-            })
-            return;
-          }
+    const closeBtn = document.createElement('button');
+    closeBtn.style.background = 'white';
+    closeBtn.style.padding = '2px';
+    closeBtn.style.border = '1px solid black';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '-6px';
+    closeBtn.style.left = '-6px';
+    closeBtn.style.width = '16px';
+    closeBtn.style.height = '16px';
+    closeBtn.style.fontSize = '10px';
+    closeBtn.style.borderRadius = '50%';
+    closeBtn.style.zIndex = '99';
+    closeBtn.innerHTML = 'X';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.addEventListener('click', () => {
+      if(onClickClose){
+        if(onClickClose.alertText){
+          closeUI();
+          showUIAnimation({
+            hasClose: false,
+            text: onClickClose.alertText,
+            time: 2000,
+            cta: [],
+          })
+          return;
         }
-        closeUI();
-      });
-      tooltipContainer.appendChild(closeBtn);
-    // }
+      }
+      closeUI();
+    });
+    tooltipContainer.appendChild(closeBtn);
 
     if(timerCountdown){
       const timer = document.createElement('div');
@@ -893,23 +830,12 @@ let scene,
         btn.style.marginTop = '4px';
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
-          if(ctaItem.onClick){
-            ctaItem.onClick();
-            closeUI();
-          } else if(ctaItem.alertText){
-            closeUI();
-            showUIAnimation({
-              hasClose: false,
-              text: ctaItem.alertText,
-              time: 2000,
-              cta: [],
-            })
-          } else if(ctaItem.nextInteraction){
-            closeUI();
-            if(ctaItem.nextInteraction === 'openChatbot'){
-              showChatWindow();
-            }
-            else showUIAnimation(CONFIG.filter(c => c.id === ctaItem.nextInteraction)[0]);
+          closeUI();
+          if(format === 'leadGen'){
+            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}`
+            showChatWindow();
+          } else if(format === 'pageVisit'){
+            if(destination_page) window.location.href = destination_page;
           }
         });
         ctaContainer.appendChild(btn);
@@ -994,11 +920,13 @@ let scene,
     } else{
       hideInput();
     }
-    input.addEventListener('focus', () => showChatWindow());
+    input.addEventListener('focus', () => {
+      sourceLink = 'https://saas-dashboard-henna.vercel.app/chat';
+      showChatWindow()
+    });
   }
 
   function showInput(){
-    console.log('~~~~ here')
     if(currentlyAnimating) return;
     const input = document.getElementById('input');
     input.style.display = 'block';
@@ -1016,35 +944,36 @@ let scene,
 
     // Styling the chat window to look like a small chat box
     chatWindow.style.position = 'fixed';
-    chatWindow.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-    chatWindow.style.border = '1px solid white';
+    chatWindow.style.boxSizing = 'border-box';
+    chatWindow.style.border = isMobile ? 0 : '1px solid #ddd';
     chatWindow.style.color = '#fff';
-    chatWindow.style.padding = '16px';
-    chatWindow.style.borderRadius = '15px';  // Rounded corners
+    chatWindow.style.borderRadius = isMobile ? 0 : '16px';  
+    chatWindow.style.background = '#fff';  
     chatWindow.style.fontSize = '14px';
-    chatWindow.style.width = '250px';        // Small chat window width
-    chatWindow.style.height = '300px';       // Fixed chat window height
-    chatWindow.style.bottom = '20px';        // Position it at the bottom of the screen
-    chatWindow.style.right = '20px';         // Align it to the bottom right corner
+    chatWindow.style.width = isMobile ? '100%': '400px';        // Small chat window width
+    chatWindow.style.height = isMobile ? '100%': '660px';       // Fixed chat window height
+    chatWindow.style.bottom = isMobile ? 0 : '20px';        // Position it at the bottom of the screen
+    chatWindow.style.right =  isMobile ? 0 : '20px';         // Align it to the bottom right corner
     chatWindow.style.zIndex = '1000';
     chatWindow.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.3)'; // Adding shadow for effect
 
-    // Create a header for the chat window
-    const chatHeader = document.createElement('div');
-    chatHeader.style.backgroundColor = 'rgba(0, 0, 0, 0.25)';
-    chatHeader.style.padding = '10px';
-    chatHeader.style.borderRadius = '10px 10px 0 0';
-    chatHeader.style.fontWeight = 'bold';
-    chatHeader.style.textAlign = 'center';
-    chatHeader.innerText = 'Chat Window';
+    const iframeContainer = document.createElement('iframe');
+    iframeContainer.id = 'chatbot-iframe';
+    iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+    iframeContainer.style.width = '100%';     
+    iframeContainer.style.height = '100%';  
+    iframeContainer.style.border = 0;  
+    iframeContainer.style.borderRadius = isMobile ? 0 : '16px';  
+
+    chatWindow.appendChild(iframeContainer)
 
     // Create a close button inside the chat header
     const closeButton = document.createElement('span');
     closeButton.innerHTML = '×';  // Close (X) symbol
     closeButton.style.cursor = 'pointer';
     closeButton.style.position = 'absolute';
-    closeButton.style.right = '10px';
-    closeButton.style.top = '5px';
+    closeButton.style.right = '16px';
+    closeButton.style.top = '8px';
     closeButton.style.fontSize = '18px';
     closeButton.style.color = '#fff';
 
@@ -1053,38 +982,7 @@ let scene,
         chatWindow.style.display = 'none';
     };
 
-    // Append the close button to the header
-    chatHeader.appendChild(closeButton);
-
-    // Create a message area for displaying chat content
-    const messageArea = document.createElement('div');
-    messageArea.style.backgroundColor = '#222';
-    messageArea.style.padding = '10px';
-    messageArea.style.height = 'calc(100% - 100px)';  // Leave room for input
-    messageArea.style.overflowY = 'auto';
-    messageArea.style.borderRadius = '0 0 10px 10px';
-    messageArea.style.marginBottom = '10px';
-    messageArea.innerHTML = `<p>hello</p>`;  // Display the initial message
-
-    // Create an input for the chat window
-    const inputBox = document.createElement('input');
-    inputBox.type = 'text';
-    inputBox.placeholder = 'Type a message...';
-    inputBox.style.width = '100%';
-    inputBox.style.padding = '10px';
-    inputBox.style.borderRadius = '5px';
-    inputBox.style.border = 'none';
-    inputBox.style.outline = 'none';
-    inputBox.style.backgroundColor = '#444';
-    inputBox.style.color = '#fff';
-    inputBox.style.boxSizing = 'border-box';
-
-    // Append the header, message area, and input to the chat window
-    chatWindow.appendChild(chatHeader);
-    chatWindow.appendChild(messageArea);
-    chatWindow.appendChild(inputBox);
-
-    // Add the chat window to the body
+    chatWindow.appendChild(closeButton);
     document.body.appendChild(chatWindow);
 
     chatWindow.style.display = 'none';
@@ -1092,7 +990,9 @@ let scene,
 
   function showChatWindow(){
     const chat = document.getElementById('chatWindow');
-    chat.style.display = 'block';
+    const chatbot = document.getElementById('chatbot-iframe');
+    chatbot.src = sourceLink;
+    setTimeout(() => {chat.style.display = 'block'}, 200);
   }
   
   if(!isMobile){
