@@ -15,7 +15,7 @@ let scene,
 
   let country = null;
   let source = null;
-  let sourceLink = 'https://saas-dashboard-henna.vercel.app/chat';
+  let sourceLink = '#';
   let firstPageVisited = null;
 
   init();
@@ -34,6 +34,9 @@ let scene,
 
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
+
+    sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+
 
     if(document.body){
       document.body.appendChild(fallbackLoader);
@@ -615,9 +618,7 @@ let scene,
       closeBtn.style.left = '-4px';
       closeBtn.style.width = '16px';
       closeBtn.style.height = '16px';
-      tooltip.style.fontSize = isMobile ? '12px': '14px';
-      tooltip.style.lineHeight = isMobile ? '16px': '18px';
-      tooltip.style.fontFamily = 'sans-serif';
+      closeBtn.style.fontSize = '10px';
       closeBtn.style.borderRadius = '50%';
       closeBtn.style.zIndex = '99';
       closeBtn.style.cursor = 'pointer';
@@ -695,7 +696,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}`
+            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -832,7 +833,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}`
+            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -921,7 +922,7 @@ let scene,
       hideInput();
     }
     input.addEventListener('focus', () => {
-      sourceLink = 'https://saas-dashboard-henna.vercel.app/chat';
+      sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
       showChatWindow()
     });
   }
