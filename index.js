@@ -30,7 +30,8 @@ let scene,
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source=getSource();
-    const MODEL_PATH = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb';
+    // const MODEL_PATH = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb';
+    const MODEL_PATH = 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/girlfrexy.glb';
 
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
@@ -119,7 +120,8 @@ let scene,
     camera.position.x = 0;
     camera.position.y = -3;
     
-    let stacy_txt = new THREE.TextureLoader().load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy.jpg');
+    console.log('~~~~ here');
+    let stacy_txt = new THREE.TextureLoader().load('https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/makeup.png');
     
     stacy_txt.flipY = false; // we flip the texture so that its the right way up
     
@@ -145,36 +147,48 @@ let scene,
             o.receiveShadow = true;
             o.material = stacy_mtl;
           }
+          // if(o.isBone) console.log(o.name);
           // Reference the neck and waist bones
-          if (o.isBone && o.name === 'mixamorigNeck') {
+          if (o.isBone && o.name === 'neckx') {
             neck = o;
           }
-          if (o.isBone && o.name === 'mixamorigSpine') {
+          if (o.isBone && o.name === 'spine_01x') {
             waist = o;
           }
+          // console.log(neck, waist, o);
         });
         
         model.scale.set(7, 7, 7);
         model.position.y = -11;
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
-        let clips = fileAnimations.filter(val => val.name !== 'idle');
+        let clips = fileAnimations.filter(val => val.name !== 'idle ');
         possibleAnims = clips.map(val => {
           let clip = THREE.AnimationClip.findByName(clips,val.name);
-          clip.tracks.splice(3, 3);
-          clip.tracks.splice(9, 3);
-          clip = mixer.clipAction(clip);
+          // clip.tracks.splice(3, 3);
+          // clip.tracks.splice(9, 3);
+          // clip = mixer.clipAction(clip);
+          let clonedAnim = clip.clone();
+          clonedAnim.tracks = clonedAnim.tracks.filter(track => !track.name.includes('scale')).filter(track => !track.name.includes('position'));
+          clip = mixer.clipAction(clonedAnim);
           return {
             name: val.name,
             clip
           };
         });
         
-        let idleAnim = THREE.AnimationClip.findByName(fileAnimations, 'idle');
-        idleAnim.tracks.splice(3, 3);
-        idleAnim.tracks.splice(9, 3);
-        idle = mixer.clipAction(idleAnim);
-        idle.play();
+        let idleAnim = THREE.AnimationClip.findByName(fileAnimations, 'idle ');
+        idleAnim.tracks.splice(48, 3);
+        // idleAnim.tracks.splice(9, 3);
+        // idle = mixer.clipAction(idleAnim);
+        // idle.play();
+        if (idleAnim) {
+          let clonedIdleAnim = idleAnim.clone();
+          clonedIdleAnim.tracks = clonedIdleAnim.tracks.filter(track => !track.name.includes('scale')).filter(track => !track.name.includes('position'));
+          idle = mixer.clipAction(clonedIdleAnim);
+          idle.setLoop(THREE.LoopRepeat, Infinity); // Loop the idle animation
+          idle.play(); // Play the idle animation
+        }
         fallbackLoader.remove();
         appendInput();
         triggerConfig();
@@ -1007,7 +1021,7 @@ let scene,
       var mousecoords = getMousePos(e);
       if(neck && waist && !currentlyAnimating) {
         moveJoint(mousecoords, neck, 50);
-        moveJoint(mousecoords, waist, 30);
+        // moveJoint(mousecoords, waist, 30);
       }
     });
   }
