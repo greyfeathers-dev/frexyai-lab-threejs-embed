@@ -24,6 +24,10 @@ let scene,
 
   let CONFIG = [];
 
+
+  const TOOLTIP_BG = '#fff';
+  const TOOLTIP_COLOR = '#000';
+
   function init() {
     fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -120,7 +124,6 @@ let scene,
     camera.position.x = 0;
     camera.position.y = -3;
     
-    console.log('~~~~ here');
     let stacy_txt = new THREE.TextureLoader().load('https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/makeup.png');
     
     stacy_txt.flipY = false; // we flip the texture so that its the right way up
@@ -158,7 +161,7 @@ let scene,
           // console.log(neck, waist, o);
         });
         
-        model.scale.set(7, 7, 7);
+        model.scale.set(7.5, 7.5, 7.5);
         model.position.y = -11;
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
@@ -206,7 +209,8 @@ let scene,
     
     let d = 8.25;
     let dirLight = new THREE.DirectionalLight(0xffffff, 0.54);
-    dirLight.position.set(-8, 12, 8);
+    // dirLight.position.set(0, 10, 5);  // Adjust this for more direct light
+    dirLight.position.set(-8, 5, 20);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
     dirLight.shadow.camera.near = 0.1;
@@ -519,7 +523,7 @@ let scene,
     }
     incrementImpression(config.id);
     if(type === 'tooltip'){
-      showTooltip(config.id, config.format, config.destination_page, config.text, config.tooltip_bg, config.tooltip_color, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
+      showTooltip(config.id, config.format, config.destination_page, config.text, TOOLTIP_BG, TOOLTIP_COLOR, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
         if(config.onEnd) showUIAnimation(CONFIG.filter(c => c.id === config.onEnd)[0])
         else showInput();
       });
@@ -527,24 +531,24 @@ let scene,
       let innerHTML = `<></>`;
       // if(config.orientation === 'landscape'){
       //   innerHTML = `
-      //     <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:425px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.5)">
+      //     <div style="display:flex;flex-direction:row;align-items:center;background:${TOOLTIP_BG};padding:8px;border-radius:12px;max-width:425px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.5)">
       //       <img src=${config.imageUrl} style="height:180px;border-radius:10px;margin-right:12px"/>
       //       <div id="text-area">
-      //         <div style="color:${config.tooltip_color}">${config.text}</div>
+      //         <div style="color:${TOOLTIP_COLOR}">${config.text}</div>
       //       </div>
       //     </div>
       //   `;
       // } else {
         innerHTML = `
-          <div style="display:flex;flex-direction:row;align-items:center;background:${config.tooltip_bg};padding:8px;border-radius:12px;max-width:${isMobile? '240px': '360px'};box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
-            <img src=${config.imageUrl} style="height:140px;border-radius:10px;margin-right:12px"/>
+          <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
+            <img src=${config.imageUrl} style="height:200px;border-radius:10px;margin-bottom:12px"/>
             <div id="text-area">
-              <div style="color:${config.tooltip_color}">${config.text}</div>
+              <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
             </div>
           </div>
         `;
       // }
-      showOverlay(config.id, config.format, config.destination_page, innerHTML, config.tooltip_bg, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
+      showOverlay(config.id, config.format, config.destination_page, innerHTML, TOOLTIP_BG, config.time, config.cta, config.hasClose, config.onClickClose, config.timerCountdown, () => {
         if(config.onEnd) showUIAnimation(CONFIG.filter(c => c.id === config.onEnd)[0])
         else showInput();
       });
@@ -573,47 +577,18 @@ let scene,
     tooltip.style.position = 'relative';
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = '10px 14px';
+    tooltip.style.padding = '16px 20px';
     tooltip.style.borderRadius = '16px';
-    tooltip.style.fontSize = isMobile ? '14px': '16px';
-    tooltip.style.lineHeight = isMobile ? '18px': '20px';
+    // tooltip.style.fontSize = isMobile ? '16px': '16px';
+    // tooltip.style.lineHeight = isMobile ? '10px': '24px';
+    tooltip.style.fontSize =  '16px';
+    tooltip.style.lineHeight = '24px';
     tooltip.style.fontFamily = 'sans-serif';
     tooltip.style.pointerEvents = 'none';
     tooltip.style.whiteSpace = 'wrap';
     tooltip.style.zIndex = '10'
     tooltip.style.boxShadow = '0 0 4px rgba(0, 0, 0, 0.3)';
-    // Arrow style for the tooltip using a pseudo element
-    tooltip.style.setProperty('--tooltip-arrow-size', '5px');
-    tooltip.style.setProperty('--tooltip-arrow-color', bg)
     tooltip.style.margin = '8px 0'
-
-    const arrow = document.createElement('div');
-    arrow.style.position = 'absolute';
-    arrow.style.width = '16px'; // Width of the arrow
-    arrow.style.height = '10px'; // Height of the arrow
-    arrow.style.backgroundColor = bg; // Main arrow color
-    arrow.style.clipPath = 'polygon(0% 100%, 100% 100%, 50% 0%)'; // Triangle shape
-    arrow.style.top = '40%'; // Positioning
-    arrow.style.right = '-11px'; // Positioning
-    arrow.style.transform = 'rotate(90deg)';
-
-    // Shadow effect using a larger square and positioning it
-    const shadow = document.createElement('div');
-    shadow.style.position = 'absolute';
-    shadow.style.width = '16px'; // Same dimensions as the arrow
-    shadow.style.height = '10px'; // Same dimensions as the arrow
-    shadow.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // Shadow color
-    shadow.style.clipPath = 'polygon(0% 100%, 100% 100%, 50% 0%)'; // Same triangle shape
-    shadow.style.top = '42%'; // Slightly offset for shadow effect
-    shadow.style.right = '-12px'; // Slightly offset for shadow effect
-    shadow.style.transform = 'rotate(90deg)';
-    shadow.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25)'; // Box shadow for blurred effect
-
-    // shadow.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25)'; // Box shadow for the shadow element
-
-    // Append both shadow and arrow to the tooltip
-    tooltip.appendChild(shadow);
-   tooltip.appendChild(arrow);
 
     function closeUI(){
       if(currentAnimationID !== id) return;
@@ -625,18 +600,29 @@ let scene,
 
       const closeBtn = document.createElement('button');
       closeBtn.style.background = 'white';
-      closeBtn.style.padding = '2px';
-      closeBtn.style.border = '1px solid black';
+      closeBtn.style.padding = '4px';
+      closeBtn.style.border = '0';
       closeBtn.style.position = 'absolute';
-      closeBtn.style.top = '2px';
-      closeBtn.style.left = '-4px';
-      closeBtn.style.width = '16px';
-      closeBtn.style.height = '16px';
+      closeBtn.style.top = '-6px';
+      closeBtn.style.left = '-12px';
+      closeBtn.style.width = '26px';
+      closeBtn.style.height = '26px';
       closeBtn.style.fontSize = '10px';
       closeBtn.style.borderRadius = '50%';
+      closeBtn.style.display = 'flex';
+      closeBtn.style.justifyContent = 'center';
+      closeBtn.style.alignItems = 'center';
       closeBtn.style.zIndex = '99';
       closeBtn.style.cursor = 'pointer';
-      closeBtn.innerHTML = 'X';
+      closeBtn.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.3)'; // Adding shadow for effect
+      // closeBtn.innerHTML = 'X';
+
+      const closeImageIcon = document.createElement('img');
+      closeImageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+      closeImageIcon.style.width = '16px';
+      closeImageIcon.style.height = '16px';
+      closeBtn.appendChild(closeImageIcon);
+
       closeBtn.addEventListener('click', () => {
         if(onClickClose){
           if(onClickClose.alertText){
@@ -693,20 +679,22 @@ let scene,
 
     if(ctaList){
       const ctaContainer = document.createElement('div');
+      ctaContainer.style.marginTop = '12px';
       ctaList.map(ctaItem => {
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
-        btn.style.borderRadius = '12px';
+        btn.style.borderRadius = '28px';
         btn.style.border = '0';
-        tooltip.style.fontSize = isMobile ? '12px': '14px';
-        tooltip.style.lineHeight = isMobile ? '16px': '18px';
+        // tooltip.style.fontSize = isMobile ? '12px': '14px';
+        // tooltip.style.lineHeight = isMobile ? '16px': '18px';
+        tooltip.style.fontSize =  '14px';
+        tooltip.style.lineHeight = '24px';
         tooltip.style.fontFamily = 'sans-serif';
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = '6px 12px';
+        btn.style.padding = '10px 14px';
         btn.style.marginRight = '6px';
         btn.style.cursor = 'pointer';
-        btn.style.border = '1px solid black';
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
@@ -723,7 +711,7 @@ let scene,
 
     document.body.appendChild(tooltipContainer);
     tooltipContainer.style.right  = isMobile ? '90px' : '120px';
-    tooltipContainer.style.bottom = isMobile ? '64px' : '80px';
+    tooltipContainer.style.bottom = isMobile ? '40px' : '52px';
     tooltipContainer.style.display = 'block';
 
     if(time){
@@ -745,18 +733,6 @@ let scene,
     tooltipContainer.style.fontFamily = 'sans-serif';
     tooltipContainer.innerHTML = innerHTML;
 
-
-    const arrow = document.createElement('div');
-    arrow.style.position = 'absolute';
-    arrow.style.width = '16px'; // Width of the arrow
-    arrow.style.height = '10px'; // Height of the arrow
-    arrow.style.backgroundColor = bg; // Main arrow color
-    arrow.style.clipPath = 'polygon(0% 100%, 100% 100%, 50% 0%)'; // Triangle shape
-    arrow.style.top = '40%'; // Positioning
-    arrow.style.right = '-11px'; // Positioning
-    arrow.style.transform = 'rotate(90deg)';
-    tooltipContainer.appendChild(arrow);
-
     function closeUI(){
       if(currentAnimationID !== id) return;
       tooltipContainer.remove();
@@ -768,17 +744,28 @@ let scene,
     const closeBtn = document.createElement('button');
     closeBtn.style.background = 'white';
     closeBtn.style.padding = '2px';
-    closeBtn.style.border = '1px solid black';
+    closeBtn.style.border = 'none';
     closeBtn.style.position = 'absolute';
-    closeBtn.style.top = '-6px';
-    closeBtn.style.left = '-6px';
-    closeBtn.style.width = '16px';
-    closeBtn.style.height = '16px';
+    closeBtn.style.top = '-12px';
+    closeBtn.style.left = '-12px';
+
+    closeBtn.style.width = '26px';
+    closeBtn.style.height = '26px';
     closeBtn.style.fontSize = '10px';
     closeBtn.style.borderRadius = '50%';
+    closeBtn.style.display = 'flex';
+    closeBtn.style.justifyContent = 'center';
+    closeBtn.style.alignItems = 'center';
     closeBtn.style.zIndex = '99';
-    closeBtn.innerHTML = 'X';
     closeBtn.style.cursor = 'pointer';
+    closeBtn.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.3)'; // Adding shadow for effect
+    
+    const closeImageIcon = document.createElement('img');
+    closeImageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+    closeImageIcon.style.width = '16px';
+    closeImageIcon.style.height = '16px';
+    closeBtn.appendChild(closeImageIcon);
+
     closeBtn.addEventListener('click', () => {
       if(onClickClose){
         if(onClickClose.alertText){
@@ -834,14 +821,16 @@ let scene,
 
     if(ctaList){
       const ctaContainer = document.createElement('div');
+      ctaContainer.style.marginTop = '4px';
       ctaList.map(ctaItem => {
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
-        btn.style.borderRadius = '4px';
+        btn.style.borderRadius = '28px';
+        btn.style.width = '100%';
         btn.style.border = 0;
         btn.style.background = ctaItem?.bg;
         btn.style.color = ctaItem?.color;
-        btn.style.padding = '4px 8px';
+        btn.style.padding = '10px 14px';
         btn.style.marginTop = '4px';
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
@@ -890,7 +879,7 @@ let scene,
     const inputContainer = document.createElement('div');
     inputContainer.id = 'input';
     inputContainer.style.background = 'linear-gradient(45deg, purple, blue)';
-    inputContainer.style.padding = '2px';
+    inputContainer.style.padding = '1px';
     inputContainer.style.position = 'relative';
     inputContainer.style.borderRadius = '20px';  // Rounded corners
     const input = document.createElement('input');
@@ -898,12 +887,26 @@ let scene,
     inputContainer.appendChild(input);
     inputContainer.style.display = 'none';
 
+    input.style.setProperty('--placeholder-color', '#9C9C9C');  // Fallback if inline CSS doesn't work
+    input.style.setProperty('--placeholder-font-size', '24px'); 
+
+    // Inline styles for placeholder
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #input input::placeholder {
+        color: var(--placeholder-color, gray);  // Change color to gray
+        font-size: var(--placeholder-font-size, 16px); // Change font size to 16px
+      }
+    `;
+    document.head.appendChild(style);
+
     // Styling the input to make it look like a rounded box
     input.style.border = 0;
     input.style.color = '#000';
     input.style.background = '#fff';
     input.style.padding = '8px 16px';
-    input.style.width = '180px';
+    input.style.width = isMobile? '65vw': '180px';
+    input.style.height = '20px';
     input.style.borderRadius = '20px';  // Rounded corners
     input.style.fontSize = '14px';
     input.style.outline = 'none';       // Remove input focus outline
@@ -911,9 +914,9 @@ let scene,
     input.style.zIndex = '10';
 
     const imageIcon = document.createElement('img');
-    imageIcon.src= "https://i.postimg.cc/KzWnjTw7/chat-gif.gif";
+    imageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Black_Field%20Loading.gif";
     imageIcon.style.position = 'absolute';
-    imageIcon.style.top = '2px';
+    imageIcon.style.top = '3px';
     imageIcon.style.right = '2px';
     imageIcon.style.width = '32px';
     imageIcon.style.height = '32px';
@@ -921,7 +924,7 @@ let scene,
 
     // Positioning of the input box
     inputContainer.style.position = 'fixed';
-    inputContainer.style.bottom = isMobile ? '28px' : '32px';
+    inputContainer.style.bottom = isMobile ? '8px' : '32px';
     inputContainer.style.right = isMobile ? '80px' : '108px';
 
     // Add the input element to the body
@@ -935,7 +938,8 @@ let scene,
     } else{
       hideInput();
     }
-    input.addEventListener('focus', () => {
+    input.addEventListener('focus', (e) => {
+      e.preventDefault();
       sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
       showChatWindow()
     });
@@ -989,7 +993,7 @@ let scene,
     closeButton.style.position = 'absolute';
     closeButton.style.right = '16px';
     closeButton.style.top = '8px';
-    closeButton.style.fontSize = '18px';
+    closeButton.style.fontSize = '24px';
     closeButton.style.color = '#fff';
 
     // Close chat window when close button is clicked
