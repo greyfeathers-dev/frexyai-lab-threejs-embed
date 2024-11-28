@@ -562,7 +562,7 @@ let scene,
     const tooltipContainer = document.createElement('div');
     tooltipContainer.id = 'tooltipContainer';
     tooltipContainer.style.position = 'fixed';
-    tooltipContainer.style.maxWidth = '280px';
+    tooltipContainer.style.maxWidth = isMobile ? '260px' : '300px';
 
     const tooltip = document.createElement('div');
     tooltip.id = 'tooltip';
@@ -906,7 +906,7 @@ let scene,
     input.style.background = '#fff';
     input.style.padding = '8px 16px';
     input.style.width = isMobile? '65vw': '180px';
-    input.style.height = '20px';
+    input.style.height = '36px';
     input.style.borderRadius = '20px';  // Rounded corners
     input.style.fontSize = '14px';
     input.style.outline = 'none';       // Remove input focus outline
