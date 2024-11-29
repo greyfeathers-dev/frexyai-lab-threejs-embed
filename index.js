@@ -26,7 +26,7 @@ let scene,
 
 
   const TOOLTIP_BG = '#fff';
-  const TOOLTIP_COLOR = '#000';
+  const TOOLTIP_COLOR = '#0D1934';
 
   function init() {
     fetchConfig();
@@ -882,8 +882,8 @@ let scene,
     inputContainer.style.padding = '1px';
     inputContainer.style.position = 'relative';
     inputContainer.style.borderRadius = '20px';  // Rounded corners
-    const input = document.createElement('input');
-    input.placeholder = 'Ask me anything';  // Set the input value to the message
+    const input = document.createElement('div');
+    input.innerHTML = 'Ask me anything';  // Set the input value to the message
     inputContainer.appendChild(input);
     inputContainer.style.display = 'none';
 
@@ -901,23 +901,25 @@ let scene,
     document.head.appendChild(style);
 
     // Styling the input to make it look like a rounded box
-    input.style.border = 0;
     input.style.color = '#000';
     input.style.background = '#fff';
-    input.style.padding = '8px 16px';
-    input.style.width = isMobile? '65vw': '180px';
+    input.style.color = '#8F8F8F';
+    input.style.fontSize = '14px';
+    input.style.lineHeight = '36px';
+    input.style.fontFamily = 'sans-serif';
+    input.style.padding = '0px 20px';
+    input.style.width = isMobile? '62vw': '220px';
     input.style.height = '36px';
     input.style.borderRadius = '20px';  // Rounded corners
     input.style.fontSize = '14px';
-    input.style.outline = 'none';       // Remove input focus outline
-    input.style.whiteSpace = 'wrap';
+    input.style.cursor = 'pointer';
     input.style.zIndex = '10';
 
     const imageIcon = document.createElement('img');
     imageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Black_Field%20Loading.gif";
     imageIcon.style.position = 'absolute';
     imageIcon.style.top = '3px';
-    imageIcon.style.right = '2px';
+    imageIcon.style.right = '3px';
     imageIcon.style.width = '32px';
     imageIcon.style.height = '32px';
     inputContainer.appendChild(imageIcon);
@@ -938,7 +940,7 @@ let scene,
     } else{
       hideInput();
     }
-    input.addEventListener('focus', (e) => {
+    input.addEventListener('click', (e) => {
       e.preventDefault();
       sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
       showChatWindow()
