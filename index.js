@@ -27,6 +27,7 @@ let scene,
 
   const TOOLTIP_BG = '#fff';
   const TOOLTIP_COLOR = '#0D1934';
+  const audio = new Audio('https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3');
 
   function init() {
     fetchConfig();
@@ -553,6 +554,7 @@ let scene,
         else showInput();
       });
     }
+    audio.play();
   }
 
   function showTooltip(id, format, destination_page, text, bg, color, time, ctaList, hasClose, onClickClose, timerCountdown, animationCB) {
