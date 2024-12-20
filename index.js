@@ -47,7 +47,7 @@ let scene,
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
 
-    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
 
 
     if(document.body){
@@ -790,7 +790,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -929,7 +929,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -1035,7 +1035,7 @@ let scene,
     }
     input.addEventListener('click', (e) => {
       e.preventDefault();
-      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
       showChatWindow()
     });
   }
