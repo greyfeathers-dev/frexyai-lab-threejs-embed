@@ -17,6 +17,12 @@ let scene,
   let source = null;
   let sourceLink = '#';
   let firstPageVisited = null;
+  let leadId = null;
+
+  const CHATBOT_PAGE = 'https://saas-dashboard-henna.vercel.app';
+  // const CHATBOT_PAGE = 'http://localhost:3000';
+  const ENDPOINT = 'https://node-service-lovat.vercel.app';
+  // const ENDPOINT = 'http://localhost:3001'
 
   init();
 
@@ -41,7 +47,7 @@ let scene,
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
 
-    sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
 
 
     if(document.body){
@@ -195,7 +201,13 @@ let scene,
         }
         fallbackLoader.remove();
         appendInput();
+        setLeadId();
         triggerConfig();
+        trackButtonEvents();
+        addActivity({
+          type: 'pageVisit',
+          source: getSource()
+        })
       },
       undefined, // We don't need this function
       function(error) {
@@ -254,7 +266,7 @@ let scene,
 
   async function fetchConfig() {
     try {
-      const response = await fetch('https://node-service-lovat.vercel.app/api/get-interaction', {
+      const response = await fetch(`${ENDPOINT}/api/get-interaction`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -272,9 +284,40 @@ let scene,
     }
   }
 
+  function trackButtonEvents() {
+    const buttons = document.querySelectorAll('button');
+  
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        addActivity({
+          type: 'buttonClicked',
+          button_name: button.innerText || 'UNNAMED'
+        })
+      });
+  
+      let hoverTimeout;
+      button.addEventListener('mouseenter', () => {
+        hoverTimeout = setTimeout(() => {
+          addActivity({
+            type: 'buttonHovered',
+            button_name: button.innerText || 'UNNAMED'
+          })
+        }, 2000); 
+      });
+  
+      button.addEventListener('mouseleave', () => {
+        clearTimeout(hoverTimeout);
+      });
+    });
+  }
+
   async function incrementClick(id) {
+    addActivity({
+      type: 'offerClicked',
+      offer_id: id
+    })
     try {
-      const response = await fetch('https://node-service-lovat.vercel.app/api/increment-click', {
+      const response = await fetch(`${ENDPOINT}/api/increment-click`, {
         method: 'POST',
         body: JSON.stringify({ id }), 
         headers: {
@@ -291,6 +334,10 @@ let scene,
   }
 
   async function incrementImpression(id) {
+    addActivity({
+      type: 'offerView',
+      offer_id: id
+    })
     const existingOfferIds = JSON.parse(localStorage.getItem('offerIds')) || [];
 
     if(existingOfferIds.includes(id)) return;
@@ -299,9 +346,36 @@ let scene,
     localStorage.setItem('offerIds', JSON.stringify(existingOfferIds));
 
     try {
-      const response = await fetch('https://node-service-lovat.vercel.app/api/increment-impressions', {
+      const response = await fetch(`${ENDPOINT}/api/increment-impressions`, {
         method: 'POST',
         body: JSON.stringify({ id }), 
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        // throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching config:', error);
+    }
+  }
+
+
+  async function addActivity(activity) {
+    const leadId = localStorage.getItem('leadId') || '';
+
+    if(!leadId) return;
+
+    try {
+      const response = await fetch(`${ENDPOINT}/api/add-activity`, {
+        method: 'POST',
+        body: JSON.stringify({ id: leadId, activity: {
+          ...activity,
+          page_source: window.location.href,
+          created_at: Date.now()
+        } }), 
         headers: {
           'Content-Type': 'application/json'
         }
@@ -352,6 +426,10 @@ let scene,
   //path change event
 
   function dispatchPathChangeEvent() {
+    addActivity({
+      type: 'pageVisit',
+      source: getSource()
+    })
     const pathChangeEvent = new Event('pathChange');
     window.dispatchEvent(pathChangeEvent);
   }
@@ -377,6 +455,17 @@ let scene,
   observer.observe(document.body, { childList: true, subtree: true });
 
   const displayState = {};
+
+  function setLeadId() {
+    const id = localStorage.getItem('leadId');
+    if(id){
+      leadId = id;
+    } else {
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      leadId = uniqueId;
+      localStorage.setItem('leadId', uniqueId);
+    }
+  }
 
   function triggerConfig() {
     CONFIG.map(config => {
@@ -683,6 +772,7 @@ let scene,
       const ctaContainer = document.createElement('div');
       ctaContainer.style.marginTop = '12px';
       ctaList.map(ctaItem => {
+        incrementClick(id);
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = '28px';
@@ -700,7 +790,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -825,6 +915,7 @@ let scene,
       const ctaContainer = document.createElement('div');
       ctaContainer.style.marginTop = '4px';
       ctaList.map(ctaItem => {
+        incrementClick(id);
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = '28px';
@@ -838,7 +929,7 @@ let scene,
         btn.addEventListener('click', () => {
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `https://saas-dashboard-henna.vercel.app/form/${id}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
             showChatWindow();
           } else if(format === 'pageVisit'){
             if(destination_page) window.location.href = destination_page;
@@ -944,7 +1035,7 @@ let scene,
     }
     input.addEventListener('click', (e) => {
       e.preventDefault();
-      sourceLink = `https://saas-dashboard-henna.vercel.app/chat?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
       showChatWindow()
     });
   }
