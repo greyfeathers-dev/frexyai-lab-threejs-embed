@@ -201,7 +201,6 @@ let scene,
         }
         fallbackLoader.remove();
         appendInput();
-        setLeadId();
         triggerConfig();
         trackButtonEvents();
         addActivity({
@@ -265,8 +264,9 @@ let scene,
   }
 
   async function fetchConfig() {
+    setLeadId();
     try {
-      const response = await fetch(`${ENDPOINT}/api/get-interaction`, {
+      const response = await fetch(`${ENDPOINT}/api/get-interaction?id=${leadId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -772,7 +772,6 @@ let scene,
       const ctaContainer = document.createElement('div');
       ctaContainer.style.marginTop = '12px';
       ctaList.map(ctaItem => {
-        incrementClick(id);
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = '28px';
@@ -788,6 +787,7 @@ let scene,
         btn.style.marginRight = '6px';
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
+          incrementClick(id);
           closeUI();
           if(format === 'leadGen'){
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
@@ -915,7 +915,6 @@ let scene,
       const ctaContainer = document.createElement('div');
       ctaContainer.style.marginTop = '4px';
       ctaList.map(ctaItem => {
-        incrementClick(id);
         const btn = document.createElement('button');
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = '28px';
@@ -927,6 +926,7 @@ let scene,
         btn.style.marginTop = '4px';
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
+          incrementClick(id);
           closeUI();
           if(format === 'leadGen'){
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
