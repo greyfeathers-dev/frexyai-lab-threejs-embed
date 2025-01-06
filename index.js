@@ -24,6 +24,45 @@ let scene,
   const ENDPOINT = 'https://node-service-lovat.vercel.app';
   // const ENDPOINT = 'http://localhost:3001'
 
+
+  const BASE_MODEL = {
+    model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb',
+    animation: 'idle'
+  }
+
+  const ANIMATION_LIST = [
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb',
+      animation: 'celebration'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/disappointed.glb',
+      animation: 'disappointed'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/no_no.glb',
+      animation: 'no_no'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/offer.glb',
+      animation: 'offer'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/thumbs_up.glb',
+      animation: 'thumbs_up'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/two_hand_wave.glb',
+      animation: 'two_hand_wave'
+    },
+    {
+      model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb',
+      animation: 'wave'
+    },
+  ];
+
+  const MODEL_TEXTURE = 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png';
+
   init();
 
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -41,8 +80,7 @@ let scene,
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source=getSource();
-    // const MODEL_PATH = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb';
-    const MODEL_PATH = 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/girlfrexy.glb';
+    const MODEL_PATH = BASE_MODEL.model_url;
 
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
@@ -130,8 +168,8 @@ let scene,
     camera.position.z = 30;
     camera.position.x = 0;
     camera.position.y = -3;
-    
-    let stacy_txt = new THREE.TextureLoader().load('https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/makeup.png');
+
+    let stacy_txt = new THREE.TextureLoader().load(MODEL_TEXTURE);
     
     stacy_txt.flipY = false; // we flip the texture so that its the right way up
     
@@ -168,7 +206,7 @@ let scene,
           // console.log(neck, waist, o);
         });
         
-        model.scale.set(7.5, 7.5, 7.5);
+        model.scale.set(12.5, 12.5, 12.5);
         model.position.y = -11;
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
@@ -187,7 +225,7 @@ let scene,
           };
         });
         
-        let idleAnim = THREE.AnimationClip.findByName(fileAnimations, 'idle ');
+        let idleAnim = THREE.AnimationClip.findByName(fileAnimations, BASE_MODEL.animation);
         idleAnim.tracks.splice(48, 3);
         // idleAnim.tracks.splice(9, 3);
         // idle = mixer.clipAction(idleAnim);
@@ -200,6 +238,7 @@ let scene,
           idle.play(); // Play the idle animation
         }
         fallbackLoader.remove();
+        loadAdditionalAnimations(gltf);
         appendInput();
         triggerConfig();
         trackButtonEvents();
@@ -244,6 +283,53 @@ let scene,
     floor.position.y = -11;
     scene.add(floor);
   }
+
+  function loadAdditionalAnimations(gltf) {
+    const loader = new THREE.GLTFLoader();
+  
+    ANIMATION_LIST.forEach((animationItem, index) => {
+      loader.load(
+        animationItem.model_url,
+        function (newGLTF) {
+  
+          if (!newGLTF.animations || newGLTF.animations.length === 0) {
+            console.error(`No animations found in the loaded GLB file for ${animationItem.animation}.`);
+            return;
+          }
+  
+          // Add new animations to the existing GLTF animations
+          gltf.animations.push(...newGLTF.animations);
+  
+          // Update possible animations list
+          const clips = gltf.animations.filter((val) => val.name === animationItem.animation);
+          const newAnimations = clips.map((val) => {
+            let clip = THREE.AnimationClip.findByName(clips, val.name);
+            if (!clip) {
+              console.error(`Animation ${val.name} not found in the clips.`);
+              return null;
+            }
+            const clonedAnim = clip.clone();
+            clonedAnim.tracks = clonedAnim.tracks.filter(
+              (track) =>
+                !track.name.includes('scale') && !track.name.includes('position')
+            );
+            return {
+              name: val.name,
+              clip: mixer.clipAction(clonedAnim),
+            };
+          }).filter(Boolean); // Remove null entries
+  
+          possibleAnims.push(...newAnimations);
+  
+        },
+        undefined,
+        function (error) {
+          console.error(`Error loading GLTF for ${animationItem.animation}:`, error);
+        }
+      );
+    });
+  }
+  
 
   function getSource () {
     const referrer = document.referrer;
@@ -528,7 +614,6 @@ let scene,
           if(currTimezone === loc) isLocationValid = true;
         })
       }
-      console.log(isTrafficSourceValid, isLocationValid);
       if(!(isTrafficSourceValid && isLocationValid)) return;
       switch(config.type){
         case 'onFirstLand':
@@ -590,7 +675,7 @@ let scene,
               } else{
                 if(displayState[config.id]) return;
                 displayState[config.id] = true;
-                showUIAnimation(config);
+                  showUIAnimation(config);
               }
             }
           })
@@ -957,7 +1042,7 @@ let scene,
 
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
     const to = finalAnim.clip;
-    to.setLoop(THREE.LoopOnce);
+    to.setLoop(THREE.LoopRepeat);
     to.reset();
     to.play();
     from.crossFadeTo(to, fSpeed, true);
