@@ -85,7 +85,7 @@ let scene,
     const fallbackLoader = document.createElement('div');
     fallbackLoader.id = 'loader';
 
-    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
 
 
     if(document.body){
@@ -716,7 +716,7 @@ let scene,
       // } else {
         innerHTML = `
           <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
-            <img src=${config.imageUrl} style="height:200px;border-radius:10px;margin-bottom:12px"/>
+            <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
             <div id="text-area">
               <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
             </div>
@@ -875,10 +875,10 @@ let scene,
           incrementClick(id);
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`
             showChatWindow();
           } else if(format === 'pageVisit'){
-            if(destination_page) window.location.href = destination_page;
+            if(destination_page) window.location.href = `https://${destination_page}`;
           }
         });
         ctaContainer.appendChild(btn);
@@ -1014,10 +1014,10 @@ let scene,
           incrementClick(id);
           closeUI();
           if(format === 'leadGen'){
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`
+            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`
             showChatWindow();
           } else if(format === 'pageVisit'){
-            if(destination_page) window.location.href = destination_page;
+            if(destination_page) window.location.href = `https://${destination_page}`;
           }
         });
         ctaContainer.appendChild(btn);
@@ -1120,7 +1120,7 @@ let scene,
     }
     input.addEventListener('click', (e) => {
       e.preventDefault();
-      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
       showChatWindow()
     });
   }
@@ -1158,7 +1158,7 @@ let scene,
 
     const iframeContainer = document.createElement('iframe');
     iframeContainer.id = 'chatbot-iframe';
-    iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}`;
+    iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
     iframeContainer.style.width = '100%';     
     iframeContainer.style.height = '100%';  
     iframeContainer.style.border = 0;  
