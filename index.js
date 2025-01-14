@@ -21,7 +21,7 @@ let scene,
 
   const CHATBOT_PAGE = 'https://saas-dashboard-henna.vercel.app';
   // const CHATBOT_PAGE = 'http://localhost:3000';
-  const ENDPOINT = 'https://node-service-lovat.vercel.app';
+  const ENDPOINT = 'https://node-service-1e6u.onrender.com';
   // const ENDPOINT = 'http://localhost:3001'
 
 
@@ -197,7 +197,7 @@ let scene,
           }
           // if(o.isBone) console.log(o.name);
           // Reference the neck and waist bones
-          if (o.isBone && o.name === 'neckx') {
+          if (o.isBone && o.name === 'CC_Base_NeckTwist02') {
             neck = o;
           }
           if (o.isBone && o.name === 'spine_01x') {
@@ -1203,7 +1203,7 @@ let scene,
         timer = setTimeout(() => resetHead(), 4000);
       }
       var mousecoords = getMousePos(e);
-      if(neck && waist && !currentlyAnimating) {
+      if(neck && !currentlyAnimating) {
         moveJoint(mousecoords, neck, 50);
         // moveJoint(mousecoords, waist, 30);
       }
