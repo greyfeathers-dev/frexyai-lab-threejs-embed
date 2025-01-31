@@ -27,6 +27,7 @@ let scene,
 
   const BASE_MODEL = {
     model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb',
+    // model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Idle_Head.glb',
     animation: 'idle'
   }
 
@@ -197,7 +198,7 @@ let scene,
           }
           // if(o.isBone) console.log(o.name);
           // Reference the neck and waist bones
-          if (o.isBone && o.name === 'CC_Base_NeckTwist02') {
+          if (o.isBone && o.name === 'CC_Base_Head') {
             neck = o;
           }
           if (o.isBone && o.name === 'spine_01x') {
@@ -206,7 +207,7 @@ let scene,
           // console.log(neck, waist, o);
         });
         
-        model.scale.set(12.5, 12.5, 12.5);
+        model.scale.set(14.5, 14.5, 14.5);
         model.position.y = -11;
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
@@ -694,7 +695,7 @@ let scene,
     const type = config.imageUrl ? 'overlay' : 'tooltip';
     hideInput();
     if(animationIdx>=0){
-      playModifierAnimation(idle, 0.25, possibleAnims[animationIdx], 0.25)
+      playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5)
     }
     incrementImpression(config.id);
     if(type === 'tooltip'){
@@ -1042,14 +1043,21 @@ let scene,
 
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
     const to = finalAnim.clip;
+  
+    // Ensure the new animation (to) is ready to play and is looped if necessary
     to.setLoop(THREE.LoopRepeat);
-    to.reset();
-    to.play();
+    to.reset(); // Resets the animation state
+    to.play(); // Start playing the 'to' animation
+    
+    // Apply fade-in for the incoming animation
     from.crossFadeTo(to, fSpeed, true);
+  
+    // After the fade-in completes, we set up the fade-out when the animation reaches its end
     setTimeout(function() {
-      from.enabled = true;
+      from.enabled = true; // Ensure the original animation can be re-enabled for the next fade
+      // Now apply fade-out and return to the 'from' animation
       to.crossFadeTo(from, tSpeed, true);
-    }, to._clip.duration * 1000 -((tSpeed + fSpeed) * 1000));
+    }, to._clip.duration * 1000 - ((tSpeed + fSpeed) * 1000));
   }
 
   function appendInput() {
@@ -1094,12 +1102,12 @@ let scene,
     input.style.zIndex = '10';
 
     const imageIcon = document.createElement('img');
-    imageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Black_Field%20Loading.gif";
+    imageIcon.src= "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = 'absolute';
-    imageIcon.style.top = '3px';
-    imageIcon.style.right = '3px';
-    imageIcon.style.width = '32px';
-    imageIcon.style.height = '32px';
+    imageIcon.style.top = '-1px';
+    imageIcon.style.right = '2px';
+    imageIcon.style.width = '48px';
+    imageIcon.style.height = '40px';
     inputContainer.appendChild(imageIcon);
 
     // Positioning of the input box
@@ -1144,13 +1152,13 @@ let scene,
     // Styling the chat window to look like a small chat box
     chatWindow.style.position = 'fixed';
     chatWindow.style.boxSizing = 'border-box';
-    chatWindow.style.border = isMobile ? 0 : '1px solid #ddd';
+    chatWindow.style.border = isMobile ? 0 : '0.3px solid #8F8F8F';
     chatWindow.style.color = '#fff';
     chatWindow.style.borderRadius = isMobile ? 0 : '16px';  
     chatWindow.style.background = '#fff';  
     chatWindow.style.fontSize = '14px';
-    chatWindow.style.width = isMobile ? '100%': '400px';        // Small chat window width
-    chatWindow.style.height = isMobile ? '100%': '660px';       // Fixed chat window height
+    chatWindow.style.width = isMobile ? '100%': '390px';        // Small chat window width
+    chatWindow.style.height = isMobile ? '100%': '625px';       // Fixed chat window height
     chatWindow.style.bottom = isMobile ? 0 : '20px';        // Position it at the bottom of the screen
     chatWindow.style.right =  isMobile ? 0 : '20px';         // Align it to the bottom right corner
     chatWindow.style.zIndex = '1000';
