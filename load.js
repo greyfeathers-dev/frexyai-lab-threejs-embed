@@ -15,7 +15,9 @@ function getMerchantId() {
 
 const merchantId = getMerchantId();
 console.log("Merchant ID:", merchantId);
-localStorage.setItem("merchantId", merchantId);
+if (merchantId !== "default") {
+   localStorage.setItem("merchantId", merchantId);
+}
 
 function loadScript(url, callback) {
    let script = document.createElement("script");
