@@ -3,8 +3,11 @@ function getMerchantId() {
    try {
       // Get the script tag that loaded this file
       const scripts = document.getElementsByTagName("script");
+      console.log("scripts", scripts);
       const script = scripts[scripts.length - 1]; // Last loaded script
+      console.log("script", script);
       const src = new URL(script.src);
+      console.log("src", src);
       return src.searchParams.get("merchantId") || "default";
    } catch (error) {
       console.error("Error getting merchantId:", error);
