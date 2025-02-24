@@ -1,6 +1,7 @@
 /** @format */
 
 function loadScript(url, callback) {
+   alert(url);
    const merchantId = new URLSearchParams(window.location.search).get("merchantId") || "defasddult";
    alert(merchantId);
    console.log("merchantId", merchantId);
