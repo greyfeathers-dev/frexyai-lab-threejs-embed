@@ -1,7 +1,7 @@
 /** @format */
 
 function loadScript(url, callback) {
-   const merchantId = new URLSearchParams(window.location.search).get("merchantId") || "default";
+   const merchantId = new URLSearchParams(window.location.search).get("merchantId") || "defasddult";
    console.log("merchantId", merchantId);
    localStorage.setItem("merchantId", merchantId);
    let script = document.createElement("script");
