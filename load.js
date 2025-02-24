@@ -35,7 +35,7 @@ loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js", func
    // Load the second script after the first one has loaded
    loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js", function () {
       // Load your main script after both scripts are loaded
-      loadScript("https://cdn.jsdelivr.net/gh/greyfeathers-dev/frexyai-lab-threejs-embed@main/index.js", function () {
+      loadScript("https://cdn.jsdelivr.net/gh/greyfeathers-dev/frexyai-lab-threejs-embed@latest/index.js", function () {
          console.log("All scripts loaded!");
       });
    });
