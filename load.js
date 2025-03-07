@@ -29,7 +29,7 @@ function loadScript(url, callback) {
 
    document.head.appendChild(script);
 }
-
+alert("Loading scripts...");
 // Load the first script
 loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js", function () {
    // Load the second script after the first one has loaded
