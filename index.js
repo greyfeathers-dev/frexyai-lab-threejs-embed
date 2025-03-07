@@ -87,7 +87,7 @@
       const merchantId = localStorage.getItem("merchantId");
 
       sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
-
+      alert(sourceLink);
       if (document.body) {
          document.body.appendChild(fallbackLoader);
       } else {
