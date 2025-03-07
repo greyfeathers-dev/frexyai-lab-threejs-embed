@@ -2,9 +2,10 @@
 function getMerchantId() {
    try {
       const script = document.currentScript; // The script that is currently executing
-
+      console.log("Script:", script);
       if (script) {
          const src = new URL(script.src);
+         console.log("Src:", src);
          return src.searchParams.get("merchantId") || "default";
       }
    } catch (error) {
@@ -17,6 +18,7 @@ function getMerchantId() {
 const merchantId = getMerchantId();
 console.log("Merchant ID:", merchantId);
 if (merchantId !== "default") {
+   console.log("Setting merchantId:", merchantId);
    localStorage.setItem("merchantId", merchantId);
 }
 
