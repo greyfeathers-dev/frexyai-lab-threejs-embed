@@ -84,8 +84,9 @@
 
       const fallbackLoader = document.createElement("div");
       fallbackLoader.id = "loader";
+      const merchantId = localStorage.getItem("merchantId");
 
-      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
 
       if (document.body) {
          document.body.appendChild(fallbackLoader);
@@ -1167,7 +1168,6 @@
       chatWindow.style.zIndex = "1000";
       chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
       const merchantId = localStorage.getItem("merchantId");
-      alert(merchantId);
       const iframeContainer = document.createElement("iframe");
       iframeContainer.id = "chatbot-iframe";
       iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
