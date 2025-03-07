@@ -1,23 +1,4 @@
 /** @format */
-function getMerchantId() {
-   try {
-      const script = document.currentScript; // The script that is currently executing
-
-      if (script) {
-         const src = new URL(script.src);
-         return src.searchParams.get("merchantId") || "default";
-      }
-   } catch (error) {
-      console.error("Error getting merchantId:", error);
-   }
-   return "default";
-}
-
-const merchantId = getMerchantId();
-console.log("Merchant ID:", merchantId);
-if (merchantId !== "default") {
-   localStorage.setItem("merchantId", merchantId);
-}
 
 function loadScript(url, callback) {
    let script = document.createElement("script");
@@ -36,7 +17,25 @@ loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js", func
    loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js", function () {
       // Load your main script after both scripts are loaded
       loadScript("https://frexyai-lab-threejs-embed.vercel.app/index.js", function () {
-         console.log("All scripts loaded!");
+         function getMerchantId() {
+            try {
+               const script = document.currentScript; // The script that is currently executing
+
+               if (script) {
+                  const src = new URL(script.src);
+                  return src.searchParams.get("merchantId") || "default";
+               }
+            } catch (error) {
+               console.error("Error getting merchantId:", error);
+            }
+            return "default";
+         }
+
+         const merchantId = getMerchantId();
+         console.log("Merchant ID:", merchantId);
+         if (merchantId !== "default") {
+            localStorage.setItem("merchantId", merchantId);
+         }
       });
    });
 });
