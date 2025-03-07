@@ -1,12 +1,15 @@
 /** @format */
-function getMerchantId() {
+function storeMerchantId() {
    try {
       const script = document.currentScript; // The script that is currently executing
       console.log("Script:", script);
       if (script) {
          const src = new URL(script.src);
          console.log("Src:", src);
-         return src.searchParams.get("merchantId") || "default";
+         merchantId = src.searchParams.get("merchantId") || "default";
+         if (merchantId !== "default") {
+            localStorage.setItem("merchantId", merchantId);
+         }
       }
    } catch (error) {
       console.error("Error getting merchantId:", error);
@@ -15,12 +18,7 @@ function getMerchantId() {
 }
 
 // Move merchantId logic to the top, before any script loading
-const merchantId = getMerchantId();
-console.log("Merchant ID:", merchantId);
-if (merchantId !== "default") {
-   console.log("Setting merchantId:", merchantId);
-   localStorage.setItem("merchantId", merchantId);
-}
+storeMerchantId();
 
 function loadScript(url, callback) {
    let script = document.createElement("script");
