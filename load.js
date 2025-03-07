@@ -17,6 +17,8 @@ function getMerchantId() {
 const merchantId = getMerchantId();
 console.log("Merchant ID:", merchantId);
 
+window.parent.postMessage({ type: "MERCHANT_ID", merchantId }, "http://localhost:3000");
+
 // Inject a script that runs in the host page's context
 (function injectScript() {
    const script = document.createElement("script");
