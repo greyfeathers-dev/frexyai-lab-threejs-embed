@@ -1166,10 +1166,11 @@
       chatWindow.style.right = isMobile ? 0 : "20px"; // Align it to the bottom right corner
       chatWindow.style.zIndex = "1000";
       chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
-
+      const merchantId = localStorage.getItem("merchantId");
+      alert(merchantId);
       const iframeContainer = document.createElement("iframe");
       iframeContainer.id = "chatbot-iframe";
-      iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+      iframeContainer.src = `${sourceLink}?source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
       iframeContainer.style.width = "100%";
       iframeContainer.style.height = "100%";
       iframeContainer.style.border = 0;
