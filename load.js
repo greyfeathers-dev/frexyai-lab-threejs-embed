@@ -1,16 +1,12 @@
 /** @format */
-function storeMerchantId() {
+
+function getMerchantId() {
    try {
       const script = document.currentScript; // The script that is currently executing
-      console.log("Script:", script);
+
       if (script) {
          const src = new URL(script.src);
-         console.log("Src:", src);
-         merchantId = src.searchParams.get("merchantId") || "default";
-         if (merchantId !== "default") {
-            console.log("Setting merchantId:", merchantId);
-            localStorage.setItem("merchantId", merchantId);
-         }
+         return src.searchParams.get("merchantId") || "default";
       }
    } catch (error) {
       console.error("Error getting merchantId:", error);
@@ -18,8 +14,25 @@ function storeMerchantId() {
    return "default";
 }
 
-// Move merchantId logic to the top, before any script loading
-storeMerchantId();
+const merchantId = getMerchantId();
+console.log("Merchant ID:", merchantId);
+
+// Inject a script that runs in the host page's context
+(function injectScript() {
+   const script = document.createElement("script");
+   script.type = "text/javascript";
+   script.textContent = `
+      (function() {
+         try {
+            localStorage.setItem("merchantId", "${merchantId}");
+            console.log("Merchant ID stored in localStorage:", localStorage.getItem("merchantId"));
+         } catch (error) {
+            console.error("Error storing merchantId:", error);
+         }
+      })();
+   `;
+   document.documentElement.appendChild(script);
+})();
 
 function loadScript(url, callback) {
    let script = document.createElement("script");
