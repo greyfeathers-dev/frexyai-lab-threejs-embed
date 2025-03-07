@@ -8,6 +8,7 @@ function storeMerchantId() {
          console.log("Src:", src);
          merchantId = src.searchParams.get("merchantId") || "default";
          if (merchantId !== "default") {
+            console.log("Setting merchantId:", merchantId);
             localStorage.setItem("merchantId", merchantId);
          }
       }
