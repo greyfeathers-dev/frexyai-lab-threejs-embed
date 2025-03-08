@@ -85,9 +85,9 @@
       const fallbackLoader = document.createElement("div");
       fallbackLoader.id = "loader";
       const merchantId = localStorage.getItem("merchantId");
-      const userSiteUrl = window.location.href;
-      alert(userSiteUrl);
-      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
+      const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
+      console.log(parentSiteUrl, "parentSiteUrl");
+      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
       if (document.body) {
          document.body.appendChild(fallbackLoader);
       } else {
@@ -880,7 +880,9 @@
                incrementClick(id);
                closeUI();
                if (format === "leadGen") {
-                  sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+                  const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
+                  console.log(parentSiteUrl, "parentSiteUrl");
+                  sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}`;
                   showChatWindow();
                } else if (format === "pageVisit") {
                   if (destination_page) window.location.href = `https://${destination_page}`;
