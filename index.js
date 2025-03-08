@@ -85,7 +85,8 @@
       const fallbackLoader = document.createElement("div");
       fallbackLoader.id = "loader";
       const merchantId = localStorage.getItem("merchantId");
-
+      const userSiteUrl = window.location.href;
+      alert(userSiteUrl);
       sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}`;
       if (document.body) {
          document.body.appendChild(fallbackLoader);
