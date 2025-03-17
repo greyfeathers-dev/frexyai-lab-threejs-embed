@@ -1,5 +1,5 @@
 /** @format */
-
+//this is load.js
 function getMerchantId() {
    try {
       const script = document.currentScript; // The script that is currently executing
