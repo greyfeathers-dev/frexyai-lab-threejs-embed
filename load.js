@@ -59,7 +59,7 @@ setTimeout(() => {
         function () {
           // Load your main script after both scripts are loaded
           loadScript(
-            `https://frexyai-lab-threejs-embed-staging.vercel.app/index.js?merchantId=${merchantId}`,
+            `https://frexyai-lab-threejs-embed-production.vercel.app/index.js?merchantId=${merchantId}`,
             function () {
               console.log("All scripts loaded!");
             }
