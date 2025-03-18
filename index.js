@@ -94,7 +94,6 @@ const audio = new Audio(
 
     // Add welcome message check
     checkAndShowWelcomeMessage();
-    isFirstTimeVisit();
 
     const fallbackLoader = document.createElement("div");
     fallbackLoader.id = "loader";
@@ -1468,10 +1467,10 @@ const audio = new Audio(
   }
 
   function showWelcomeMessage() {
-    const hasVisited = localStorage.getItem("hasNewVisitor");
+    const hasWelcomeVisitor = localStorage.getItem("hasWelcomeVisitor");
 
-    if (!hasVisited) {
-      localStorage.setItem("hasNewVisitor", "true");
+    if (!hasWelcomeVisitor) {
+      localStorage.setItem("hasWelcomeVisitor", "true");
       // Show first-time visitor message after 1 second
       setTimeout(() => {
         showUIAnimation({
@@ -1481,7 +1480,7 @@ const audio = new Audio(
           animation: "wave",
         });
       }, 1000);
-    } else if (hasVisited === "true") {
+    } else if (hasWelcomeVisitor === "true") {
       // Show returning visitor message after 3 seconds
       setTimeout(() => {
         showUIAnimation({
@@ -1497,14 +1496,16 @@ const audio = new Audio(
   //*************************************************EXIT INTENT HANDLER*****************************************************
 
   function isFirstTimeVisit() {
-    // localStorage.clear();
     console.log("Checking first time visit");
-    if (!localStorage.getItem("hasNewVisitor")) {
+    const userAlreadyVisited = localStorage.getItem("hasNewVisitor");
+    if (!userAlreadyVisited) {
       console.log("This is a first time visit");
+      localStorage.setItem("hasNewVisitor", "true");
       return true;
+    } else {
+      console.log("This is not a first time visit");
+      return false;
     }
-    console.log("This is not a first time visit");
-    return false;
   }
 
   function hasVisitedInternalPages() {
@@ -1513,6 +1514,33 @@ const audio = new Audio(
 
   function markInternalPageVisit() {
     localStorage.setItem("visitedInternalPages", "true");
+  }
+
+  function checkInternalNavigation() {
+    const initialPath =
+      localStorage.getItem("initialPath") || window.location.pathname;
+    if (window.location.pathname !== initialPath) {
+      markInternalPageVisit();
+    }
+  }
+
+  // Add route change listener for Next.js
+  let lastPath = window.location.pathname;
+  const avoidBounceObserver = new MutationObserver(() => {
+    const currentPath = window.location.pathname;
+    if (currentPath !== lastPath) {
+      lastPath = currentPath;
+      checkInternalNavigation();
+    }
+  });
+
+  avoidBounceObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  if (!localStorage.getItem("initialPath")) {
+    localStorage.setItem("initialPath", window.location.pathname);
   }
 
   function getScrollPercentage() {
@@ -1533,28 +1561,22 @@ const audio = new Audio(
       this.lastY = null;
       this.mouseMovingUp = false;
       this.setupEventListeners();
-
-      if (window.location.hostname !== document.location.hostname) {
-        markInternalPageVisit();
-      } else {
-        localStorage.setItem("visitedInternalPages", "false");
-      }
     }
 
     setupEventListeners() {
       console.log("Setting up event listeners");
+      // document.addEventListener("mousemove", (e) => {
+      //   console.log(`Raw mouse position - X: ${e.clientX}, Y: ${e.clientY}`);
+      // });
       document.addEventListener("mousemove", this.handleMouseMovement);
-
       document.addEventListener("scroll", () => {
         const currentScrollPercentage = getScrollPercentage();
         console.log("Current scroll percentage:", currentScrollPercentage);
-
         if (currentScrollPercentage >= 98) {
           this.hasReachedBottom = true;
           console.log("User has reached bottom of page");
         }
       });
-
       console.log("Event listeners setup complete");
     }
 
@@ -1564,6 +1586,7 @@ const audio = new Audio(
       }
 
       const currentY = event.clientY;
+      const currentX = event.clientX;
 
       if (this.lastY === null) {
         this.lastY = currentY;
@@ -1578,15 +1601,28 @@ const audio = new Audio(
       const scrollPercentage = getScrollPercentage();
       const isNearTop = event.clientY < 100;
       const isMovingUpward = this.mouseMovingUp;
+      const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
+
+      console.log("Condition check:", {
+        timeSinceStart,
+        isWithin30Seconds,
+        scrollPercentage,
+        isNearTop,
+        isMovingUpward,
+        isFirstVisit,
+        hasNotVisitedInternalPages,
+      });
 
       if (
         isWithin30Seconds &&
         isMovingUpward &&
         isNearTop &&
         scrollPercentage < 90 &&
+        isFirstVisit &&
         hasNotVisitedInternalPages
       ) {
+        console.log("⭐ All conditions met, triggering interaction");
         this.triggerInteraction();
       }
     }
@@ -1610,21 +1646,17 @@ const audio = new Audio(
     }
   }
 
-  // Initialize ExitIntentHandler after DOM is loaded
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      console.log("DOM fully loaded");
-      window.exitIntentHandler = new ExitIntentHandler();
-    });
-  } else {
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM fully loaded");
     window.exitIntentHandler = new ExitIntentHandler();
-  }
+    checkInternalNavigation();
+  });
 
-  // Backup initialization on window load
   window.addEventListener("load", () => {
     console.log("Window loaded");
     if (!window.exitIntentHandler) {
       window.exitIntentHandler = new ExitIntentHandler();
     }
+    checkInternalNavigation();
   });
 })(); // Don't add anything below this line
