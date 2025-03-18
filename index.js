@@ -1,4 +1,62 @@
 /** @format */
+const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
+// const CHATBOT_PAGE = 'http://localhost:3000';
+const ENDPOINT = "https://node-service-1e6u.onrender.com";
+// const ENDPOINT = 'http://localhost:3001'
+
+const BASE_MODEL = {
+  model_url:
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
+  // model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Idle_Head.glb',
+  animation: "idle",
+};
+
+const ANIMATION_LIST = [
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb",
+    animation: "celebration",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/disappointed.glb",
+    animation: "disappointed",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/no_no.glb",
+    animation: "no_no",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/offer.glb",
+    animation: "offer",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/thumbs_up.glb",
+    animation: "thumbs_up",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/two_hand_wave.glb",
+    animation: "two_hand_wave",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
+    animation: "wave",
+  },
+];
+
+const MODEL_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+
+const TOOLTIP_BG = "#fff";
+const TOOLTIP_COLOR = "#0D1934";
+const audio = new Audio(
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
+);
 
 (function () {
   // Set our main variables
@@ -20,70 +78,11 @@
   let firstPageVisited = null;
   let leadId = null;
 
-  const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
-  // const CHATBOT_PAGE = 'http://localhost:3000';
-  const ENDPOINT = "https://node-service-1e6u.onrender.com";
-  // const ENDPOINT = 'http://localhost:3001'
-
-  const BASE_MODEL = {
-    model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-    // model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Idle_Head.glb',
-    animation: "idle",
-  };
-
-  const ANIMATION_LIST = [
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb",
-      animation: "celebration",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/disappointed.glb",
-      animation: "disappointed",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/no_no.glb",
-      animation: "no_no",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/offer.glb",
-      animation: "offer",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/thumbs_up.glb",
-      animation: "thumbs_up",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/two_hand_wave.glb",
-      animation: "two_hand_wave",
-    },
-    {
-      model_url:
-        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
-      animation: "wave",
-    },
-  ];
-
-  const MODEL_TEXTURE =
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
-
   init();
 
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
   let CONFIG = [];
-
-  const TOOLTIP_BG = "#fff";
-  const TOOLTIP_COLOR = "#0D1934";
-  const audio = new Audio(
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
-  );
 
   function init() {
     fetchConfig();
@@ -92,6 +91,10 @@
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source = getSource();
     const MODEL_PATH = BASE_MODEL.model_url;
+
+    // Add welcome message check
+    checkAndShowWelcomeMessage();
+    isFirstTimeVisit();
 
     const fallbackLoader = document.createElement("div");
     fallbackLoader.id = "loader";
@@ -1449,4 +1452,179 @@
     }
     return { x: dx, y: dy };
   }
+
+  // ******************************************************************** INTERACTIONS ********************************************************************
+
+  //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
+
+  // Add the welcome message function after the init() function
+  function checkAndShowWelcomeMessage() {
+    // Wait for DOM to be fully loaded
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", showWelcomeMessage);
+    } else {
+      showWelcomeMessage();
+    }
+  }
+
+  function showWelcomeMessage() {
+    const hasVisited = localStorage.getItem("hasNewVisitor");
+
+    if (!hasVisited) {
+      localStorage.setItem("hasNewVisitor", "true");
+      // Show first-time visitor message after 1 second
+      setTimeout(() => {
+        showUIAnimation({
+          text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+          time: 5,
+          hasClose: true,
+          animation: "wave",
+        });
+      }, 1000);
+    } else if (hasVisited === "true") {
+      // Show returning visitor message after 3 seconds
+      setTimeout(() => {
+        showUIAnimation({
+          text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+          time: 5,
+          hasClose: true,
+          animation: "wave",
+        });
+      }, 3000);
+    }
+  }
+
+  //*************************************************EXIT INTENT HANDLER*****************************************************
+
+  function isFirstTimeVisit() {
+    // localStorage.clear();
+    console.log("Checking first time visit");
+    if (!localStorage.getItem("hasNewVisitor")) {
+      console.log("This is a first time visit");
+      return true;
+    }
+    console.log("This is not a first time visit");
+    return false;
+  }
+
+  function hasVisitedInternalPages() {
+    return localStorage.getItem("visitedInternalPages") === "true";
+  }
+
+  function markInternalPageVisit() {
+    localStorage.setItem("visitedInternalPages", "true");
+  }
+
+  function getScrollPercentage() {
+    const scrollTop = window.scrollY;
+    const docHeight =
+      document.documentElement.scrollHeight - window.innerHeight;
+    return (scrollTop / docHeight) * 100 || 0;
+  }
+
+  class ExitIntentHandler {
+    constructor() {
+      console.log("Initializing ExitIntentHandler");
+      this.sessionStartTime = Date.now();
+      this.hasInteracted = false;
+      this.hasReachedBottom = false;
+      this.isFirstVisit = isFirstTimeVisit();
+      this.handleMouseMovement = this.handleMouseMovement.bind(this);
+      this.lastY = null;
+      this.mouseMovingUp = false;
+      this.setupEventListeners();
+
+      if (window.location.hostname !== document.location.hostname) {
+        markInternalPageVisit();
+      } else {
+        localStorage.setItem("visitedInternalPages", "false");
+      }
+    }
+
+    setupEventListeners() {
+      console.log("Setting up event listeners");
+      document.addEventListener("mousemove", this.handleMouseMovement);
+
+      document.addEventListener("scroll", () => {
+        const currentScrollPercentage = getScrollPercentage();
+        console.log("Current scroll percentage:", currentScrollPercentage);
+
+        if (currentScrollPercentage >= 98) {
+          this.hasReachedBottom = true;
+          console.log("User has reached bottom of page");
+        }
+      });
+
+      console.log("Event listeners setup complete");
+    }
+
+    handleMouseMovement(event) {
+      if (this.hasInteracted || currentlyAnimating) {
+        return;
+      }
+
+      const currentY = event.clientY;
+
+      if (this.lastY === null) {
+        this.lastY = currentY;
+        return;
+      }
+
+      this.mouseMovingUp = currentY < this.lastY;
+      this.lastY = currentY;
+
+      const timeSinceStart = Date.now() - this.sessionStartTime;
+      const isWithin30Seconds = timeSinceStart <= 30000;
+      const scrollPercentage = getScrollPercentage();
+      const isNearTop = event.clientY < 100;
+      const isMovingUpward = this.mouseMovingUp;
+      const hasNotVisitedInternalPages = !hasVisitedInternalPages();
+
+      if (
+        isWithin30Seconds &&
+        isMovingUpward &&
+        isNearTop &&
+        scrollPercentage < 90 &&
+        hasNotVisitedInternalPages
+      ) {
+        this.triggerInteraction();
+      }
+    }
+
+    triggerInteraction() {
+      this.hasInteracted = true;
+      showUIAnimation({
+        text: "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
+        time: 5,
+        hasClose: true,
+        animation: "celebration",
+        cta: [
+          {
+            text: "Show me!",
+            bg: "#BE0EFF",
+            color: "#fff",
+          },
+        ],
+      });
+      document.removeEventListener("mousemove", this.handleMouseMovement);
+    }
+  }
+
+  // Initialize ExitIntentHandler after DOM is loaded
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOM fully loaded");
+      window.exitIntentHandler = new ExitIntentHandler();
+    });
+  } else {
+    window.exitIntentHandler = new ExitIntentHandler();
+  }
+
+  // Backup initialization on window load
+  window.addEventListener("load", () => {
+    console.log("Window loaded");
+    if (!window.exitIntentHandler) {
+      window.exitIntentHandler = new ExitIntentHandler();
+    }
+  });
 })(); // Don't add anything below this line
