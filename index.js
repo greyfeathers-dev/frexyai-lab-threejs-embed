@@ -1457,7 +1457,9 @@ const audio = new Audio(
   //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
 
   // Add the welcome message function after the init() function
+
   function checkAndShowWelcomeMessage() {
+    console.log("Checking welcome message...");
     // Wait for DOM to be fully loaded
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", showWelcomeMessage);
@@ -1467,30 +1469,40 @@ const audio = new Audio(
   }
 
   function showWelcomeMessage() {
-    const hasWelcomeVisitor = localStorage.getItem("hasWelcomeVisitor");
+    console.log("Showing welcome message...");
+    // Check if user has visited before
+    const hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    const hasShownReturningMessage = sessionStorage.getItem(
+      "hasShownReturningMessage"
+    );
+    console.log("Has visited before:", hasVisitedBefore);
+    console.log("Has shown returning message:", hasShownReturningMessage);
 
-    if (!hasWelcomeVisitor) {
-      localStorage.setItem("hasWelcomeVisitor", "true");
-      // Show first-time visitor message after 1 second
-      setTimeout(() => {
+    // Set a 2-second delay before showing the message
+    setTimeout(() => {
+      if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
+        console.log("Showing returning visitor message");
+        setTimeout(() => {
+          showUIAnimation({
+            text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+            time: 5,
+            hasClose: true,
+            animation: "wave",
+          });
+        }, 2000);
+        // Mark that we've shown the returning message in this session
+        sessionStorage.setItem("hasShownReturningMessage", "true");
+      } else if (hasVisitedBefore !== "true") {
+        console.log("Showing first-time visitor message");
+        localStorage.setItem("hasWelcomeVisitor", "true");
         showUIAnimation({
           text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
           time: 5,
           hasClose: true,
           animation: "wave",
         });
-      }, 1000);
-    } else if (hasWelcomeVisitor === "true") {
-      // Show returning visitor message after 3 seconds
-      setTimeout(() => {
-        showUIAnimation({
-          text: "Hey there, welcome back! I've been waiting for you. Need any help?",
-          time: 5,
-          hasClose: true,
-          animation: "wave",
-        });
-      }, 3000);
-    }
+      }
+    }, 1000); // 2-second delay
   }
 
   //*************************************************EXIT INTENT HANDLER*****************************************************
@@ -1556,6 +1568,7 @@ const audio = new Audio(
       this.sessionStartTime = Date.now();
       this.hasInteracted = false;
       this.hasReachedBottom = false;
+      this.hasScrolledPast90 = false; // New flag to track if user has ever scrolled past 90%
       this.isFirstVisit = isFirstTimeVisit();
       this.handleMouseMovement = this.handleMouseMovement.bind(this);
       this.lastY = null;
@@ -1565,13 +1578,17 @@ const audio = new Audio(
 
     setupEventListeners() {
       console.log("Setting up event listeners");
-      // document.addEventListener("mousemove", (e) => {
-      //   console.log(`Raw mouse position - X: ${e.clientX}, Y: ${e.clientY}`);
-      // });
       document.addEventListener("mousemove", this.handleMouseMovement);
       document.addEventListener("scroll", () => {
         const currentScrollPercentage = getScrollPercentage();
         console.log("Current scroll percentage:", currentScrollPercentage);
+
+        // Check if user has scrolled past 90% at any point
+        if (currentScrollPercentage >= 90) {
+          this.hasScrolledPast90 = true;
+          console.log("User has scrolled past 90%");
+        }
+
         if (currentScrollPercentage >= 98) {
           this.hasReachedBottom = true;
           console.log("User has reached bottom of page");
@@ -1612,13 +1629,14 @@ const audio = new Audio(
         isMovingUpward,
         isFirstVisit,
         hasNotVisitedInternalPages,
+        hasScrolledPast90: this.hasScrolledPast90,
       });
 
       if (
         isWithin30Seconds &&
         isMovingUpward &&
         isNearTop &&
-        scrollPercentage < 90 &&
+        !this.hasScrolledPast90 && // Only show if user hasn't scrolled past 90%
         isFirstVisit &&
         hasNotVisitedInternalPages
       ) {
