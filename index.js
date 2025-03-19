@@ -1505,7 +1505,7 @@ const audio = new Audio(
     }, 1000); // 2-second delay
   }
 
-  //*************************************************EXIT INTENT HANDLER*****************************************************
+  //*************************************************AVOID BOUNCE HANDLER*****************************************************
 
   function isFirstTimeVisit() {
     console.log("Checking first time visit");
@@ -1562,9 +1562,9 @@ const audio = new Audio(
     return (scrollTop / docHeight) * 100 || 0;
   }
 
-  class ExitIntentHandler {
+  class AvoidBounceHandler {
     constructor() {
-      console.log("Initializing ExitIntentHandler");
+      console.log("Initializing AvoidBounceHandler");
       this.sessionStartTime = Date.now();
       this.hasInteracted = false;
       this.hasReachedBottom = false;
@@ -1666,15 +1666,140 @@ const audio = new Audio(
 
   document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM fully loaded");
-    window.exitIntentHandler = new ExitIntentHandler();
+    window.avoidBounceHandler = new AvoidBounceHandler();
     checkInternalNavigation();
   });
 
   window.addEventListener("load", () => {
     console.log("Window loaded");
-    if (!window.exitIntentHandler) {
-      window.exitIntentHandler = new ExitIntentHandler();
+    if (!window.avoidBounceHandler) {
+      window.avoidBounceHandler = new AvoidBounceHandler();
     }
     checkInternalNavigation();
   });
+
+  //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
+
+  function hasSpentEnoughTime() {
+    return Date.now() - window.sessionStartTime >= 3000; // 30 seconds
+  }
+
+  // Function to check if the user has visited multiple pages
+  function hasVisitedMultiplePages() {
+    return localStorage.getItem("visitedInternalPages") === "true";
+  }
+
+  // Function to mark internal page visit
+  function markInternalPageVisit() {
+    localStorage.setItem("visitedInternalPages", "true");
+  }
+
+  // Function to check if the interaction has already been triggered
+  function hasInteractedBefore() {
+    return localStorage.getItem("exitIntentTriggered") === "true";
+  }
+
+  // Function to store that interaction has been triggered
+  function markInteractionTriggered() {
+    localStorage.setItem("exitIntentTriggered", "true");
+  }
+
+  // Function to calculate scroll percentage
+  function getScrollPercentage() {
+    const scrollTop = window.scrollY;
+    const docHeight =
+      document.documentElement.scrollHeight - window.innerHeight;
+    return (scrollTop / docHeight) * 100;
+  }
+
+  // Main interaction handler
+  class ExitIntentHandler {
+    constructor() {
+      this.hasScrolled90Percent = false;
+      this.handleMouseMovement = this.handleMouseMovement.bind(this);
+      this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+      let lastY = 0;
+
+      // Detect mouse movement toward the top
+      document.addEventListener("mousemove", (e) => {
+        const currentY = e.clientY;
+        this.mouseMovingUp = currentY < lastY;
+        lastY = currentY;
+        this.handleMouseMovement(e);
+      });
+
+      // Track scroll percentage
+      document.addEventListener("scroll", () => {
+        this.hasScrolled90Percent = getScrollPercentage() >= 90;
+      });
+
+      // Track internal navigation
+      let lastPath = window.location.pathname;
+      const observer = new MutationObserver(() => {
+        const currentPath = window.location.pathname;
+        if (currentPath !== lastPath) {
+          lastPath = currentPath;
+          markInternalPageVisit();
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    handleMouseMovement(event) {
+      if (hasInteractedBefore()) return;
+
+      const isNearTop = event.clientY < 100; // Increased area for browser controls
+      const isMovingUpward = this.mouseMovingUp;
+
+      // Trigger when:
+      // - User has spent 30+ seconds on the site
+      // - AND (Visited multiple pages OR Scrolled 90%)
+      // - AND is moving the cursor near the top (close/back button area)
+      // - AND is moving upward
+      if (
+        hasSpentEnoughTime() &&
+        (hasVisitedMultiplePages() || this.hasScrolled90Percent) &&
+        isNearTop &&
+        isMovingUpward
+      ) {
+        this.triggerInteraction();
+      }
+    }
+
+    triggerInteraction() {
+      markInteractionTriggered();
+      alert("Leaving already? If you ever need help, I'm always here!");
+      showUIAnimation({
+        text: "Leaving already? If you ever need help, I'm always here!",
+        time: 5,
+        hasClose: true,
+        animation: "wave",
+      });
+      document.removeEventListener("mousemove", this.handleMouseMovement);
+    }
+  }
+
+  // Store session start time
+  window.sessionStartTime = Date.now();
+
+  // Wait for DOM to load
+  document.addEventListener("DOMContentLoaded", () => {
+    window.exitIntentHandler = new ExitIntentHandler();
+  });
+
+  // Backup check on full page load
+  window.addEventListener("load", () => {
+    if (!window.exitIntentHandler) {
+      window.exitIntentHandler = new ExitIntentHandler();
+    }
+  });
+
+  //*************************************************END OF NORMAL EXIT INTENT HANDLER*****************************************************
 })(); // Don't add anything below this line
