@@ -1949,4 +1949,118 @@ const audio = new Audio(
     }
   });
   //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
+
+  // Function to safely get localStorage value
+  function getLocalStorageValue(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+      return null;
+    }
+  }
+
+  // Function to safely set localStorage value
+  function setLocalStorageValue(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.error("Error setting localStorage:", e);
+      return false;
+    }
+  }
+
+  // Function to get session trigger count
+  function getTriggerCount() {
+    return parseInt(sessionStorage.getItem("inactivityTriggerCount") || "0");
+  }
+
+  // Function to increment trigger count
+  function incrementTriggerCount() {
+    const currentCount = getTriggerCount();
+    sessionStorage.setItem(
+      "inactivityTriggerCount",
+      (currentCount + 1).toString()
+    );
+  }
+
+  // Function to check if we can trigger the message
+  function canTriggerMessage() {
+    return getTriggerCount() < 3;
+  }
+
+  // Main inactivity handler
+  class InactivityHandler {
+    constructor() {
+      this.lastActivityTime = Date.now();
+      this.sessionStartTime = Date.now();
+      this.setupEventListeners();
+      this.checkInactivity();
+    }
+
+    setupEventListeners() {
+      // Track user activity
+      const events = [
+        "mousedown",
+        "mousemove",
+        "keydown",
+        "scroll",
+        "touchstart",
+      ];
+      events.forEach((event) => {
+        document.addEventListener(event, () => this.updateLastActivity());
+      });
+
+      // Handle visibility change
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          this.updateLastActivity();
+        }
+      });
+    }
+
+    updateLastActivity() {
+      this.lastActivityTime = Date.now();
+    }
+
+    checkInactivity() {
+      const currentTime = Date.now();
+      const timeSinceLastActivity = currentTime - this.lastActivityTime;
+      const timeSinceSessionStart = currentTime - this.sessionStartTime;
+
+      // Check if:
+      // 1. Session is at least 40 seconds old
+      // 2. User has been inactive for 30 seconds
+      // 3. We haven't triggered 3 times yet
+      if (
+        timeSinceSessionStart >= 7000 && // 40 seconds
+        timeSinceLastActivity >= 5000 && // 30 seconds
+        canTriggerMessage()
+      ) {
+        this.triggerMessage();
+      }
+
+      // Continue checking every second
+      setTimeout(() => this.checkInactivity(), 1000);
+    }
+
+    triggerMessage() {
+      incrementTriggerCount();
+      alert("Still there? Let me know if you need any help!");
+    }
+  }
+
+  // Initialize handler when DOM is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    window.inactivityHandler = new InactivityHandler();
+  });
+
+  // Backup initialization on full page load
+  window.addEventListener("load", () => {
+    if (!window.inactivityHandler) {
+      window.inactivityHandler = new InactivityHandler();
+    }
+  });
+  //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
