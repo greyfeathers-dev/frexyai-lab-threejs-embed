@@ -1,13 +1,10 @@
 /** @format */
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
-// const CHATBOT_PAGE = 'http://localhost:3000';
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
-// const ENDPOINT = 'http://localhost:3001'
 
 const BASE_MODEL = {
   model_url:
     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-  // model_url: 'https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Idle_Head.glb',
   animation: "idle",
 };
 
@@ -79,10 +76,9 @@ const audio = new Audio(
   let leadId = null;
 
   init();
-
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
-
   let CONFIG = [];
+  // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
     fetchConfig();
@@ -99,7 +95,6 @@ const audio = new Audio(
     fallbackLoader.id = "loader";
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
-    console.log(parentSiteUrl, "parentSiteUrl");
     sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
     if (document.body) {
       document.body.appendChild(fallbackLoader);
@@ -109,6 +104,7 @@ const audio = new Audio(
       });
     }
 
+    // Add loader to the page before the 3D model loads
     const style = document.createElement("style");
     style.type = "text/css";
     const css = `
@@ -155,6 +151,7 @@ const audio = new Audio(
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
 
+    // Create the canvas element
     const canvas = document.createElement("canvas");
     canvas.id = "threejs-canvas";
     document.body.appendChild(canvas);
@@ -232,7 +229,6 @@ const audio = new Audio(
               o.material.needsUpdate = true;
             }
           }
-          // if(o.isBone) console.log(o.name);
           // Reference the neck and waist bones
           if (o.isBone && o.name === "CC_Base_Head") {
             neck = o;
@@ -240,7 +236,6 @@ const audio = new Audio(
           if (o.isBone && o.name === "spine_01x") {
             waist = o;
           }
-          // console.log(neck, waist, o);
         });
 
         model.scale.set(14.5, 14.5, 14.5);
@@ -250,9 +245,6 @@ const audio = new Audio(
         let clips = fileAnimations.filter((val) => val.name !== "idle ");
         possibleAnims = clips.map((val) => {
           let clip = THREE.AnimationClip.findByName(clips, val.name);
-          // clip.tracks.splice(3, 3);
-          // clip.tracks.splice(9, 3);
-          // clip = mixer.clipAction(clip);
           let clonedAnim = clip.clone();
           clonedAnim.tracks = clonedAnim.tracks
             .filter((track) => !track.name.includes("scale"))
@@ -269,9 +261,6 @@ const audio = new Audio(
           BASE_MODEL.animation
         );
         idleAnim.tracks.splice(48, 3);
-        // idleAnim.tracks.splice(9, 3);
-        // idle = mixer.clipAction(idleAnim);
-        // idle.play();
         if (idleAnim) {
           let clonedIdleAnim = idleAnim.clone();
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
@@ -337,6 +326,8 @@ const audio = new Audio(
     scene.add(floor);
   }
 
+  // ============================================= ANIMATION LOADING FUNCTIONS =================================================================
+
   function loadAdditionalAnimations(gltf) {
     const loader = new THREE.GLTFLoader();
 
@@ -391,6 +382,8 @@ const audio = new Audio(
     });
   }
 
+  // ============================================= SOURCE DETECTION FUNCTIONS =============================================
+
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
@@ -408,6 +401,8 @@ const audio = new Audio(
     else if (path.includes("cid")) return "paid_reddit";
     else return "direct";
   }
+
+  // ============================================= CONFIG FETCHING FUNCTIONS =============================================
 
   async function fetchConfig() {
     setLeadId();
@@ -432,6 +427,8 @@ const audio = new Audio(
       console.error("Error fetching config:", error);
     }
   }
+
+  // ============================================= BUTTON EVENT TRACKING FUNCTIONS =============================================
 
   function trackButtonEvents() {
     const buttons = document.querySelectorAll("button");
@@ -460,6 +457,8 @@ const audio = new Audio(
     });
   }
 
+  // ============================================= OFFER CLICK TRACKING FUNCTIONS =============================================
+
   async function incrementClick(id) {
     addActivity({
       type: "offerClicked",
@@ -481,6 +480,8 @@ const audio = new Audio(
       console.error("Error fetching config:", error);
     }
   }
+
+  // ============================================= OFFER IMPRESSION TRACKING FUNCTIONS =============================================
 
   async function incrementImpression(id) {
     addActivity({
@@ -511,6 +512,8 @@ const audio = new Audio(
     }
   }
 
+  // ============================================= ACTIVITY ADDING FUNCTIONS =============================================
+
   async function addActivity(activity) {
     const leadId = localStorage.getItem("leadId") || "";
 
@@ -540,6 +543,8 @@ const audio = new Audio(
     }
   }
 
+  // ============================================= RENDERING FUNCTIONS =============================================
+
   function update() {
     if (mixer) {
       mixer.update(clock.getDelta());
@@ -553,6 +558,8 @@ const audio = new Audio(
     requestAnimationFrame(update);
   }
   update();
+
+  // ============================================= RESIZE RENDERER TO DISPLAY SIZE FUNCTIONS =============================================
 
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
@@ -574,7 +581,7 @@ const audio = new Audio(
   let currentAnimationID = null;
   let timeoutDisappear = null;
 
-  //path change event
+  // ============================================= PATH CHANGE EVENT FUNCTIONS =============================================
 
   function dispatchPathChangeEvent() {
     addActivity({
@@ -607,6 +614,8 @@ const audio = new Audio(
 
   const displayState = {};
 
+  // ============================================= LEAD ID SETTING FUNCTIONS =============================================
+
   function setLeadId() {
     const id = localStorage.getItem("leadId");
     if (id) {
@@ -619,6 +628,8 @@ const audio = new Audio(
       localStorage.setItem("leadId", uniqueId);
     }
   }
+
+  // ============================================= CONFIG TRIGGERING FUNCTIONS =============================================
 
   function triggerConfig() {
     CONFIG.map((config) => {
@@ -782,6 +793,8 @@ const audio = new Audio(
     });
   }
 
+  // ============================================= UI ANIMATION FUNCTIONS =============================================
+
   function showUIAnimation(config) {
     if (currentlyAnimating) return;
     resetHead();
@@ -857,6 +870,8 @@ const audio = new Audio(
     }
     audio.play();
   }
+
+  // ============================================= TOOLTIP FUNCTIONS =============================================
 
   function showTooltip(
     id,
@@ -1045,6 +1060,8 @@ const audio = new Audio(
     }
   }
 
+  // ============================================= OVERLAY FUNCTIONS =============================================
+
   function showOverlay(
     id,
     format,
@@ -1204,6 +1221,8 @@ const audio = new Audio(
     }
   }
 
+  // ============================================= ANIMATION FUNCTIONS =============================================
+
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
     const to = finalAnim.clip;
 
@@ -1222,6 +1241,8 @@ const audio = new Audio(
       to.crossFadeTo(from, tSpeed, true);
     }, to._clip.duration * 1000 - (tSpeed + fSpeed) * 1000);
   }
+
+  // ============================================= INPUT AND CHAT WINDOW FUNCTIONS =============================================
 
   function appendInput() {
     // Create an input element (rounded input box)
@@ -1296,6 +1317,8 @@ const audio = new Audio(
       showChatWindow();
     });
   }
+
+  // ============================================= INPUT FUNCTIONS =============================================
 
   function showInput() {
     if (currentlyAnimating) return;
@@ -1384,6 +1407,8 @@ const audio = new Audio(
     });
   }
 
+  // ============================================= MOUSE POSITION AND HEAD RESET FUNCTIONS =============================================
+
   function getMousePos(e) {
     return { x: e.clientX, y: e.clientY };
   }
@@ -1405,6 +1430,8 @@ const audio = new Audio(
       joint.rotation.x = THREE.Math.degToRad(degrees.y);
     }
   }
+
+  // ============================================= MOUSE DEGREES FUNCTIONS =============================================
 
   function getMouseDegrees(x, y, degreeLimit) {
     let dx = 0,
@@ -1758,11 +1785,6 @@ const audio = new Audio(
       const isNearTop = event.clientY < 100; // Increased area for browser controls
       const isMovingUpward = this.mouseMovingUp;
 
-      // Trigger when:
-      // - User has spent 30+ seconds on the site
-      // - AND (Visited multiple pages OR Scrolled 90%)
-      // - AND is moving the cursor near the top (close/back button area)
-      // - AND is moving upward
       if (
         hasSpentEnoughTime() &&
         (hasVisitedMultiplePages() || this.hasScrolled90Percent) &&
