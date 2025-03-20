@@ -2056,8 +2056,8 @@ const audio = new Audio(
       // 2. User has been inactive for 30 seconds
       // 3. We haven't triggered 3 times yet
       if (
-        timeSinceSessionStart >= 7000 && // 40 seconds
-        timeSinceLastActivity >= 5000 && // 30 seconds
+        timeSinceSessionStart >= 40000 && // 40 seconds
+        timeSinceLastActivity >= 30000 && // 30 seconds
         canTriggerMessage()
       ) {
         this.triggerMessage();
