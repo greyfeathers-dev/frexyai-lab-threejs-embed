@@ -1775,7 +1775,6 @@ const audio = new Audio(
 
     triggerInteraction() {
       markInteractionTriggered();
-      alert("Leaving already? If you ever need help, I'm always here!");
       showUIAnimation({
         text: "Leaving already? If you ever need help, I'm always here!",
         time: 5,
@@ -1801,5 +1800,153 @@ const audio = new Audio(
     }
   });
 
-  //*************************************************END OF NORMAL EXIT INTENT HANDLER*****************************************************
+  //*************************************************CONFUSSED INTERACTION HANDLER*****************************************************
+  function hasInteractedBefore() {
+    return sessionStorage.getItem("confusedInteractionTriggered") === "true";
+  }
+
+  // Function to store that interaction has been triggered
+  function markInteractionTriggered() {
+    sessionStorage.setItem("confusedInteractionTriggered", "true");
+  }
+
+  // Function to get current page visits count
+  function getPageVisits() {
+    return parseInt(sessionStorage.getItem("confusedInteractionVisits") || "0");
+  }
+
+  // Function to increment page visits
+  function incrementPageVisits() {
+    const currentVisits = getPageVisits();
+    sessionStorage.setItem(
+      "confusedInteractionVisits",
+      (currentVisits + 1).toString()
+    );
+  }
+
+  // Function to check if current page has been scrolled past 70%
+  function hasScrolledPast70Percent() {
+    const scrollTop = window.scrollY;
+    const docHeight =
+      document.documentElement.scrollHeight - window.innerHeight;
+    const scrollPercentage = (scrollTop / docHeight) * 100;
+    return scrollPercentage > 70;
+  }
+
+  // Function to mark current page as scrolled
+  function markPageScrolled(path) {
+    const scrolledPages = JSON.parse(
+      sessionStorage.getItem("confusedInteractionScrolledPages") || "[]"
+    );
+    if (!scrolledPages.includes(path)) {
+      scrolledPages.push(path);
+      sessionStorage.setItem(
+        "confusedInteractionScrolledPages",
+        JSON.stringify(scrolledPages)
+      );
+      // If any page is scrolled, mark the entire session as scrolled
+      sessionStorage.setItem("confusedInteractionSessionScrolled", "true");
+    }
+  }
+
+  // Function to check if any page in the session was scrolled
+  function hasAnyPageScrolled() {
+    return (
+      sessionStorage.getItem("confusedInteractionSessionScrolled") === "true"
+    );
+  }
+
+  // Function to check if a page was scrolled
+  function wasPageScrolled(path) {
+    const scrolledPages = JSON.parse(
+      sessionStorage.getItem("confusedInteractionScrolledPages") || "[]"
+    );
+    return scrolledPages.includes(path);
+  }
+
+  // Main interaction handler
+  class ConfusedInteractionHandler {
+    constructor() {
+      this.handleScroll = this.handleScroll.bind(this);
+      this.setupEventListeners();
+      this.checkPageVisits();
+    }
+
+    setupEventListeners() {
+      // Track scroll events
+      document.addEventListener("scroll", this.handleScroll);
+
+      // Track route changes for Next.js
+      let lastPath = window.location.pathname;
+      const observer = new MutationObserver(() => {
+        const currentPath = window.location.pathname;
+        if (currentPath !== lastPath) {
+          lastPath = currentPath;
+          this.handlePageChange();
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    handleScroll() {
+      if (hasScrolledPast70Percent()) {
+        markPageScrolled(window.location.pathname);
+      }
+    }
+
+    handlePageChange() {
+      const currentPath = window.location.pathname;
+      const previousPath =
+        sessionStorage.getItem("confusedInteractionLastPath") || "/";
+
+      // Only increment visits if previous page wasn't scrolled past 70%
+      if (!wasPageScrolled(previousPath)) {
+        incrementPageVisits();
+        this.checkPageVisits();
+      }
+
+      // Store current path for next navigation
+      sessionStorage.setItem("confusedInteractionLastPath", currentPath);
+    }
+
+    checkPageVisits() {
+      if (hasInteractedBefore()) return;
+      if (hasAnyPageScrolled()) return; // Don't trigger if any page was scrolled
+
+      const visits = getPageVisits();
+      if (visits >= 3) {
+        this.triggerInteraction();
+      }
+    }
+
+    triggerInteraction() {
+      markInteractionTriggered();
+      alert("Looks like you're exploring 🤔….need a hand finding something?");
+      document.removeEventListener("scroll", this.handleScroll);
+    }
+  }
+
+  // Initialize on DOM load
+  document.addEventListener("DOMContentLoaded", () => {
+    window.confusedInteractionHandler = new ConfusedInteractionHandler();
+    // Initialize lastPath if not set
+    if (!sessionStorage.getItem("confusedInteractionLastPath")) {
+      sessionStorage.setItem(
+        "confusedInteractionLastPath",
+        window.location.pathname
+      );
+    }
+  });
+
+  // Backup initialization on full page load
+  window.addEventListener("load", () => {
+    if (!window.confusedInteractionHandler) {
+      window.confusedInteractionHandler = new ConfusedInteractionHandler();
+    }
+  });
+  //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
