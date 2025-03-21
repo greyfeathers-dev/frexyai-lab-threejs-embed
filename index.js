@@ -2056,7 +2056,12 @@ const audio = new Audio(
 
     triggerInteraction() {
       markInteractionTriggered();
-      alert("Looks like you're exploring 🤔….need a hand finding something?");
+      showUIAnimation({
+        text: "Looks like you're exploring 🤔….need a hand finding something?",
+        time: 5,
+        hasClose: true,
+        animation: "wave",
+      });
       document.removeEventListener("scroll", this.handleScroll);
     }
   }
