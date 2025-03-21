@@ -11,6 +11,26 @@ const BASE_MODEL = {
 const ANIMATION_LIST = [
   {
     model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%201.glb",
+    animation: "casual_talk_1",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Dance%20Like%20Anto.glb",
+    animation: "dance_like_anto",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Relaxed%20Grip.glb",
+    animation: "relaxed_grip",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%202.glb",
+    animation: "casual_talk_2",
+  },
+  {
+    model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb",
     animation: "celebration",
   },
@@ -270,6 +290,11 @@ const audio = new Audio(
           idle.setLoop(THREE.LoopRepeat, Infinity); // Loop the idle animation
           idle.play(); // Play the idle animation
         }
+
+        // Add click event listener for the model
+        const canvas = renderer.domElement;
+        canvas.addEventListener("click", onModelClick);
+
         fallbackLoader.remove();
         loadAdditionalAnimations(gltf);
         appendInput();
@@ -285,6 +310,88 @@ const audio = new Audio(
         console.error(error);
       }
     );
+
+    //====================================================Model Click Event Listener====================================================
+
+    // Add click handler function
+    function onModelClick(event) {
+      if (currentlyAnimating) return;
+
+      // Get the canvas element and its bounds
+      const canvas = renderer.domElement;
+      const rect = canvas.getBoundingClientRect();
+
+      // Calculate mouse position in normalized device coordinates (-1 to +1)
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // Update the picking ray with the camera and mouse position
+      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+      // Ensure model's world matrix is updated
+      model.updateMatrixWorld(true);
+
+      // Get all meshes from the model for intersection testing
+      const meshes = [];
+      model.traverse((child) => {
+        if (child.isMesh) {
+          meshes.push(child);
+        }
+      });
+
+      // Calculate objects intersecting the picking ray using the collected meshes
+      const intersects = raycaster.intersectObjects(meshes, true);
+
+      // Make intersection detection more lenient - if click is close enough to model
+      if (intersects.length > 0 || isClickNearModel(x, y)) {
+        currentlyAnimating = true;
+
+        // Find dance animation
+        const danceAnim = possibleAnims.find(
+          (anim) => anim.name === "dance_like_anto"
+        );
+
+        if (danceAnim) {
+          playModifierAnimation(idle, 0.5, danceAnim, 0.5);
+
+          // Reset currentlyAnimating after animation duration
+          const animationDuration = danceAnim.clip._clip.duration * 1000; // Convert to milliseconds
+          setTimeout(() => {
+            currentlyAnimating = false;
+          }, animationDuration);
+        } else {
+          // Fallback to celebration animation
+          const celebrationAnim = possibleAnims.find(
+            (anim) => anim.name === "celebration"
+          );
+          if (celebrationAnim) {
+            playModifierAnimation(idle, 0.5, celebrationAnim, 0.5);
+            setTimeout(() => {
+              currentlyAnimating = false;
+            }, celebrationAnim.clip._clip.duration * 1000);
+          } else {
+            currentlyAnimating = false;
+          }
+        }
+      }
+    }
+
+    // Helper function to check if click is near the model
+    function isClickNearModel(x, y) {
+      // Convert model position to screen coordinates
+      const modelPos = new THREE.Vector3(0, -11, 0);
+      modelPos.project(camera);
+
+      // Calculate distance between click and model center
+      const dx = x - modelPos.x;
+      const dy = y - modelPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Consider click "near" if within this threshold
+      return distance < 0.5; // Adjust this value as needed
+    }
+
+    //====================================================End of Model Click Event Listener====================================================
 
     // Enhanced lighting setup
     let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
@@ -343,33 +450,28 @@ const audio = new Audio(
           }
 
           // Add new animations to the existing GLTF animations
+          newGLTF.animations.forEach((anim) => {
+            // Set the animation name to match the expected name
+            anim.name = animationItem.animation;
+          });
+
           gltf.animations.push(...newGLTF.animations);
 
           // Update possible animations list
-          const clips = gltf.animations.filter(
-            (val) => val.name === animationItem.animation
-          );
-          const newAnimations = clips
-            .map((val) => {
-              let clip = THREE.AnimationClip.findByName(clips, val.name);
-              if (!clip) {
-                console.error(`Animation ${val.name} not found in the clips.`);
-                return null;
-              }
-              const clonedAnim = clip.clone();
-              clonedAnim.tracks = clonedAnim.tracks.filter(
-                (track) =>
-                  !track.name.includes("scale") &&
-                  !track.name.includes("position")
-              );
-              return {
-                name: val.name,
-                clip: mixer.clipAction(clonedAnim),
-              };
-            })
-            .filter(Boolean); // Remove null entries
+          const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
+          if (newAnim) {
+            const clonedAnim = newAnim.clone();
+            clonedAnim.tracks = clonedAnim.tracks
+              .filter((track) => !track.name.includes("scale"))
+              .filter((track) => !track.name.includes("position"));
 
-          possibleAnims.push(...newAnimations);
+            const action = mixer.clipAction(clonedAnim);
+
+            possibleAnims.push({
+              name: animationItem.animation,
+              clip: action,
+            });
+          }
         },
         undefined,
         function (error) {
@@ -1226,20 +1328,38 @@ const audio = new Audio(
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
     const to = finalAnim.clip;
 
-    // Ensure the new animation (to) is ready to play and is looped if necessary
-    to.setLoop(THREE.LoopRepeat);
-    to.reset(); // Resets the animation state
-    to.play(); // Start playing the 'to' animation
+    // Stop any currently playing animations
+    if (mixer) {
+      mixer.stopAllAction();
+    }
 
-    // Apply fade-in for the incoming animation
+    // Reset and play the new animation
+    to.reset();
+    to.setLoop(THREE.LoopOnce); // Set to play only once
+    to.clampWhenFinished = true; // Hold the last frame when finished
+    to.play();
+
+    // Crossfade from idle to the new animation
     from.crossFadeTo(to, fSpeed, true);
 
-    // After the fade-in completes, we set up the fade-out when the animation reaches its end
-    setTimeout(function () {
-      from.enabled = true; // Ensure the original animation can be re-enabled for the next fade
-      // Now apply fade-out and return to the 'from' animation
+    // Calculate when the animation will finish
+    const animationDuration = to._clip.duration;
+
+    // Set up the transition back to idle
+    setTimeout(() => {
+      // Reset and play the idle animation
+      from.reset();
+      from.setLoop(THREE.LoopRepeat, Infinity);
+      from.play();
+
+      // Crossfade from the current animation back to idle
       to.crossFadeTo(from, tSpeed, true);
-    }, to._clip.duration * 1000 - (tSpeed + fSpeed) * 1000);
+
+      // After the crossfade is complete, stop the temporary animation
+      setTimeout(() => {
+        to.stop();
+      }, tSpeed * 1000);
+    }, (animationDuration - tSpeed) * 1000);
   }
 
   // ============================================= INPUT AND CHAT WINDOW FUNCTIONS =============================================
@@ -1648,17 +1768,6 @@ const audio = new Audio(
       const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
 
-      console.log("Condition check:", {
-        timeSinceStart,
-        isWithin30Seconds,
-        scrollPercentage,
-        isNearTop,
-        isMovingUpward,
-        isFirstVisit,
-        hasNotVisitedInternalPages,
-        hasScrolledPast90: this.hasScrolledPast90,
-      });
-
       if (
         isWithin30Seconds &&
         isMovingUpward &&
@@ -1947,7 +2056,12 @@ const audio = new Audio(
 
     triggerInteraction() {
       markInteractionTriggered();
-      alert("Looks like you're exploring 🤔….need a hand finding something?");
+      showUIAnimation({
+        text: "Looks like you're exploring 🤔….need a hand finding something?",
+        time: 5,
+        hasClose: true,
+        animation: "wave",
+      });
       document.removeEventListener("scroll", this.handleScroll);
     }
   }
@@ -2069,7 +2183,12 @@ const audio = new Audio(
 
     triggerMessage() {
       incrementTriggerCount();
-      alert("Still there? Let me know if you need any help!");
+      showUIAnimation({
+        text: "Still there? Let me know if you need any help!",
+        time: 5,
+        hasClose: true,
+        animation: "wave",
+      });
     }
   }
 
