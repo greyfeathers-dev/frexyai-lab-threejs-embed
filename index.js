@@ -82,12 +82,13 @@ const audio = new Audio(
     camera,
     model, // Our character
     neck, // Reference to the neck bone in the skeleton
-    waist, // Reference to the waist bone in the skeleton
+    waist, // Reference to the waist bones in the skeleton
     possibleAnims, // Animations found in our file
     mixer, // THREE.js animations mixer
     idle, // Idle, the default state our character returns to
     clock = new THREE.Clock(), // Used for anims, which run to a clock instead of frame rate
-    raycaster = new THREE.Raycaster(); // Used to detect the click on our character
+    raycaster = new THREE.Raycaster(), // Used to detect the click on our character
+    headTrackingEnabled = false; // Flag to control head tracking
 
   let country = null;
   let source = null;
@@ -250,11 +251,24 @@ const audio = new Audio(
             }
           }
           // Reference the neck and waist bones
-          if (o.isBone && o.name === "CC_Base_Head") {
-            neck = o;
-          }
-          if (o.isBone && o.name === "spine_01x") {
-            waist = o;
+          if (o.isBone) {
+            console.log("Found bone:", o.name); // Debug bone names
+            if (
+              o.name === "CC_Base_Head" ||
+              o.name === "mixamorigHead" ||
+              o.name === "Head"
+            ) {
+              console.log("Found head bone:", o.name);
+              neck = o;
+            }
+            if (
+              o.name === "spine_01x" ||
+              o.name === "mixamorigSpine" ||
+              o.name === "Spine"
+            ) {
+              console.log("Found spine bone:", o.name);
+              waist = o;
+            }
           }
         });
 
@@ -304,6 +318,9 @@ const audio = new Audio(
           type: "pageVisit",
           source: getSource(),
         });
+
+        // Initialize head tracking after model is loaded
+        initHeadTracking();
       },
       undefined, // We don't need this function
       function (error) {
@@ -315,7 +332,7 @@ const audio = new Audio(
 
     // Add click handler function
     function onModelClick(event) {
-      if (currentlyAnimating) return;
+      if (currentlyAnimating || headTrackingEnabled) return; // Don't play animation if head tracking is enabled
 
       // Get the canvas element and its bounds
       const canvas = renderer.domElement;
@@ -804,7 +821,7 @@ const audio = new Audio(
       switch (config.type) {
         case "onFirstLand":
           if (!isFirstLandTriggered) {
-            showUIAnimation(config);
+            // showUIAnimation(config);
           }
           break;
         case "inActive":
@@ -898,7 +915,7 @@ const audio = new Audio(
   // ============================================= UI ANIMATION FUNCTIONS =============================================
 
   function showUIAnimation(config) {
-    if (currentlyAnimating) return;
+    if (currentlyAnimating || headTrackingEnabled) return; // Don't show animation if head tracking is enabled
     resetHead();
     let animationIdx = -1;
     if (config.animation) {
@@ -1326,6 +1343,7 @@ const audio = new Audio(
   // ============================================= ANIMATION FUNCTIONS =============================================
 
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
+    headTrackingEnabled = false; // Disable head tracking during animation
     const to = finalAnim.clip;
 
     // Stop any currently playing animations
@@ -1355,9 +1373,10 @@ const audio = new Audio(
       // Crossfade from the current animation back to idle
       to.crossFadeTo(from, tSpeed, true);
 
-      // After the crossfade is complete, stop the temporary animation
+      // After the crossfade is complete, stop the temporary animation and re-enable head tracking
       setTimeout(() => {
         to.stop();
+        headTrackingEnabled = true; // Re-enable head tracking after animation
       }, tSpeed * 1000);
     }, (animationDuration - tSpeed) * 1000);
   }
@@ -1511,20 +1530,148 @@ const audio = new Audio(
     }, 200);
   }
 
-  if (!isMobile) {
-    let timer = setTimeout(() => resetHead());
-    document.addEventListener("mousemove", function (e) {
-      if (currentlyAnimating) return;
-      if (timer) {
-        clearTimeout(timer);
-        timer = setTimeout(() => resetHead(), 4000);
+  function initHeadTracking() {
+    if (isMobile) {
+      console.log("Mobile device detected, skipping head tracking");
+      return;
+    }
+
+    console.log("Initializing head tracking...");
+
+    // Ensure we have a valid neck reference
+    if (!neck) {
+      console.error(
+        "Head tracking initialization failed: No neck bone reference found"
+      );
+      // Try to find the neck bone again
+      model.traverse((o) => {
+        if (o.isBone) {
+          console.log("Available bone:", o.name);
+          if (
+            o.name.toLowerCase().includes("head") ||
+            o.name.toLowerCase().includes("neck")
+          ) {
+            console.log("Found potential head/neck bone:", o.name);
+            neck = o;
+          }
+        }
+      });
+
+      if (!neck) {
+        console.error(
+          "Still could not find neck bone. Head tracking disabled."
+        );
+        return;
       }
-      var mousecoords = getMousePos(e);
-      if (neck && !currentlyAnimating) {
-        moveJoint(mousecoords, neck, 50);
-        // moveJoint(mousecoords, waist, 30);
+    }
+
+    // Store initial rotation
+    const initialRotation = {
+      x: neck.rotation.x,
+      y: neck.rotation.y,
+      z: neck.rotation.z,
+    };
+    console.log("Initial neck rotation:", initialRotation);
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetRotationX = 0;
+    let targetRotationY = 0;
+    let currentRotationX = initialRotation.y;
+    let currentRotationY = initialRotation.x;
+    const smoothFactor = 0.03; // Even smoother movement
+    const maxRotation = 0.5; // Increased range for more visible movement
+
+    try {
+      // Update mouse position
+      document.addEventListener("mousemove", (event) => {
+        if (currentlyAnimating || !headTrackingEnabled) return;
+
+        // Get canvas bounds
+        const canvas = renderer.domElement;
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Calculate normalized coordinates (-1 to 1) relative to canvas center
+        mouseX = (event.clientX - centerX) / (rect.width / 2);
+        mouseY = -(event.clientY - centerY) / (rect.height / 2);
+
+        // Calculate target rotation with limits and invert X for more natural movement
+        targetRotationX = -Math.max(
+          -maxRotation,
+          Math.min(maxRotation, mouseX * maxRotation)
+        );
+        targetRotationY = Math.max(
+          -maxRotation,
+          Math.min(maxRotation, mouseY * maxRotation)
+        );
+
+        // Debug output (throttled)
+        if (Math.random() < 0.05) {
+          console.log("Mouse position:", { mouseX, mouseY });
+          console.log("Target rotation:", { targetRotationX, targetRotationY });
+        }
+      });
+
+      // Animation loop for smooth head movement
+      function updateHeadRotation() {
+        if (!neck || currentlyAnimating || !headTrackingEnabled) return;
+
+        try {
+          // Smoothly interpolate current rotation to target rotation
+          currentRotationX +=
+            (targetRotationX - currentRotationX) * smoothFactor;
+          currentRotationY +=
+            (targetRotationY - currentRotationY) * smoothFactor;
+
+          // Apply rotation to neck bone
+          neck.rotation.y = initialRotation.y + currentRotationX;
+          neck.rotation.x = initialRotation.x + currentRotationY;
+
+          // Ensure rotation stays within limits
+          neck.rotation.y = Math.max(
+            -maxRotation,
+            Math.min(maxRotation, neck.rotation.y)
+          );
+          neck.rotation.x = Math.max(
+            -maxRotation,
+            Math.min(maxRotation, neck.rotation.x)
+          );
+
+          // Force matrix update
+          neck.updateMatrixWorld(true);
+
+          // Debug output (throttled)
+          if (Math.random() < 0.01) {
+            console.log("Current neck rotation:", {
+              x: neck.rotation.x.toFixed(3),
+              y: neck.rotation.y.toFixed(3),
+            });
+          }
+        } catch (error) {
+          console.error("Error in updateHeadRotation:", error);
+        }
+
+        requestAnimationFrame(updateHeadRotation);
       }
-    });
+
+      // Start the animation loop
+      updateHeadRotation();
+
+      // Reset head position when mouse leaves window
+      document.addEventListener("mouseleave", () => {
+        if (!currentlyAnimating && headTrackingEnabled) {
+          console.log("Mouse left window - resetting head position");
+          targetRotationX = 0;
+          targetRotationY = 0;
+        }
+      });
+
+      console.log("Head tracking initialization complete");
+    } catch (error) {
+      console.error("Error in head tracking:", error);
+    }
   }
 
   // ============================================= MOUSE POSITION AND HEAD RESET FUNCTIONS =============================================
@@ -1817,7 +1964,7 @@ const audio = new Audio(
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
   function hasSpentEnoughTime() {
-    return Date.now() - window.sessionStartTime >= 3000; // 30 seconds
+    return Date.now() - window.sessionStartTime >= 30000; // 30 seconds
   }
 
   // Function to check if the user has visited multiple pages
