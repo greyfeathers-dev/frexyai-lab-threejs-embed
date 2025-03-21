@@ -2177,12 +2177,6 @@ const audio = new Audio(
       const timeSinceSessionStart = currentTime - this.sessionStartTime;
       const timeSinceLastTrigger = currentTime - this.lastTriggerTime;
 
-      // Only proceed if:
-      // 1. Session is at least 40 seconds old
-      // 2. User has been inactive for 30 seconds
-      // 3. At least 45 seconds have passed since last trigger
-      // 4. We haven't triggered 3 times yet
-      // 5. We're not currently showing a message
       if (
         timeSinceSessionStart >= 40000 && // 40 seconds
         timeSinceLastActivity >= 30000 && // 30 seconds
