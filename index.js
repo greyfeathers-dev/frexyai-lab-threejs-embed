@@ -804,7 +804,7 @@ const audio = new Audio(
       switch (config.type) {
         case "onFirstLand":
           if (!isFirstLandTriggered) {
-            showUIAnimation(config);
+            // showUIAnimation(config);
           }
           break;
         case "inActive":
@@ -1817,7 +1817,7 @@ const audio = new Audio(
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
   function hasSpentEnoughTime() {
-    return Date.now() - window.sessionStartTime >= 3000; // 30 seconds
+    return Date.now() - window.sessionStartTime >= 30000; // 30 seconds
   }
 
   // Function to check if the user has visited multiple pages
@@ -1937,7 +1937,7 @@ const audio = new Audio(
   }
 
   // Function to store that interaction has been triggered
-  function markInteractionTriggered() {
+  function markConfusedInteractionTriggered() {
     sessionStorage.setItem("confusedInteractionTriggered", "true");
   }
 
@@ -2055,7 +2055,7 @@ const audio = new Audio(
     }
 
     triggerInteraction() {
-      markInteractionTriggered();
+      markConfusedInteractionTriggered();
       showUIAnimation({
         text: "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
@@ -2109,21 +2109,26 @@ const audio = new Audio(
 
   // Function to get session trigger count
   function getTriggerCount() {
-    return parseInt(sessionStorage.getItem("inactivityTriggerCount") || "0");
+    const count = sessionStorage.getItem("inactivityTriggerCount");
+    return count ? parseInt(count) : 0;
   }
 
   // Function to increment trigger count
   function incrementTriggerCount() {
     const currentCount = getTriggerCount();
+    console.log("Current trigger count before increment:", currentCount);
     sessionStorage.setItem(
       "inactivityTriggerCount",
       (currentCount + 1).toString()
     );
+    console.log("Trigger count after increment:", currentCount + 1);
   }
 
   // Function to check if we can trigger the message
   function canTriggerMessage() {
-    return getTriggerCount() < 3;
+    const count = getTriggerCount();
+    console.log("Current trigger count in canTriggerMessage:", count);
+    return count < 3;
   }
 
   // Main inactivity handler
@@ -2131,8 +2136,14 @@ const audio = new Audio(
     constructor() {
       this.lastActivityTime = Date.now();
       this.sessionStartTime = Date.now();
+      this.isCheckingInactivity = false;
+      this.lastTriggerTime = 0;
       this.setupEventListeners();
       this.checkInactivity();
+      console.log(
+        "InactivityHandler initialized, starting count:",
+        getTriggerCount()
+      );
     }
 
     setupEventListeners() {
@@ -2164,15 +2175,21 @@ const audio = new Audio(
       const currentTime = Date.now();
       const timeSinceLastActivity = currentTime - this.lastActivityTime;
       const timeSinceSessionStart = currentTime - this.sessionStartTime;
+      const timeSinceLastTrigger = currentTime - this.lastTriggerTime;
 
-      // Check if:
+      // Only proceed if:
       // 1. Session is at least 40 seconds old
       // 2. User has been inactive for 30 seconds
-      // 3. We haven't triggered 3 times yet
+      // 3. At least 45 seconds have passed since last trigger
+      // 4. We haven't triggered 3 times yet
+      // 5. We're not currently showing a message
       if (
         timeSinceSessionStart >= 40000 && // 40 seconds
         timeSinceLastActivity >= 30000 && // 30 seconds
-        canTriggerMessage()
+        timeSinceLastTrigger >= 45000 && // 45 seconds between triggers
+        canTriggerMessage() &&
+        !this.isCheckingInactivity &&
+        !currentlyAnimating
       ) {
         this.triggerMessage();
       }
@@ -2182,24 +2199,45 @@ const audio = new Audio(
     }
 
     triggerMessage() {
+      if (!canTriggerMessage()) return;
+
+      this.isCheckingInactivity = true;
+      this.lastTriggerTime = Date.now();
+
+      console.log(
+        "Triggering inactivity message, count before increment:",
+        getTriggerCount()
+      );
       incrementTriggerCount();
+      console.log("Count after increment:", getTriggerCount());
+
       showUIAnimation({
         text: "Still there? Let me know if you need any help!",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+
+      // Reset the checking flag after the animation duration
+      setTimeout(() => {
+        this.isCheckingInactivity = false;
+        this.updateLastActivity(); // Reset activity timer after message closes
+      }, 5000);
     }
   }
 
   // Initialize handler when DOM is ready
   document.addEventListener("DOMContentLoaded", () => {
+    // Clear the trigger count when the page loads
+    sessionStorage.removeItem("inactivityTriggerCount");
     window.inactivityHandler = new InactivityHandler();
   });
 
   // Backup initialization on full page load
   window.addEventListener("load", () => {
     if (!window.inactivityHandler) {
+      // Clear the trigger count when the page loads
+      sessionStorage.removeItem("inactivityTriggerCount");
       window.inactivityHandler = new InactivityHandler();
     }
   });
