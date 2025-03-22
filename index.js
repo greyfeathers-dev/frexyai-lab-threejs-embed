@@ -1816,32 +1816,45 @@ const audio = new Audio(
 
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
-  function hasSpentEnoughTime() {
+  function hasSpentEnoughTimeForNormalExit() {
     return Date.now() - window.sessionStartTime >= 30000; // 30 seconds
   }
 
   // Function to check if the user has visited multiple pages
-  function hasVisitedMultiplePages() {
-    return localStorage.getItem("visitedInternalPages") === "true";
+  function hasVisitedMultiplePagesForNormalExit() {
+    const visitedPages = JSON.parse(
+      localStorage.getItem("normalExitVisitedPages") || "[]"
+    );
+    return visitedPages.length > 1;
   }
 
-  // Function to mark internal page visit
-  function markInternalPageVisit() {
-    localStorage.setItem("visitedInternalPages", "true");
+  // Function to mark page visit
+  function markPageVisitForNormalExit() {
+    const visitedPages = JSON.parse(
+      localStorage.getItem("normalExitVisitedPages") || "[]"
+    );
+    const currentPath = window.location.pathname;
+    if (!visitedPages.includes(currentPath)) {
+      visitedPages.push(currentPath);
+      localStorage.setItem(
+        "normalExitVisitedPages",
+        JSON.stringify(visitedPages)
+      );
+    }
   }
 
   // Function to check if the interaction has already been triggered
-  function hasInteractedBefore() {
-    return localStorage.getItem("exitIntentTriggered") === "true";
+  function hasNormalExitInteractedBefore() {
+    return localStorage.getItem("normalExitIntentTriggered") === "true";
   }
 
   // Function to store that interaction has been triggered
-  function markInteractionTriggered() {
-    localStorage.setItem("exitIntentTriggered", "true");
+  function markNormalExitInteractionTriggered() {
+    localStorage.setItem("normalExitIntentTriggered", "true");
   }
 
   // Function to calculate scroll percentage
-  function getScrollPercentage() {
+  function getScrollPercentageForNormalExit() {
     const scrollTop = window.scrollY;
     const docHeight =
       document.documentElement.scrollHeight - window.innerHeight;
@@ -1849,11 +1862,12 @@ const audio = new Audio(
   }
 
   // Main interaction handler
-  class ExitIntentHandler {
+  class NormalExitIntentHandler {
     constructor() {
       this.hasScrolled90Percent = false;
       this.handleMouseMovement = this.handleMouseMovement.bind(this);
       this.setupEventListeners();
+      markPageVisitForNormalExit(); // Mark initial page visit
     }
 
     setupEventListeners() {
@@ -1869,16 +1883,16 @@ const audio = new Audio(
 
       // Track scroll percentage
       document.addEventListener("scroll", () => {
-        this.hasScrolled90Percent = getScrollPercentage() >= 90;
+        this.hasScrolled90Percent = getScrollPercentageForNormalExit() >= 90;
       });
 
-      // Track internal navigation
+      // Track page navigation
       let lastPath = window.location.pathname;
       const observer = new MutationObserver(() => {
         const currentPath = window.location.pathname;
         if (currentPath !== lastPath) {
           lastPath = currentPath;
-          markInternalPageVisit();
+          markPageVisitForNormalExit();
         }
       });
 
@@ -1889,14 +1903,14 @@ const audio = new Audio(
     }
 
     handleMouseMovement(event) {
-      if (hasInteractedBefore()) return;
+      if (hasNormalExitInteractedBefore()) return;
 
       const isNearTop = event.clientY < 100; // Increased area for browser controls
       const isMovingUpward = this.mouseMovingUp;
 
       if (
-        hasSpentEnoughTime() &&
-        (hasVisitedMultiplePages() || this.hasScrolled90Percent) &&
+        hasSpentEnoughTimeForNormalExit() &&
+        (hasVisitedMultiplePagesForNormalExit() || this.hasScrolled90Percent) &&
         isNearTop &&
         isMovingUpward
       ) {
@@ -1905,7 +1919,7 @@ const audio = new Audio(
     }
 
     triggerInteraction() {
-      markInteractionTriggered();
+      markNormalExitInteractionTriggered();
       showUIAnimation({
         text: "Leaving already? If you ever need help, I'm always here!",
         time: 5,
@@ -1921,13 +1935,13 @@ const audio = new Audio(
 
   // Wait for DOM to load
   document.addEventListener("DOMContentLoaded", () => {
-    window.exitIntentHandler = new ExitIntentHandler();
+    window.normalExitIntentHandler = new NormalExitIntentHandler();
   });
 
   // Backup check on full page load
   window.addEventListener("load", () => {
-    if (!window.exitIntentHandler) {
-      window.exitIntentHandler = new ExitIntentHandler();
+    if (!window.normalExitIntentHandler) {
+      window.normalExitIntentHandler = new NormalExitIntentHandler();
     }
   });
 
