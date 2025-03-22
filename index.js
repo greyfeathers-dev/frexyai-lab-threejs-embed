@@ -1827,7 +1827,7 @@ const audio = new Audio(
     const visitedPages = JSON.parse(
       localStorage.getItem("normalExitVisitedPages") || "[]"
     );
-    return visitedPages.length > 1;
+    return visitedPages.length > 2;
   }
 
   // Function to mark page visit
