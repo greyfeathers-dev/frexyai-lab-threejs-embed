@@ -734,6 +734,7 @@ const audio = new Audio(
   // ============================================= CONFIG TRIGGERING FUNCTIONS =============================================
 
   function triggerConfig() {
+    console.log("triggering config", CONFIG);
     CONFIG.map((config) => {
       let isTrafficSourceValid = true;
       let isLocationValid = true;
@@ -898,6 +899,7 @@ const audio = new Audio(
   // ============================================= UI ANIMATION FUNCTIONS =============================================
 
   function showUIAnimation(config) {
+    console.log("showing ui animation", config);
     if (currentlyAnimating) return;
     resetHead();
     let animationIdx = -1;
