@@ -805,13 +805,11 @@ const audio = new Audio(
       switch (config.type) {
         case "onFirstLand":
           if (!isFirstLandTriggered) {
-            alert("onFirstLand");
             showUIAnimation(config);
           }
           break;
         case "inActive":
           let timer;
-          alert("inActive");
           timer = setTimeout(
             () => showUIAnimation(config),
             config.inActiveTime
@@ -819,7 +817,6 @@ const audio = new Audio(
           window.addEventListener("click", () => {
             if (timer) {
               clearTimeout(timer);
-              alert("click");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -829,7 +826,6 @@ const audio = new Audio(
           window.addEventListener("scroll", () => {
             if (timer) {
               clearTimeout(timer);
-              alert("scroll");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -839,7 +835,6 @@ const audio = new Audio(
           document.addEventListener("mousemove", () => {
             if (timer) {
               clearTimeout(timer);
-              alert("mousemove");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -863,7 +858,6 @@ const audio = new Audio(
             ) {
               if (displayState[config.id]) return;
               displayState[config.id] = true;
-              alert("scroll");
               showUIAnimation(config);
             }
           });
@@ -875,8 +869,7 @@ const audio = new Audio(
               ? path === config.pagePath
               : path.includes(config.pagePath)
           ) {
-            alert("popstate");
-            showUIAnimation(config);
+            // showUIAnimation(config);
           }
           window.addEventListener("pathChange", () => {
             const pagePath = window.location.href;
@@ -889,13 +882,11 @@ const audio = new Audio(
                 if (displayState[config.id]) return;
                 setTimeout(() => {
                   displayState[config.id] = true;
-                  alert("popstate delay");
                   showUIAnimation(config), config.delay;
                 });
               } else {
                 if (displayState[config.id]) return;
                 displayState[config.id] = true;
-                alert("popstate no delay");
                 showUIAnimation(config);
               }
             }
