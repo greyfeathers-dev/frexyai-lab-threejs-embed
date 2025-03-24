@@ -1818,45 +1818,45 @@ const audio = new Audio(
 
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
-  function hasSpentEnoughTimeForNormalExit() {
-    return Date.now() - window.sessionStartTime >= 30000; // 30 seconds
+  function normalExitIntentHasSpentEnoughTime() {
+    return Date.now() - window.normalExitIntentSessionStartTime >= 30000; // 30 seconds
   }
 
   // Function to check if the user has visited multiple pages
-  function hasVisitedMultiplePagesForNormalExit() {
-    const visitedPages = JSON.parse(
-      localStorage.getItem("normalExitVisitedPages") || "[]"
+  function normalExitIntentHasVisitedMultiplePages() {
+    const normalExitIntentVisitedPages = JSON.parse(
+      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
-    return visitedPages.length > 2;
+    return normalExitIntentVisitedPages.length > 2;
   }
 
   // Function to mark page visit
-  function markPageVisitForNormalExit() {
-    const visitedPages = JSON.parse(
-      localStorage.getItem("normalExitVisitedPages") || "[]"
+  function normalExitIntentMarkPageVisit() {
+    const normalExitIntentVisitedPages = JSON.parse(
+      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
     const currentPath = window.location.pathname;
-    if (!visitedPages.includes(currentPath)) {
-      visitedPages.push(currentPath);
+    if (!normalExitIntentVisitedPages.includes(currentPath)) {
+      normalExitIntentVisitedPages.push(currentPath);
       localStorage.setItem(
-        "normalExitVisitedPages",
-        JSON.stringify(visitedPages)
+        "normalExitIntentVisitedPages",
+        JSON.stringify(normalExitIntentVisitedPages)
       );
     }
   }
 
   // Function to check if the interaction has already been triggered
-  function hasNormalExitInteractedBefore() {
+  function normalExitIntentHasInteractedBefore() {
     return localStorage.getItem("normalExitIntentTriggered") === "true";
   }
 
   // Function to store that interaction has been triggered
-  function markNormalExitInteractionTriggered() {
+  function normalExitIntentMarkInteractionTriggered() {
     localStorage.setItem("normalExitIntentTriggered", "true");
   }
 
   // Function to calculate scroll percentage
-  function getScrollPercentageForNormalExit() {
+  function normalExitIntentGetScrollPercentage() {
     const scrollTop = window.scrollY;
     const docHeight =
       document.documentElement.scrollHeight - window.innerHeight;
@@ -1866,74 +1866,83 @@ const audio = new Audio(
   // Main interaction handler
   class NormalExitIntentHandler {
     constructor() {
-      this.hasScrolled90Percent = false;
-      this.handleMouseMovement = this.handleMouseMovement.bind(this);
-      this.setupEventListeners();
-      markPageVisitForNormalExit(); // Mark initial page visit
+      this.normalExitIntentHighestScrollPercentage = 0;
+      this.normalExitIntentHandleMouseMovement =
+        this.normalExitIntentHandleMouseMovement.bind(this);
+      this.normalExitIntentSetupEventListeners();
+      normalExitIntentMarkPageVisit(); // Mark initial page visit
     }
 
-    setupEventListeners() {
-      let lastY = 0;
+    normalExitIntentSetupEventListeners() {
+      let normalExitIntentLastY = 0;
 
       // Detect mouse movement toward the top
       document.addEventListener("mousemove", (e) => {
         const currentY = e.clientY;
-        this.mouseMovingUp = currentY < lastY;
-        lastY = currentY;
-        this.handleMouseMovement(e);
+        this.normalExitIntentMouseMovingUp = currentY < normalExitIntentLastY;
+        normalExitIntentLastY = currentY;
+        this.normalExitIntentHandleMouseMovement(e);
       });
 
       // Track scroll percentage
       document.addEventListener("scroll", () => {
-        this.hasScrolled90Percent = getScrollPercentageForNormalExit() >= 90;
+        const currentScrollPercentage = normalExitIntentGetScrollPercentage();
+        this.normalExitIntentHighestScrollPercentage = Math.max(
+          this.normalExitIntentHighestScrollPercentage,
+          currentScrollPercentage
+        );
       });
 
       // Track page navigation
-      let lastPath = window.location.pathname;
-      const observer = new MutationObserver(() => {
+      let normalExitIntentLastPath = window.location.pathname;
+      const normalExitIntentObserver = new MutationObserver(() => {
         const currentPath = window.location.pathname;
-        if (currentPath !== lastPath) {
-          lastPath = currentPath;
-          markPageVisitForNormalExit();
+        if (currentPath !== normalExitIntentLastPath) {
+          normalExitIntentLastPath = currentPath;
+          normalExitIntentMarkPageVisit();
         }
       });
 
-      observer.observe(document.body, {
+      normalExitIntentObserver.observe(document.body, {
         childList: true,
         subtree: true,
       });
     }
 
-    handleMouseMovement(event) {
-      if (hasNormalExitInteractedBefore()) return;
+    normalExitIntentHandleMouseMovement(event) {
+      if (normalExitIntentHasInteractedBefore()) return;
 
       const isNearTop = event.clientY < 100; // Increased area for browser controls
-      const isMovingUpward = this.mouseMovingUp;
+      const isMovingUpward = this.normalExitIntentMouseMovingUp;
 
       if (
-        hasSpentEnoughTimeForNormalExit() &&
-        (hasVisitedMultiplePagesForNormalExit() || this.hasScrolled90Percent) &&
+        normalExitIntentHasSpentEnoughTime() &&
+        (normalExitIntentHasVisitedMultiplePages() ||
+          this.normalExitIntentHighestScrollPercentage >= 90) &&
         isNearTop &&
         isMovingUpward
       ) {
-        this.triggerInteraction();
+        this.normalExitIntentTriggerInteraction();
       }
     }
 
-    triggerInteraction() {
-      markNormalExitInteractionTriggered();
+    normalExitIntentTriggerInteraction() {
+      normalExitIntentMarkInteractionTriggered();
       showUIAnimation({
         text: "Leaving already? If you ever need help, I'm always here!",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
-      document.removeEventListener("mousemove", this.handleMouseMovement);
+      document.removeEventListener(
+        "mousemove",
+        this.normalExitIntentHandleMouseMovement
+      );
     }
   }
 
   // Store session start time
-  window.sessionStartTime = Date.now();
+  window.normalExitIntentSessionStartTime = Date.now();
 
   // Wait for DOM to load
   document.addEventListener("DOMContentLoaded", () => {
