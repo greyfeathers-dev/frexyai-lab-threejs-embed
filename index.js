@@ -1948,31 +1948,59 @@ const audio = new Audio(
   });
 
   //*************************************************CONFUSSED INTERACTION HANDLER*****************************************************
-  function hasInteractedBefore() {
+  function hasConfusedInteractionTriggered() {
     return sessionStorage.getItem("confusedInteractionTriggered") === "true";
   }
 
-  // Function to store that interaction has been triggered
+  // Function to store that confused interaction has been triggered
   function markConfusedInteractionTriggered() {
     sessionStorage.setItem("confusedInteractionTriggered", "true");
   }
 
-  // Function to get current page visits count
-  function getPageVisits() {
+  // Function to get current unique page visits count for confused interaction
+  function getConfusedInteractionVisitCount() {
     return parseInt(sessionStorage.getItem("confusedInteractionVisits") || "0");
   }
 
-  // Function to increment page visits
-  function incrementPageVisits() {
-    const currentVisits = getPageVisits();
-    sessionStorage.setItem(
-      "confusedInteractionVisits",
-      (currentVisits + 1).toString()
+  // Function to get pages visited during confused interaction
+  function getConfusedInteractionVisitedPages() {
+    return JSON.parse(
+      sessionStorage.getItem("confusedInteractionVisitedPages") || "[]"
     );
   }
 
-  // Function to check if current page has been scrolled past 70%
-  function hasScrolledPast70Percent() {
+  // Function to check if a page has been visited during confused interaction
+  function hasConfusedInteractionPageBeenVisited(path) {
+    const visitedPages = getConfusedInteractionVisitedPages();
+    return visitedPages.includes(path);
+  }
+
+  // Function to mark a page as visited during confused interaction
+  function markConfusedInteractionPageAsVisited(path) {
+    const visitedPages = getConfusedInteractionVisitedPages();
+    if (!visitedPages.includes(path)) {
+      visitedPages.push(path);
+      sessionStorage.setItem(
+        "confusedInteractionVisitedPages",
+        JSON.stringify(visitedPages)
+      );
+    }
+  }
+
+  // Function to increment unique page visits for confused interaction
+  function incrementConfusedInteractionVisits(path) {
+    if (!hasConfusedInteractionPageBeenVisited(path)) {
+      const currentVisits = getConfusedInteractionVisitCount();
+      sessionStorage.setItem(
+        "confusedInteractionVisits",
+        (currentVisits + 1).toString()
+      );
+      markConfusedInteractionPageAsVisited(path);
+    }
+  }
+
+  // Function to check if current page has been scrolled past 70% during confused interaction
+  function hasConfusedInteractionPageScrolledPast70Percent() {
     const scrollTop = window.scrollY;
     const docHeight =
       document.documentElement.scrollHeight - window.innerHeight;
@@ -1980,8 +2008,8 @@ const audio = new Audio(
     return scrollPercentage > 70;
   }
 
-  // Function to mark current page as scrolled
-  function markPageScrolled(path) {
+  // Function to mark current page as scrolled during confused interaction
+  function markConfusedInteractionPageScrolled(path) {
     const scrolledPages = JSON.parse(
       sessionStorage.getItem("confusedInteractionScrolledPages") || "[]"
     );
@@ -1996,27 +2024,44 @@ const audio = new Audio(
     }
   }
 
-  // Function to check if any page in the session was scrolled
-  function hasAnyPageScrolled() {
+  // Function to check if any page in the session was scrolled during confused interaction
+  function hasConfusedInteractionAnyPageScrolled() {
     return (
       sessionStorage.getItem("confusedInteractionSessionScrolled") === "true"
     );
   }
 
-  // Function to check if a page was scrolled
-  function wasPageScrolled(path) {
+  // Function to check if a page was scrolled during confused interaction
+  function wasConfusedInteractionPageScrolled(path) {
     const scrolledPages = JSON.parse(
       sessionStorage.getItem("confusedInteractionScrolledPages") || "[]"
     );
     return scrolledPages.includes(path);
   }
 
-  // Main interaction handler
+  // Function to get initial path for confused interaction
+  function getConfusedInteractionInitialPath() {
+    return (
+      sessionStorage.getItem("confusedInteractionInitialPath") ||
+      window.location.pathname
+    );
+  }
+
+  // Function to set initial path for confused interaction
+  function setConfusedInteractionInitialPath(path) {
+    if (!sessionStorage.getItem("confusedInteractionInitialPath")) {
+      sessionStorage.setItem("confusedInteractionInitialPath", path);
+    }
+  }
+
+  // Main confused interaction handler
   class ConfusedInteractionHandler {
     constructor() {
       this.handleScroll = this.handleScroll.bind(this);
       this.setupEventListeners();
       this.checkPageVisits();
+      // Set initial path when handler is created
+      setConfusedInteractionInitialPath(window.location.pathname);
     }
 
     setupEventListeners() {
@@ -2040,31 +2085,36 @@ const audio = new Audio(
     }
 
     handleScroll() {
-      if (hasScrolledPast70Percent()) {
-        markPageScrolled(window.location.pathname);
+      if (hasConfusedInteractionPageScrolledPast70Percent()) {
+        markConfusedInteractionPageScrolled(window.location.pathname);
       }
     }
 
     handlePageChange() {
       const currentPath = window.location.pathname;
-      const previousPath =
-        sessionStorage.getItem("confusedInteractionLastPath") || "/";
+      const initialPath = getConfusedInteractionInitialPath();
 
-      // Only increment visits if previous page wasn't scrolled past 70%
-      if (!wasPageScrolled(previousPath)) {
-        incrementPageVisits();
-        this.checkPageVisits();
+      // Skip if we're on the initial path
+      if (currentPath === initialPath) {
+        return;
       }
 
-      // Store current path for next navigation
-      sessionStorage.setItem("confusedInteractionLastPath", currentPath);
+      // Only increment visits if:
+      // 1. The current page hasn't been visited before
+      // 2. The current page hasn't been scrolled past 70%
+      if (!wasConfusedInteractionPageScrolled(currentPath)) {
+        if (!hasConfusedInteractionPageBeenVisited(currentPath)) {
+          incrementConfusedInteractionVisits(currentPath);
+          this.checkPageVisits();
+        }
+      }
     }
 
     checkPageVisits() {
-      if (hasInteractedBefore()) return;
-      if (hasAnyPageScrolled()) return; // Don't trigger if any page was scrolled
+      if (hasConfusedInteractionTriggered()) return;
+      if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
-      const visits = getPageVisits();
+      const visits = getConfusedInteractionVisitCount();
       if (visits >= 3) {
         this.triggerInteraction();
       }
@@ -2085,13 +2135,6 @@ const audio = new Audio(
   // Initialize on DOM load
   document.addEventListener("DOMContentLoaded", () => {
     window.confusedInteractionHandler = new ConfusedInteractionHandler();
-    // Initialize lastPath if not set
-    if (!sessionStorage.getItem("confusedInteractionLastPath")) {
-      sessionStorage.setItem(
-        "confusedInteractionLastPath",
-        window.location.pathname
-      );
-    }
   });
 
   // Backup initialization on full page load
