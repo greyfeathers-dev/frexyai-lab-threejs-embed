@@ -1819,7 +1819,7 @@ const audio = new Audio(
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
   function hasSpentEnoughTimeForNormalExit() {
-    return Date.now() - window.sessionStartTime >= 3000; // 30 seconds
+    return Date.now() - window.sessionStartTime >= 30000; // 30 seconds
   }
 
   // Function to check if the user has visited multiple pages
