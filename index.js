@@ -107,7 +107,6 @@ const audio = new Audio(
 
   function init() {
     fetchConfig();
-    getInteractions();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -1634,6 +1633,8 @@ const audio = new Audio(
       return [];
     }
   };
+
+  getInteractions();
 
   // Function to initialize interactions based on their status
   const initializeInteractions = (interactions) => {
