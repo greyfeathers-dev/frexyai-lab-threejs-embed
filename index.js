@@ -1,4 +1,9 @@
 /** @format */
+
+const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
+
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
@@ -107,9 +112,6 @@ const audio = new Audio(
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source = getSource();
     const MODEL_PATH = BASE_MODEL.model_url;
-
-    // Add welcome message check
-    checkAndShowWelcomeMessage();
 
     const fallbackLoader = document.createElement("div");
     fallbackLoader.id = "loader";
@@ -1603,6 +1605,112 @@ const audio = new Audio(
 
   // ******************************************************************** INTERACTIONS ********************************************************************
 
+  const getInteractions = async () => {
+    try {
+      const user_id = localStorage.getItem("merchantId");
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const interactions = await response.json();
+      initializeInteractions(interactions);
+      return interactions;
+    } catch (error) {
+      console.error("Failed to get interactions:", error);
+      return [];
+    }
+  };
+
+  // Function to initialize interactions based on their status
+  const initializeInteractions = (interactions) => {
+    // Helper function to check if an interaction is enabled
+    const isEnabled = (name) => {
+      const interaction = interactions.find((i) => i.name === name);
+      return interaction ? interaction.status : false;
+    };
+
+    // Initialize each interaction based on its status
+    if (isEnabled("New Visitor")) {
+      checkAndShowWelcomeMessage();
+    }
+
+    if (isEnabled("Welcome Returning Visitor")) {
+      // The welcome message function already handles both new and returning visitors
+      // We just need to ensure it's called
+      checkAndShowWelcomeMessage();
+    }
+
+    if (isEnabled("Avoid Bounce")) {
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM fully loaded");
+        window.avoidBounceHandler = new AvoidBounceHandler();
+        checkInternalNavigation();
+      });
+
+      window.addEventListener("load", () => {
+        console.log("Window loaded");
+        if (!window.avoidBounceHandler) {
+          window.avoidBounceHandler = new AvoidBounceHandler();
+        }
+        checkInternalNavigation();
+      });
+    }
+
+    if (isEnabled("Idle on Page")) {
+      document.addEventListener("DOMContentLoaded", () => {
+        sessionStorage.removeItem("inactivityTriggerCount");
+        window.inactivityHandler = new InactivityHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.inactivityHandler) {
+          sessionStorage.removeItem("inactivityTriggerCount");
+          window.inactivityHandler = new InactivityHandler();
+        }
+      });
+    }
+
+    if (isEnabled("Normal Exit Intent")) {
+      window.normalExitIntentSessionStartTime = Date.now();
+      document.addEventListener("DOMContentLoaded", () => {
+        window.normalExitIntentHandler = new NormalExitIntentHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.normalExitIntentHandler) {
+          window.normalExitIntentHandler = new NormalExitIntentHandler();
+        }
+      });
+    }
+
+    if (isEnabled("Confused?")) {
+      document.addEventListener("DOMContentLoaded", () => {
+        window.confusedInteractionHandler = new ConfusedInteractionHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.confusedInteractionHandler) {
+          window.confusedInteractionHandler = new ConfusedInteractionHandler();
+        }
+      });
+    }
+
+    // Click-to-Dance is already handled by the model click event listener
+    // No additional initialization needed
+  };
+
   //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
 
   // Add the welcome message function after the init() function
@@ -1630,28 +1738,36 @@ const audio = new Audio(
     // Set a 2-second delay before showing the message
     setTimeout(() => {
       if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
-        console.log("Showing returning visitor message");
-        setTimeout(() => {
-          showUIAnimation({
-            text: "Hey there, welcome back! I've been waiting for you. Need any help?",
-            time: 5,
-            hasClose: true,
-            animation: "wave",
-          });
-        }, 2000);
-        // Mark that we've shown the returning message in this session
-        sessionStorage.setItem("hasShownReturningMessage", "true");
+        showReturningVisitorMessage();
       } else if (hasVisitedBefore !== "true") {
-        console.log("Showing first-time visitor message");
-        localStorage.setItem("hasWelcomeVisitor", "true");
-        showUIAnimation({
-          text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-          time: 5,
-          hasClose: true,
-          animation: "wave",
-        });
+        showNewVisitorMessage();
       }
-    }, 1000); // 2-second delay
+    }, 1000);
+  }
+
+  function showNewVisitorMessage() {
+    console.log("Showing first-time visitor message");
+    localStorage.setItem("hasWelcomeVisitor", "true");
+    showUIAnimation({
+      text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+      time: 5,
+      hasClose: true,
+      animation: "wave",
+    });
+  }
+
+  function showReturningVisitorMessage() {
+    console.log("Showing returning visitor message");
+    setTimeout(() => {
+      showUIAnimation({
+        text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+        time: 5,
+        hasClose: true,
+        animation: "wave",
+      });
+    }, 2000);
+    // Mark that we've shown the returning message in this session
+    sessionStorage.setItem("hasShownReturningMessage", "true");
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
@@ -1802,20 +1918,6 @@ const audio = new Audio(
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM fully loaded");
-    window.avoidBounceHandler = new AvoidBounceHandler();
-    checkInternalNavigation();
-  });
-
-  window.addEventListener("load", () => {
-    console.log("Window loaded");
-    if (!window.avoidBounceHandler) {
-      window.avoidBounceHandler = new AvoidBounceHandler();
-    }
-    checkInternalNavigation();
-  });
-
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
   function normalExitIntentHasSpentEnoughTime() {
@@ -1942,19 +2044,19 @@ const audio = new Audio(
   }
 
   // Store session start time
-  window.normalExitIntentSessionStartTime = Date.now();
+  // window.normalExitIntentSessionStartTime = Date.now();
 
-  // Wait for DOM to load
-  document.addEventListener("DOMContentLoaded", () => {
-    window.normalExitIntentHandler = new NormalExitIntentHandler();
-  });
+  // // Wait for DOM to load
+  // document.addEventListener("DOMContentLoaded", () => {
+  //   window.normalExitIntentHandler = new NormalExitIntentHandler();
+  // });
 
-  // Backup check on full page load
-  window.addEventListener("load", () => {
-    if (!window.normalExitIntentHandler) {
-      window.normalExitIntentHandler = new NormalExitIntentHandler();
-    }
-  });
+  // // Backup check on full page load
+  // window.addEventListener("load", () => {
+  //   if (!window.normalExitIntentHandler) {
+  //     window.normalExitIntentHandler = new NormalExitIntentHandler();
+  //   }
+  // });
 
   //*************************************************CONFUSSED INTERACTION HANDLER*****************************************************
   function hasConfusedInteractionTriggered() {
@@ -2142,16 +2244,16 @@ const audio = new Audio(
   }
 
   // Initialize on DOM load
-  document.addEventListener("DOMContentLoaded", () => {
-    window.confusedInteractionHandler = new ConfusedInteractionHandler();
-  });
+  // document.addEventListener("DOMContentLoaded", () => {
+  //   window.confusedInteractionHandler = new ConfusedInteractionHandler();
+  // });
 
-  // Backup initialization on full page load
-  window.addEventListener("load", () => {
-    if (!window.confusedInteractionHandler) {
-      window.confusedInteractionHandler = new ConfusedInteractionHandler();
-    }
-  });
+  // // Backup initialization on full page load
+  // window.addEventListener("load", () => {
+  //   if (!window.confusedInteractionHandler) {
+  //     window.confusedInteractionHandler = new ConfusedInteractionHandler();
+  //   }
+  // });
   //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
 
   // Function to safely get localStorage value
@@ -2288,20 +2390,20 @@ const audio = new Audio(
     }
   }
 
-  // Initialize handler when DOM is ready
-  document.addEventListener("DOMContentLoaded", () => {
-    // Clear the trigger count when the page loads
-    sessionStorage.removeItem("inactivityTriggerCount");
-    window.inactivityHandler = new InactivityHandler();
-  });
+  // // Initialize handler when DOM is ready
+  // document.addEventListener("DOMContentLoaded", () => {
+  //   // Clear the trigger count when the page loads
+  //   sessionStorage.removeItem("inactivityTriggerCount");
+  //   window.inactivityHandler = new InactivityHandler();
+  // });
 
-  // Backup initialization on full page load
-  window.addEventListener("load", () => {
-    if (!window.inactivityHandler) {
-      // Clear the trigger count when the page loads
-      sessionStorage.removeItem("inactivityTriggerCount");
-      window.inactivityHandler = new InactivityHandler();
-    }
-  });
+  // // Backup initialization on full page load
+  // window.addEventListener("load", () => {
+  //   if (!window.inactivityHandler) {
+  //     // Clear the trigger count when the page loads
+  //     sessionStorage.removeItem("inactivityTriggerCount");
+  //     window.inactivityHandler = new InactivityHandler();
+  //   }
+  // });
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
