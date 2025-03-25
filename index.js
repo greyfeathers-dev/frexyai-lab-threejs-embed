@@ -1607,6 +1607,7 @@ const audio = new Audio(
   // ******************************************************************** INTERACTIONS ********************************************************************
 
   const getInteractions = async () => {
+    alert("Getting interactions");
     try {
       const user_id = localStorage.getItem("merchantId");
       const response = await fetch(
