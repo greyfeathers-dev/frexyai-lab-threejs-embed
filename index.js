@@ -1604,10 +1604,11 @@ const audio = new Audio(
   }
 
   // ******************************************************************** INTERACTIONS ********************************************************************
-
+  let INTERACTION_DATA = [];
   const getInteractions = async () => {
     try {
       const user_id = localStorage.getItem("merchantId");
+      // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1625,6 +1626,8 @@ const audio = new Audio(
       }
 
       const interactions = await response.json();
+      // Store the interactions in INTERACTIONS for use in other functions
+      INTERACTION_DATA = interactions;
       initializeInteractions(interactions);
       return interactions;
     } catch (error) {
@@ -1737,17 +1740,52 @@ const audio = new Audio(
 
   // Add the welcome message function after the init() function
 
+  // Function to update total_impression count
+  async function updateInteractionImpression(interaction_id) {
+    try {
+      const interaction = INTERACTION_DATA.find((i) => i.id === interaction_id);
+      if (!interaction) return;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/interactions?id=eq.${interaction.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            total_impressions: Number(interaction.total_impressions) + 1 || 0,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update impression count:", response.status);
+      }
+    } catch (error) {
+      console.error("Error updating impression count:", error);
+    }
+  }
+
   function showNewVisitorMessage() {
-    console.log("Showing new visitor message");
+    console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     if (hasVisitedBefore !== "true") {
       localStorage.setItem("hasWelcomeVisitor", "true");
+      const newVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.name === "New Visitor"
+      );
       showUIAnimation({
-        text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+        text:
+          newVisitorInteraction?.message ||
+          "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+      updateInteractionImpression(newVisitorInteraction.id);
     }
   }
 
@@ -1759,14 +1797,19 @@ const audio = new Audio(
     );
     if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
       setTimeout(() => {
+        const returningVisitorInteraction = INTERACTION_DATA.find(
+          (i) => i.name === "Welcome Returning Visitor"
+        );
         showUIAnimation({
-          text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+          text:
+            returningVisitorInteraction?.message ||
+            "Hey there, welcome back! I've been waiting for you. Need any help?",
           time: 5,
           hasClose: true,
           animation: "wave",
         });
+        updateInteractionImpression(returningVisitorInteraction.id);
       }, 2000);
-      // Mark that we've shown the returning message in this session
       sessionStorage.setItem("hasShownReturningMessage", "true");
     }
   }
@@ -1903,8 +1946,13 @@ const audio = new Audio(
 
     triggerInteraction() {
       this.hasInteracted = true;
+      const avoidBounceInteraction = INTERACTION_DATA.find(
+        (i) => i.name === "Avoid Bounce"
+      );
       showUIAnimation({
-        text: "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
+        text:
+          avoidBounceInteraction?.message ||
+          "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
         time: 5,
         hasClose: true,
         animation: "celebration",
@@ -1916,6 +1964,7 @@ const audio = new Audio(
           },
         ],
       });
+      updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
     }
   }
@@ -2032,33 +2081,24 @@ const audio = new Audio(
 
     normalExitIntentTriggerInteraction() {
       normalExitIntentMarkInteractionTriggered();
+      const normalExitIntentInteraction = INTERACTION_DATA.find(
+        (i) => i.name === "Normal Exit Intent"
+      );
       showUIAnimation({
-        text: "Leaving already? If you ever need help, I'm always here!",
+        text:
+          normalExitIntentInteraction?.message ||
+          "Leaving already? If you ever need help, I'm always here!",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+      updateInteractionImpression(normalExitIntentInteraction.id);
       document.removeEventListener(
         "mousemove",
         this.normalExitIntentHandleMouseMovement
       );
     }
   }
-
-  // Store session start time
-  // window.normalExitIntentSessionStartTime = Date.now();
-
-  // // Wait for DOM to load
-  // document.addEventListener("DOMContentLoaded", () => {
-  //   window.normalExitIntentHandler = new NormalExitIntentHandler();
-  // });
-
-  // // Backup check on full page load
-  // window.addEventListener("load", () => {
-  //   if (!window.normalExitIntentHandler) {
-  //     window.normalExitIntentHandler = new NormalExitIntentHandler();
-  //   }
-  // });
 
   //*************************************************CONFUSSED INTERACTION HANDLER*****************************************************
   function hasConfusedInteractionTriggered() {
@@ -2235,27 +2275,22 @@ const audio = new Audio(
 
     triggerInteraction() {
       markConfusedInteractionTriggered();
+      const confusedInteraction = INTERACTION_DATA.find(
+        (i) => i.name === "Confused?"
+      );
       showUIAnimation({
-        text: "Looks like you're exploring 🤔….need a hand finding something?",
+        text:
+          confusedInteraction?.message ||
+          "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+      updateInteractionImpression(confusedInteraction.id);
       document.removeEventListener("scroll", this.handleScroll);
     }
   }
 
-  // Initialize on DOM load
-  // document.addEventListener("DOMContentLoaded", () => {
-  //   window.confusedInteractionHandler = new ConfusedInteractionHandler();
-  // });
-
-  // // Backup initialization on full page load
-  // window.addEventListener("load", () => {
-  //   if (!window.confusedInteractionHandler) {
-  //     window.confusedInteractionHandler = new ConfusedInteractionHandler();
-  //   }
-  // });
   //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
 
   // Function to safely get localStorage value
@@ -2377,35 +2412,24 @@ const audio = new Audio(
       incrementTriggerCount();
       console.log("Count after increment:", getTriggerCount());
 
+      const idleInteraction = INTERACTION_DATA.find(
+        (i) => i.name === "Idle on Page"
+      );
       showUIAnimation({
-        text: "Still there? Let me know if you need any help!",
+        text:
+          idleInteraction?.message ||
+          "Still there? Let me know if you need any help!",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+      updateInteractionImpression(idleInteraction.id);
 
-      // Reset the checking flag after the animation duration
       setTimeout(() => {
         this.isCheckingInactivity = false;
-        this.updateLastActivity(); // Reset activity timer after message closes
+        this.updateLastActivity();
       }, 5000);
     }
   }
-
-  // // Initialize handler when DOM is ready
-  // document.addEventListener("DOMContentLoaded", () => {
-  //   // Clear the trigger count when the page loads
-  //   sessionStorage.removeItem("inactivityTriggerCount");
-  //   window.inactivityHandler = new InactivityHandler();
-  // });
-
-  // // Backup initialization on full page load
-  // window.addEventListener("load", () => {
-  //   if (!window.inactivityHandler) {
-  //     // Clear the trigger count when the page loads
-  //     sessionStorage.removeItem("inactivityTriggerCount");
-  //     window.inactivityHandler = new InactivityHandler();
-  //   }
-  // });
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
