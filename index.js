@@ -1646,13 +1646,27 @@ const audio = new Audio(
 
     // Initialize each interaction based on its status
     if (isEnabled("New Visitor")) {
-      checkAndShowWelcomeMessage();
+      document.addEventListener("DOMContentLoaded", () => {
+        showNewVisitorMessage();
+      });
+
+      window.addEventListener("load", () => {
+        if (!document.newVisitorMessageShown) {
+          showNewVisitorMessage();
+        }
+      });
     }
 
     if (isEnabled("Welcome Returning Visitor")) {
-      // The welcome message function already handles both new and returning visitors
-      // We just need to ensure it's called
-      checkAndShowWelcomeMessage();
+      document.addEventListener("DOMContentLoaded", () => {
+        showReturningVisitorMessage();
+      });
+
+      window.addEventListener("load", () => {
+        if (!document.returningVisitorMessageShown) {
+          showReturningVisitorMessage();
+        }
+      });
     }
 
     if (isEnabled("Avoid Bounce")) {
@@ -1718,59 +1732,36 @@ const audio = new Audio(
 
   // Add the welcome message function after the init() function
 
-  function checkAndShowWelcomeMessage() {
-    console.log("Checking welcome message...");
-    // Wait for DOM to be fully loaded
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", showWelcomeMessage);
-    } else {
-      showWelcomeMessage();
-    }
-  }
-
-  function showWelcomeMessage() {
-    console.log("Showing welcome message...");
-    // Check if user has visited before
-    const hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
-    const hasShownReturningMessage = sessionStorage.getItem(
-      "hasShownReturningMessage"
-    );
-    console.log("Has visited before:", hasVisitedBefore);
-    console.log("Has shown returning message:", hasShownReturningMessage);
-
-    // Set a 2-second delay before showing the message
-    setTimeout(() => {
-      if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
-        showReturningVisitorMessage();
-      } else if (hasVisitedBefore !== "true") {
-        showNewVisitorMessage();
-      }
-    }, 1000);
-  }
-
   function showNewVisitorMessage() {
-    console.log("Showing first-time visitor message");
-    localStorage.setItem("hasWelcomeVisitor", "true");
-    showUIAnimation({
-      text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-      time: 5,
-      hasClose: true,
-      animation: "wave",
-    });
-  }
-
-  function showReturningVisitorMessage() {
-    console.log("Showing returning visitor message");
-    setTimeout(() => {
+    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    if (hasVisitedBefore !== "true") {
+      localStorage.setItem("hasWelcomeVisitor", "true");
       showUIAnimation({
-        text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+        text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
-    }, 2000);
-    // Mark that we've shown the returning message in this session
-    sessionStorage.setItem("hasShownReturningMessage", "true");
+    }
+  }
+
+  function showReturningVisitorMessage() {
+    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    const hasShownReturningMessage = sessionStorage.getItem(
+      "hasShownReturningMessage"
+    );
+    if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
+      setTimeout(() => {
+        showUIAnimation({
+          text: "Hey there, welcome back! I've been waiting for you. Need any help?",
+          time: 5,
+          hasClose: true,
+          animation: "wave",
+        });
+      }, 2000);
+      // Mark that we've shown the returning message in this session
+      sessionStorage.setItem("hasShownReturningMessage", "true");
+    }
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
