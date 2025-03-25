@@ -107,6 +107,7 @@ const audio = new Audio(
 
   function init() {
     fetchConfig();
+    getInteractions();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
