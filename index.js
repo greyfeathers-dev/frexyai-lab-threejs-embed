@@ -1606,7 +1606,6 @@ const audio = new Audio(
   // ******************************************************************** INTERACTIONS ********************************************************************
 
   const getInteractions = async () => {
-    alert("Getting interactions");
     try {
       const user_id = localStorage.getItem("merchantId");
       const response = await fetch(
@@ -1646,6 +1645,7 @@ const audio = new Audio(
 
     // Initialize each interaction based on its status
     if (isEnabled("New Visitor")) {
+      console.log("New visitor is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         showNewVisitorMessage();
       });
@@ -1658,6 +1658,7 @@ const audio = new Audio(
     }
 
     if (isEnabled("Welcome Returning Visitor")) {
+      console.log("Welcome returning visitor is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         showReturningVisitorMessage();
       });
@@ -1670,6 +1671,7 @@ const audio = new Audio(
     }
 
     if (isEnabled("Avoid Bounce")) {
+      console.log("Avoid bounce is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         console.log("DOM fully loaded");
         window.avoidBounceHandler = new AvoidBounceHandler();
@@ -1686,6 +1688,7 @@ const audio = new Audio(
     }
 
     if (isEnabled("Idle on Page")) {
+      console.log("Idle on page is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.removeItem("inactivityTriggerCount");
         window.inactivityHandler = new InactivityHandler();
@@ -1700,6 +1703,7 @@ const audio = new Audio(
     }
 
     if (isEnabled("Normal Exit Intent")) {
+      console.log("Normal exit intent is enabled");
       window.normalExitIntentSessionStartTime = Date.now();
       document.addEventListener("DOMContentLoaded", () => {
         window.normalExitIntentHandler = new NormalExitIntentHandler();
@@ -1713,6 +1717,7 @@ const audio = new Audio(
     }
 
     if (isEnabled("Confused?")) {
+      console.log("Confused? is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         window.confusedInteractionHandler = new ConfusedInteractionHandler();
       });
@@ -1733,6 +1738,7 @@ const audio = new Audio(
   // Add the welcome message function after the init() function
 
   function showNewVisitorMessage() {
+    console.log("Showing new visitor message");
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     if (hasVisitedBefore !== "true") {
       localStorage.setItem("hasWelcomeVisitor", "true");
@@ -1746,6 +1752,7 @@ const audio = new Audio(
   }
 
   function showReturningVisitorMessage() {
+    console.log("Showing returning visitor message");
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     const hasShownReturningMessage = sessionStorage.getItem(
       "hasShownReturningMessage"
@@ -1788,6 +1795,7 @@ const audio = new Audio(
   }
 
   function checkInternalNavigation() {
+    console.log("Checking internal navigation in avoid bounce handler");
     const initialPath =
       localStorage.getItem("initialPath") || window.location.pathname;
     if (window.location.pathname !== initialPath) {
