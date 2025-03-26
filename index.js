@@ -330,6 +330,16 @@ const audio = new Audio(
     function onModelClick(event) {
       if (currentlyAnimating) return;
 
+      // Check if Click-to-Dance interaction is enabled
+      const clickToDanceInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Click-to-Dance"
+      );
+
+      if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
+        console.log("Click-to-Dance interaction is not enabled");
+        return;
+      }
+
       // Get the canvas element and its bounds
       const canvas = renderer.domElement;
       const rect = canvas.getBoundingClientRect();
