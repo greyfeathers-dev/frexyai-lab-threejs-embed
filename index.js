@@ -103,6 +103,8 @@ const audio = new Audio(
   init();
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
+  let INTERACTION_DATA = [];
+
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
@@ -251,9 +253,13 @@ const audio = new Audio(
               o.material.needsUpdate = true;
             }
           }
-          // Reference the neck and waist bones
-          if (o.isBone && o.name === "CC_Base_Head") {
-            neck = o;
+          // Add detailed bone logging
+          if (o.isBone) {
+            console.log("Found bone:", o.name);
+            if (o.name === "CC_Base_Head") {
+              neck = o;
+              console.log("Neck bone assigned successfully:", neck);
+            }
           }
           if (o.isBone && o.name === "spine_01x") {
             waist = o;
@@ -287,10 +293,15 @@ const audio = new Audio(
           let clonedIdleAnim = idleAnim.clone();
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
             .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"));
+            .filter((track) => !track.name.includes("position"))
+            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out neck bone animations
           idle = mixer.clipAction(clonedIdleAnim);
-          idle.setLoop(THREE.LoopRepeat, Infinity); // Loop the idle animation
-          idle.play(); // Play the idle animation
+          idle.setLoop(THREE.LoopRepeat, Infinity);
+          idle.play();
+          console.log(
+            "Idle animation setup complete, filtered tracks:",
+            clonedIdleAnim.tracks.map((t) => t.name)
+          );
         }
 
         // Add click event listener for the model
@@ -1509,26 +1520,26 @@ const audio = new Audio(
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
-    chatbot.src = sourceLink;
-    setTimeout(() => {
-      chat.style.display = "block";
-    }, 200);
-  }
 
-  if (!isMobile) {
-    let timer = setTimeout(() => resetHead());
-    document.addEventListener("mousemove", function (e) {
-      if (currentlyAnimating) return;
-      if (timer) {
-        clearTimeout(timer);
-        timer = setTimeout(() => resetHead(), 4000);
-      }
-      var mousecoords = getMousePos(e);
-      if (neck && !currentlyAnimating) {
-        moveJoint(mousecoords, neck, 50);
-        // moveJoint(mousecoords, waist, 30);
-      }
-    });
+    // Check if we have the data
+    if (!INTERACTION_DATA || INTERACTION_DATA.length === 0) {
+      console.log("Waiting for interactions data to load...");
+      // Wait for data to be available
+      const checkData = setInterval(() => {
+        if (INTERACTION_DATA && INTERACTION_DATA.length > 0) {
+          clearInterval(checkData);
+          chatbot.src = sourceLink;
+          setTimeout(() => {
+            chat.style.display = "block";
+          }, 200);
+        }
+      }, 100);
+    } else {
+      chatbot.src = sourceLink;
+      setTimeout(() => {
+        chat.style.display = "block";
+      }, 200);
+    }
   }
 
   // ============================================= MOUSE POSITION AND HEAD RESET FUNCTIONS =============================================
@@ -1539,19 +1550,36 @@ const audio = new Audio(
 
   function resetHead() {
     let w = { x: window.innerWidth, y: window.innerHeight };
+    const xRef = w.x / 2;
+    const yRef = w.y / 2;
 
-    const xRef = w.x - 160;
-    const yRef = w.y - 190;
+    if (neck) {
+      // Smoothly reset to center position
+      const targetY = THREE.Math.degToRad(0);
+      const targetX = THREE.Math.degToRad(0);
 
-    moveJoint({ x: xRef, y: yRef }, neck, 50);
-    moveJoint({ x: xRef, y: yRef }, waist, 30);
+      neck.rotation.y = THREE.Math.lerp(neck.rotation.y, targetY, 0.1);
+      neck.rotation.x = THREE.Math.lerp(neck.rotation.x, targetX, 0.1);
+    }
   }
 
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
-      joint.rotation.y = THREE.Math.degToRad(degrees.x);
-      joint.rotation.x = THREE.Math.degToRad(degrees.y);
+      // Apply rotations with easing
+      const currentY = joint.rotation.y;
+      const currentX = joint.rotation.x;
+      const targetY = THREE.Math.degToRad(degrees.x);
+      const targetX = THREE.Math.degToRad(degrees.y);
+
+      // Smooth interpolation
+      joint.rotation.y = THREE.Math.lerp(currentY, targetY, 0.1);
+      joint.rotation.x = THREE.Math.lerp(currentX, targetX, 0.1);
+
+      console.log("Joint rotation:", {
+        y: THREE.Math.radToDeg(joint.rotation.y),
+        x: THREE.Math.radToDeg(joint.rotation.x),
+      });
     }
   }
 
@@ -1559,56 +1587,39 @@ const audio = new Audio(
 
   function getMouseDegrees(x, y, degreeLimit) {
     let dx = 0,
-      dy = 0,
-      xdiff,
-      xPercentage,
-      ydiff,
-      yPercentage;
-
+      dy = 0;
     let w = { x: window.innerWidth, y: window.innerHeight };
 
-    // Left (Rotates neck left between 0 and -degreeLimit)
+    // Calculate reference point (center of the screen)
+    const xRef = w.x / 2;
+    const yRef = w.y / 2;
 
-    const xRef = w.x - 160;
-    const yRef = w.y - 190;
+    // Calculate differences from center
+    const xDiff = x - xRef;
+    const yDiff = y - yRef;
 
-    if (x <= xRef) {
-      // Get the difference between model and cursor position
-      xdiff = xRef - x;
-      // Find the percentage of that difference (percentage toward edge of screen)
-      xPercentage = (xdiff / xRef) * 100;
-      // Convert that to a percentage of the maximum rotation we allow for the neck
-      dx = ((degreeLimit * xPercentage) / 100) * -1;
-    }
-    // Right (Rotates neck right between 0 and degreeLimit)
-    if (x >= xRef) {
-      xdiff = x - xRef;
-      xPercentage = (xdiff / xRef) * 100;
-      dx = (degreeLimit * xPercentage) / 100;
-    }
-    // Up (Rotates neck up between 0 and -degreeLimit)
-    if (y <= yRef) {
-      ydiff = yRef - y;
-      yPercentage = (ydiff / yRef) * 100;
-      // Note that I cut degreeLimit in half when she looks up
-      dy = ((degreeLimit * 0.5 * yPercentage) / 100) * -1;
-    }
+    // Convert to percentages
+    const xPercentage = (xDiff / (w.x / 2)) * 100;
+    const yPercentage = (yDiff / (w.y / 2)) * 100;
 
-    // Down (Rotates neck down between 0 and degreeLimit)
-    if (y >= yRef) {
-      ydiff = y - yRef;
-      yPercentage = (ydiff / yRef) * 100;
-      dy = (degreeLimit * yPercentage) / 100;
-    }
+    // Apply degree limits without reducing vertical movement
+    dx = (degreeLimit * xPercentage) / 100;
+    dy = (degreeLimit * yPercentage) / 100;
+
+    // Clamp values
+    dx = Math.max(-degreeLimit, Math.min(degreeLimit, dx));
+    dy = Math.max(-degreeLimit, Math.min(degreeLimit, dy));
+
+    console.log("Calculated degrees:", { dx, dy });
     return { x: dx, y: dy };
   }
 
   // ******************************************************************** INTERACTIONS ********************************************************************
-  let INTERACTION_DATA = [];
+
+  // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      const user_id = localStorage.getItem("merchantId");
-      // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+      const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1626,9 +1637,44 @@ const audio = new Audio(
       }
 
       const interactions = await response.json();
-      // Store the interactions in INTERACTIONS for use in other functions
+      // Store the interactions in INTERACTION_DATA for use in other functions
       INTERACTION_DATA = interactions;
       initializeInteractions(interactions);
+
+      // Set up head-cursor sync after data is loaded
+      if (!isMobile) {
+        console.log("Setting up mouse move tracking for neck movement");
+        let timer = setTimeout(() => resetHead());
+
+        // Check if Head-Cursor Sync is enabled
+        const headCursorSync = INTERACTION_DATA.find(
+          (i) => i.key === "Head-Cursor Sync"
+        );
+        console.log("Head-Cursor Sync status:", headCursorSync);
+
+        if (headCursorSync && headCursorSync.status) {
+          console.log("Head-Cursor Sync is enabled, setting up neck tracking");
+          document.addEventListener("mousemove", function (e) {
+            console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
+            console.log("Neck bone exists:", !!neck);
+            if (currentlyAnimating) return;
+            if (timer) {
+              clearTimeout(timer);
+              timer = setTimeout(() => resetHead(), 4000);
+            }
+            var mousecoords = getMousePos(e);
+            if (neck && !currentlyAnimating) {
+              console.log("Moving neck to coordinates:", mousecoords);
+              moveJoint(mousecoords, neck, 50);
+            }
+          });
+        } else {
+          console.log(
+            "Head-Cursor Sync is disabled, neck tracking not enabled"
+          );
+        }
+      }
+
       return interactions;
     } catch (error) {
       console.error("Failed to get interactions:", error);
@@ -1636,18 +1682,23 @@ const audio = new Audio(
     }
   };
 
-  getInteractions();
+  // Initialize interactions when the page loads
+  document.addEventListener("DOMContentLoaded", async () => {
+    await getInteractions();
+    console.log("Interactions loaded successfully:", INTERACTION_DATA);
+  });
 
-  // Function to initialize interactions based on their status
+  // ***********************************************Function to initialize interactions based on their status*****************************************************
   const initializeInteractions = (interactions) => {
     // Helper function to check if an interaction is enabled
-    const isEnabled = (name) => {
-      const interaction = interactions.find((i) => i.name === name);
+    const isEnabled = (key) => {
+      const interaction = interactions.find((i) => i.key === key);
       return interaction ? interaction.status : false;
     };
+    console.log(isEnabled("Welcome New Visitor"), "New Visitor");
 
     // Initialize each interaction based on its status
-    if (isEnabled("New Visitor")) {
+    if (isEnabled("Welcome New Visitor")) {
       console.log("New visitor is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         showNewVisitorMessage();
@@ -1736,11 +1787,7 @@ const audio = new Audio(
     // No additional initialization needed
   };
 
-  //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
-
-  // Add the welcome message function after the init() function
-
-  // Function to update total_impression count
+  // ***********************************************Function to update total_impression count*****************************************************
   async function updateInteractionImpression(interaction_id) {
     try {
       const interaction = INTERACTION_DATA.find((i) => i.id === interaction_id);
@@ -1769,14 +1816,20 @@ const audio = new Audio(
     }
   }
 
+  //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
+
+  // Add the welcome message function after the init() function
+
   function showNewVisitorMessage() {
     console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    console.log("Has visited before:", hasVisitedBefore);
     if (hasVisitedBefore !== "true") {
       localStorage.setItem("hasWelcomeVisitor", "true");
       const newVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.name === "New Visitor"
+        (i) => i.key === "Welcome New Visitor"
       );
+      console.log("New visitor interaction:", newVisitorInteraction);
       showUIAnimation({
         text:
           newVisitorInteraction?.message ||
@@ -1798,7 +1851,7 @@ const audio = new Audio(
     if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
       setTimeout(() => {
         const returningVisitorInteraction = INTERACTION_DATA.find(
-          (i) => i.name === "Welcome Returning Visitor"
+          (i) => i.key === "Welcome Returning Visitor"
         );
         showUIAnimation({
           text:
@@ -1947,7 +2000,7 @@ const audio = new Audio(
     triggerInteraction() {
       this.hasInteracted = true;
       const avoidBounceInteraction = INTERACTION_DATA.find(
-        (i) => i.name === "Avoid Bounce"
+        (i) => i.key === "Avoid Bounce"
       );
       showUIAnimation({
         text:
@@ -2082,7 +2135,7 @@ const audio = new Audio(
     normalExitIntentTriggerInteraction() {
       normalExitIntentMarkInteractionTriggered();
       const normalExitIntentInteraction = INTERACTION_DATA.find(
-        (i) => i.name === "Normal Exit Intent"
+        (i) => i.key === "Normal Exit Intent"
       );
       showUIAnimation({
         text:
@@ -2276,7 +2329,7 @@ const audio = new Audio(
     triggerInteraction() {
       markConfusedInteractionTriggered();
       const confusedInteraction = INTERACTION_DATA.find(
-        (i) => i.name === "Confused?"
+        (i) => i.key === "Confused?"
       );
       showUIAnimation({
         text:
@@ -2413,7 +2466,7 @@ const audio = new Audio(
       console.log("Count after increment:", getTriggerCount());
 
       const idleInteraction = INTERACTION_DATA.find(
-        (i) => i.name === "Idle on Page"
+        (i) => i.key === "Idle on Page"
       );
       showUIAnimation({
         text:
