@@ -330,6 +330,16 @@ const audio = new Audio(
     function onModelClick(event) {
       if (currentlyAnimating) return;
 
+      // Check if Click-to-Dance interaction is enabled
+      const clickToDanceInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Click-to-Dance"
+      );
+
+      if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
+        console.log("Click-to-Dance interaction is not enabled");
+        return;
+      }
+
       // Get the canvas element and its bounds
       const canvas = renderer.domElement;
       const rect = canvas.getBoundingClientRect();
@@ -1619,7 +1629,8 @@ const audio = new Audio(
   // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+      // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+      const user_id = localStorage.getItem("merchantId");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
