@@ -1629,8 +1629,8 @@ const audio = new Audio(
   // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
-      const user_id = localStorage.getItem("merchantId");
+      const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+      // const user_id = localStorage.getItem("merchantId");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1756,13 +1756,13 @@ const audio = new Audio(
       console.log("Idle on page is enabled");
       document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.removeItem("inactivityTriggerCount");
-        window.inactivityHandler = new InactivityHandler();
+        window.inactivityTracker = new InactivityTracker();
       });
 
       window.addEventListener("load", () => {
-        if (!window.inactivityHandler) {
+        if (!window.inactivityTracker) {
           sessionStorage.removeItem("inactivityTriggerCount");
-          window.inactivityHandler = new InactivityHandler();
+          window.inactivityTracker = new InactivityTracker();
         }
       });
     }
@@ -2042,7 +2042,7 @@ const audio = new Audio(
   // Function to check if the user has visited multiple pages
   function normalExitIntentHasVisitedMultiplePages() {
     const normalExitIntentVisitedPages = JSON.parse(
-      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
+      sessionStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
     return normalExitIntentVisitedPages.length > 2;
   }
@@ -2050,12 +2050,12 @@ const audio = new Audio(
   // Function to mark page visit
   function normalExitIntentMarkPageVisit() {
     const normalExitIntentVisitedPages = JSON.parse(
-      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
+      sessionStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
     const currentPath = window.location.pathname;
     if (!normalExitIntentVisitedPages.includes(currentPath)) {
       normalExitIntentVisitedPages.push(currentPath);
-      localStorage.setItem(
+      sessionStorage.setItem(
         "normalExitIntentVisitedPages",
         JSON.stringify(normalExitIntentVisitedPages)
       );
@@ -2064,12 +2064,12 @@ const audio = new Audio(
 
   // Function to check if the interaction has already been triggered
   function normalExitIntentHasInteractedBefore() {
-    return localStorage.getItem("normalExitIntentTriggered") === "true";
+    return sessionStorage.getItem("normalExitIntentTriggered") === "true";
   }
 
   // Function to store that interaction has been triggered
   function normalExitIntentMarkInteractionTriggered() {
-    localStorage.setItem("normalExitIntentTriggered", "true");
+    sessionStorage.setItem("normalExitIntentTriggered", "true");
   }
 
   // Function to calculate scroll percentage
@@ -2356,69 +2356,47 @@ const audio = new Audio(
   }
 
   //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
-
-  // Function to safely get localStorage value
-  function getLocalStorageValue(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.error("Error accessing localStorage:", e);
-      return null;
-    }
-  }
-
-  // Function to safely set localStorage value
-  function setLocalStorageValue(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) {
-      console.error("Error setting localStorage:", e);
-      return false;
-    }
-  }
-
-  // Function to get session trigger count
-  function getTriggerCount() {
-    const count = sessionStorage.getItem("inactivityTriggerCount");
-    return count ? parseInt(count) : 0;
-  }
-
-  // Function to increment trigger count
-  function incrementTriggerCount() {
-    const currentCount = getTriggerCount();
-    console.log("Current trigger count before increment:", currentCount);
-    sessionStorage.setItem(
-      "inactivityTriggerCount",
-      (currentCount + 1).toString()
-    );
-    console.log("Trigger count after increment:", currentCount + 1);
-  }
-
-  // Function to check if we can trigger the message
-  function canTriggerMessage() {
-    const count = getTriggerCount();
-    console.log("Current trigger count in canTriggerMessage:", count);
-    return count < 3;
-  }
-
-  // Main inactivity handler
-  class InactivityHandler {
+  class InactivityTracker {
     constructor() {
-      this.lastActivityTime = Date.now();
-      this.sessionStartTime = Date.now();
-      this.isCheckingInactivity = false;
+      this.lastActivity = Date.now();
+      this.triggerCount = this.getTriggerCount();
+      this.trackingInterval = null;
       this.lastTriggerTime = 0;
-      this.setupEventListeners();
-      this.checkInactivity();
-      console.log(
-        "InactivityHandler initialized, starting count:",
-        getTriggerCount()
-      );
+      this.isShowingMessage = false;
+      console.log("Initial trigger count:", this.triggerCount);
+      this.setupListeners();
+      this.startTracking();
     }
 
-    setupEventListeners() {
-      // Track user activity
+    getTriggerCount() {
+      const count = sessionStorage.getItem("inactivityTriggerCount");
+      console.log("Getting trigger count from storage:", count);
+      return count ? parseInt(count) : 0;
+    }
+
+    incrementTriggerCount() {
+      const newCount = this.triggerCount + 1;
+      console.log(
+        "Incrementing trigger count from",
+        this.triggerCount,
+        "to",
+        newCount
+      );
+      sessionStorage.setItem("inactivityTriggerCount", newCount.toString());
+      this.triggerCount = newCount;
+
+      // Verify the storage was updated
+      const storedCount = sessionStorage.getItem("inactivityTriggerCount");
+      console.log("Verified storage count:", storedCount);
+
+      // Stop tracking if we've reached the limit
+      if (this.triggerCount >= 3) {
+        console.log("Reached trigger limit, stopping tracking");
+        this.stopTracking();
+      }
+    }
+
+    setupListeners() {
       const events = [
         "mousedown",
         "mousemove",
@@ -2427,54 +2405,57 @@ const audio = new Audio(
         "touchstart",
       ];
       events.forEach((event) => {
-        document.addEventListener(event, () => this.updateLastActivity());
-      });
-
-      // Handle visibility change
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          this.updateLastActivity();
-        }
+        document.addEventListener(event, () => this.updateActivity());
       });
     }
 
-    updateLastActivity() {
-      this.lastActivityTime = Date.now();
+    updateActivity() {
+      this.lastActivity = Date.now();
+      this.isShowingMessage = false;
     }
 
-    checkInactivity() {
-      const currentTime = Date.now();
-      const timeSinceLastActivity = currentTime - this.lastActivityTime;
-      const timeSinceSessionStart = currentTime - this.sessionStartTime;
-      const timeSinceLastTrigger = currentTime - this.lastTriggerTime;
+    startTracking() {
+      // Only start tracking if we haven't reached the limit
+      if (this.triggerCount < 3) {
+        console.log("Starting tracking with count:", this.triggerCount);
+        this.trackingInterval = setInterval(() => {
+          const inactiveTime = Date.now() - this.lastActivity;
+          const currentCount = this.getTriggerCount();
+          const timeSinceLastTrigger = Date.now() - this.lastTriggerTime;
 
-      if (
-        timeSinceSessionStart >= 40000 && // 40 seconds
-        timeSinceLastActivity >= 30000 && // 30 seconds
-        timeSinceLastTrigger >= 45000 && // 45 seconds between triggers
-        canTriggerMessage() &&
-        !this.isCheckingInactivity &&
-        !currentlyAnimating
-      ) {
-        this.triggerMessage();
+          if (
+            inactiveTime >= 30000 &&
+            currentCount < 3 &&
+            !this.isShowingMessage &&
+            timeSinceLastTrigger >= 10000
+          ) {
+            // 10 second cooldown between triggers
+            this.showMessage();
+            this.incrementTriggerCount();
+          }
+        }, 1000);
+      } else {
+        console.log("Already reached trigger limit, not starting tracking");
+      }
+    }
+
+    stopTracking() {
+      if (this.trackingInterval) {
+        clearInterval(this.trackingInterval);
+        this.trackingInterval = null;
+        console.log("Tracking stopped");
+      }
+    }
+
+    showMessage() {
+      const currentCount = this.getTriggerCount();
+      if (currentCount >= 3) {
+        console.log("Skipping message - already reached trigger limit");
+        return;
       }
 
-      // Continue checking every second
-      setTimeout(() => this.checkInactivity(), 1000);
-    }
-
-    triggerMessage() {
-      if (!canTriggerMessage()) return;
-
-      this.isCheckingInactivity = true;
+      this.isShowingMessage = true;
       this.lastTriggerTime = Date.now();
-
-      console.log(
-        "Triggering inactivity message, count before increment:",
-        getTriggerCount()
-      );
-      incrementTriggerCount();
-      console.log("Count after increment:", getTriggerCount());
 
       const idleInteraction = INTERACTION_DATA.find(
         (i) => i.key === "Idle on Page"
@@ -2488,11 +2469,6 @@ const audio = new Audio(
         animation: "wave",
       });
       updateInteractionImpression(idleInteraction.id);
-
-      setTimeout(() => {
-        this.isCheckingInactivity = false;
-        this.updateLastActivity();
-      }, 5000);
     }
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
