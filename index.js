@@ -1641,8 +1641,8 @@ const audio = new Audio(
   // Function to initialize interactions based on their status
   const initializeInteractions = (interactions) => {
     // Helper function to check if an interaction is enabled
-    const isEnabled = (name) => {
-      const interaction = interactions.find((i) => i.name === name);
+    const isEnabled = (key) => {
+      const interaction = interactions.find((i) => i.key === key);
       return interaction ? interaction.status : false;
     };
 
