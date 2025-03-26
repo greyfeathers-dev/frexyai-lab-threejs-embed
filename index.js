@@ -230,15 +230,17 @@
               o.material.needsUpdate = true;
             }
           }
-          // if(o.isBone) console.log(o.name);
-          // Reference the neck and waist bones
-          if (o.isBone && o.name === "CC_Base_Head") {
-            neck = o;
+          // Add debug logging for bone assignment
+          if (o.isBone) {
+            console.log("Found bone:", o.name);
+            if (o.name === "CC_Base_Head") {
+              neck = o;
+              console.log("Neck bone assigned successfully:", neck);
+            }
           }
           if (o.isBone && o.name === "spine_01x") {
             waist = o;
           }
-          // console.log(neck, waist, o);
         });
 
         model.scale.set(14.5, 14.5, 14.5);
@@ -274,10 +276,11 @@
           let clonedIdleAnim = idleAnim.clone();
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
             .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"));
+            .filter((track) => !track.name.includes("position"))
+            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out neck bone animations
           idle = mixer.clipAction(clonedIdleAnim);
-          idle.setLoop(THREE.LoopRepeat, Infinity); // Loop the idle animation
-          idle.play(); // Play the idle animation
+          idle.setLoop(THREE.LoopRepeat, Infinity);
+          idle.play();
         }
         fallbackLoader.remove();
         loadAdditionalAnimations(gltf);
@@ -1369,6 +1372,8 @@
   if (!isMobile) {
     let timer = setTimeout(() => resetHead());
     document.addEventListener("mousemove", function (e) {
+      console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
+      console.log("Neck bone exists:", !!neck);
       if (currentlyAnimating) return;
       if (timer) {
         clearTimeout(timer);
@@ -1376,8 +1381,8 @@
       }
       var mousecoords = getMousePos(e);
       if (neck && !currentlyAnimating) {
+        console.log("Moving neck to coordinates:", mousecoords);
         moveJoint(mousecoords, neck, 50);
-        // moveJoint(mousecoords, waist, 30);
       }
     });
   }
@@ -1399,54 +1404,42 @@
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
+      // Apply rotations with easing
       joint.rotation.y = THREE.Math.degToRad(degrees.x);
       joint.rotation.x = THREE.Math.degToRad(degrees.y);
+      // Add some debug logging
+      console.log("Joint rotation:", {
+        y: THREE.Math.radToDeg(joint.rotation.y),
+        x: THREE.Math.radToDeg(joint.rotation.x),
+      });
     }
   }
 
   function getMouseDegrees(x, y, degreeLimit) {
     let dx = 0,
-      dy = 0,
-      xdiff,
-      xPercentage,
-      ydiff,
-      yPercentage;
-
+      dy = 0;
     let w = { x: window.innerWidth, y: window.innerHeight };
 
-    // Left (Rotates neck left between 0 and -degreeLimit)
+    // Calculate reference point (center of the screen)
+    const xRef = w.x / 2;
+    const yRef = w.y / 2;
 
-    const xRef = w.x - 160;
-    const yRef = w.y - 190;
+    // Calculate differences from center
+    const xDiff = x - xRef;
+    const yDiff = y - yRef;
 
-    if (x <= xRef) {
-      // Get the difference between model and cursor position
-      xdiff = xRef - x;
-      // Find the percentage of that difference (percentage toward edge of screen)
-      xPercentage = (xdiff / xRef) * 100;
-      // Convert that to a percentage of the maximum rotation we allow for the neck
-      dx = ((degreeLimit * xPercentage) / 100) * -1;
-    }
-    // Right (Rotates neck right between 0 and degreeLimit)
-    if (x >= xRef) {
-      xdiff = x - xRef;
-      xPercentage = (xdiff / xRef) * 100;
-      dx = (degreeLimit * xPercentage) / 100;
-    }
-    // Up (Rotates neck up between 0 and -degreeLimit)
-    if (y <= yRef) {
-      ydiff = yRef - y;
-      yPercentage = (ydiff / yRef) * 100;
-      // Note that I cut degreeLimit in half when she looks up
-      dy = ((degreeLimit * 0.5 * yPercentage) / 100) * -1;
-    }
+    // Convert to percentages
+    const xPercentage = (xDiff / (w.x / 2)) * 100;
+    const yPercentage = (yDiff / (w.y / 2)) * 100;
 
-    // Down (Rotates neck down between 0 and degreeLimit)
-    if (y >= yRef) {
-      ydiff = y - yRef;
-      yPercentage = (ydiff / yRef) * 100;
-      dy = (degreeLimit * yPercentage) / 100;
-    }
+    // Apply degree limits
+    dx = (degreeLimit * xPercentage) / 100;
+    dy = (degreeLimit * 0.5 * yPercentage) / 100;
+
+    // Clamp values
+    dx = Math.max(-degreeLimit, Math.min(degreeLimit, dx));
+    dy = Math.max(-degreeLimit, Math.min(degreeLimit, dy));
+
     return { x: dx, y: dy };
   }
 })(); // Don't add anything below this line
