@@ -22,52 +22,38 @@ window.parent.postMessage(
   "https://frexyai-lab-saas-dashboard-staging.vercel.app"
 );
 
-// Inject a script that runs in the host page's context
-(function injectScript() {
-  const script = document.createElement("script");
-  script.type = "text/javascript";
-  script.textContent = `
-      (function() {
-         try {
-            localStorage.setItem("merchantId", "${merchantId}");
-            console.log("Merchant ID stored in localStorage:", localStorage.getItem("merchantId"));
-         } catch (error) {
-            console.error("Error storing merchantId:", error);
-         }
-      })();
-   `;
-  document.documentElement.appendChild(script);
-})();
-
-function loadScript(url, callback) {
-  let script = document.createElement("script");
-  script.type = "text/javascript";
-  script.src = url;
-  script.onload = callback;
-  document.head.appendChild(script);
+try {
+  localStorage.setItem("merchantId", merchantId);
+  console.log(
+    "Merchant ID stored in localStorage:",
+    localStorage.getItem("merchantId")
+  );
+} catch (error) {
+  console.error("Error storing merchantId:", error);
 }
 
-// Add a small delay to ensure merchantId is set before loading scripts
-setTimeout(() => {
-  // Load the first script
-  loadScript(
-    "https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js",
-    function () {
-      // Load the second script after the first one has loaded
-      loadScript(
-        "https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js",
-        function () {
-          // Load your main script after both scripts are loaded
-          loadScript(
-            `https://frexyai-lab-threejs-embed-pre-staging.vercel.app/index.js?merchantId=${merchantId}`,
-            function () {
-              console.log("All scripts loaded!");
-            }
-          );
-        }
-      );
-    }
-  );
-}, 0);
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    let script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Load the scripts in the correct order
+loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js")
+  .then(() =>
+    loadScript(
+      "https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js"
+    )
+  )
+  .then(() =>
+    loadScript("https://frexyai-lab-threejs-embed.vercel.app/index.js")
+  )
+  .then(() => console.log("All scripts loaded!"))
+  .catch((error) => console.error("Error loading scripts:", error));
 
 //This is loadjs

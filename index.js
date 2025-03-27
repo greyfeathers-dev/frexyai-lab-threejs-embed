@@ -1037,8 +1037,6 @@ const audio = new Audio(
     tooltip.style.color = color;
     tooltip.style.padding = "16px 20px";
     tooltip.style.borderRadius = "16px";
-    // tooltip.style.fontSize = isMobile ? '16px': '16px';
-    // tooltip.style.lineHeight = isMobile ? '10px': '24px';
     tooltip.style.fontSize = "16px";
     tooltip.style.lineHeight = "24px";
     tooltip.style.fontFamily = "sans-serif";
@@ -1056,48 +1054,50 @@ const audio = new Audio(
       timeoutDisappear = null;
     }
 
-    const closeBtn = document.createElement("button");
-    closeBtn.style.background = "white";
-    closeBtn.style.padding = "4px";
-    closeBtn.style.border = "0";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "-6px";
-    closeBtn.style.left = "-12px";
-    closeBtn.style.width = "26px";
-    closeBtn.style.height = "26px";
-    closeBtn.style.fontSize = "10px";
-    closeBtn.style.borderRadius = "50%";
-    closeBtn.style.display = "flex";
-    closeBtn.style.justifyContent = "center";
-    closeBtn.style.alignItems = "center";
-    closeBtn.style.zIndex = "99";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
-    // closeBtn.innerHTML = 'X';
+    // Only create and append close button if hasClose is true
+    if (hasClose) {
+      const closeBtn = document.createElement("button");
+      closeBtn.style.background = "white";
+      closeBtn.style.padding = "4px";
+      closeBtn.style.border = "0";
+      closeBtn.style.position = "absolute";
+      closeBtn.style.top = "-6px";
+      closeBtn.style.left = "-12px";
+      closeBtn.style.width = "26px";
+      closeBtn.style.height = "26px";
+      closeBtn.style.fontSize = "10px";
+      closeBtn.style.borderRadius = "50%";
+      closeBtn.style.display = "flex";
+      closeBtn.style.justifyContent = "center";
+      closeBtn.style.alignItems = "center";
+      closeBtn.style.zIndex = "99";
+      closeBtn.style.cursor = "pointer";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
 
-    const closeImageIcon = document.createElement("img");
-    closeImageIcon.src =
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
-    closeImageIcon.style.width = "16px";
-    closeImageIcon.style.height = "16px";
-    closeBtn.appendChild(closeImageIcon);
+      const closeImageIcon = document.createElement("img");
+      closeImageIcon.src =
+        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+      closeImageIcon.style.width = "16px";
+      closeImageIcon.style.height = "16px";
+      closeBtn.appendChild(closeImageIcon);
 
-    closeBtn.addEventListener("click", () => {
-      if (onClickClose) {
-        if (onClickClose.alertText) {
-          closeUI();
-          showUIAnimation({
-            hasClose: false,
-            text: onClickClose.alertText,
-            time: 2000,
-            cta: [],
-          });
-          return;
+      closeBtn.addEventListener("click", () => {
+        if (onClickClose) {
+          if (onClickClose.alertText) {
+            closeUI();
+            showUIAnimation({
+              hasClose: false,
+              text: onClickClose.alertText,
+              time: 2000,
+              cta: [],
+            });
+            return;
+          }
         }
-      }
-      closeUI();
-    });
-    tooltipContainer.appendChild(closeBtn);
+        closeUI();
+      });
+      tooltipContainer.appendChild(closeBtn);
+    }
 
     if (timerCountdown) {
       const timer = document.createElement("div");
@@ -1221,48 +1221,50 @@ const audio = new Audio(
       timeoutDisappear = null;
     }
 
-    const closeBtn = document.createElement("button");
-    closeBtn.style.background = "white";
-    closeBtn.style.padding = "2px";
-    closeBtn.style.border = "none";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "-12px";
-    closeBtn.style.left = "-12px";
+    // Only create and append close button if hasClose is true
+    if (hasClose) {
+      const closeBtn = document.createElement("button");
+      closeBtn.style.background = "white";
+      closeBtn.style.padding = "2px";
+      closeBtn.style.border = "none";
+      closeBtn.style.position = "absolute";
+      closeBtn.style.top = "-12px";
+      closeBtn.style.left = "-12px";
+      closeBtn.style.width = "26px";
+      closeBtn.style.height = "26px";
+      closeBtn.style.fontSize = "10px";
+      closeBtn.style.borderRadius = "50%";
+      closeBtn.style.display = "flex";
+      closeBtn.style.justifyContent = "center";
+      closeBtn.style.alignItems = "center";
+      closeBtn.style.zIndex = "99";
+      closeBtn.style.cursor = "pointer";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
 
-    closeBtn.style.width = "26px";
-    closeBtn.style.height = "26px";
-    closeBtn.style.fontSize = "10px";
-    closeBtn.style.borderRadius = "50%";
-    closeBtn.style.display = "flex";
-    closeBtn.style.justifyContent = "center";
-    closeBtn.style.alignItems = "center";
-    closeBtn.style.zIndex = "99";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
+      const closeImageIcon = document.createElement("img");
+      closeImageIcon.src =
+        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+      closeImageIcon.style.width = "16px";
+      closeImageIcon.style.height = "16px";
+      closeBtn.appendChild(closeImageIcon);
 
-    const closeImageIcon = document.createElement("img");
-    closeImageIcon.src =
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
-    closeImageIcon.style.width = "16px";
-    closeImageIcon.style.height = "16px";
-    closeBtn.appendChild(closeImageIcon);
-
-    closeBtn.addEventListener("click", () => {
-      if (onClickClose) {
-        if (onClickClose.alertText) {
-          closeUI();
-          showUIAnimation({
-            hasClose: false,
-            text: onClickClose.alertText,
-            time: 2000,
-            cta: [],
-          });
-          return;
+      closeBtn.addEventListener("click", () => {
+        if (onClickClose) {
+          if (onClickClose.alertText) {
+            closeUI();
+            showUIAnimation({
+              hasClose: false,
+              text: onClickClose.alertText,
+              time: 2000,
+              cta: [],
+            });
+            return;
+          }
         }
-      }
-      closeUI();
-    });
-    tooltipContainer.appendChild(closeBtn);
+        closeUI();
+      });
+      tooltipContainer.appendChild(closeBtn);
+    }
 
     if (timerCountdown) {
       const timer = document.createElement("div");
@@ -1630,7 +1632,10 @@ const audio = new Audio(
   const getInteractions = async () => {
     try {
       // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+      // const user_id = "89c18774-33d1-4759-bcc3-e9ce7d5c482a";
       const user_id = localStorage.getItem("merchantId");
+      console.log(user_id, "user_id from local storage in interactions");
+
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1724,15 +1729,20 @@ const audio = new Audio(
 
     if (isEnabled("Welcome Returning Visitor")) {
       console.log("Welcome returning visitor is enabled");
-      document.addEventListener("DOMContentLoaded", () => {
-        showReturningVisitorMessage();
-      });
-
-      window.addEventListener("load", () => {
-        if (!document.returningVisitorMessageShown) {
+      // Only show returning visitor message on page load if it's a returning visit
+      // and we haven't shown the message in this session
+      const hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+      if (hasVisitedBefore === "true") {
+        document.addEventListener("DOMContentLoaded", () => {
           showReturningVisitorMessage();
-        }
-      });
+        });
+
+        window.addEventListener("load", () => {
+          if (!document.returningVisitorMessageShown) {
+            showReturningVisitorMessage();
+          }
+        });
+      }
     }
 
     if (isEnabled("Avoid Bounce")) {
@@ -1836,7 +1846,6 @@ const audio = new Audio(
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
     if (hasVisitedBefore !== "true") {
-      localStorage.setItem("hasWelcomeVisitor", "true");
       const newVisitorInteraction = INTERACTION_DATA.find(
         (i) => i.key === "Welcome New Visitor"
       );
@@ -1846,10 +1855,18 @@ const audio = new Audio(
           newVisitorInteraction?.message ||
           "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
         time: 5,
-        hasClose: true,
+        hasClose: false,
         animation: "wave",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+          },
+        ],
       });
       updateInteractionImpression(newVisitorInteraction.id);
+      localStorage.setItem("hasWelcomeVisitor", "true");
     }
   }
 
@@ -1860,20 +1877,22 @@ const audio = new Audio(
       "hasShownReturningMessage"
     );
     if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
+      const returningVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Welcome Returning Visitor"
+      );
       setTimeout(() => {
-        const returningVisitorInteraction = INTERACTION_DATA.find(
-          (i) => i.key === "Welcome Returning Visitor"
-        );
         showUIAnimation({
           text:
             returningVisitorInteraction?.message ||
             "Hey there, welcome back! I've been waiting for you. Need any help?",
           time: 5,
-          hasClose: true,
+          hasClose: false,
           animation: "wave",
         });
+
         updateInteractionImpression(returningVisitorInteraction.id);
       }, 2000);
+      // Set the flag only after the message is shown
       sessionStorage.setItem("hasShownReturningMessage", "true");
     }
   }
@@ -2153,8 +2172,8 @@ const audio = new Audio(
           normalExitIntentInteraction?.message ||
           "Leaving already? If you ever need help, I'm always here!",
         time: 5,
-        hasClose: true,
-        animation: "wave",
+        hasClose: false,
+        animation: "casual_talk_2",
       });
       updateInteractionImpression(normalExitIntentInteraction.id);
       document.removeEventListener(
@@ -2472,4 +2491,30 @@ const audio = new Audio(
     }
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Wait for merchantId to be set
+    const checkMerchantId = setInterval(() => {
+      const merchantId = localStorage.getItem("merchantId");
+      if (merchantId) {
+        clearInterval(checkMerchantId);
+        console.log("Merchant ID found, initializing interactions");
+        getInteractions()
+          .then((interactions) => {
+            console.log("Interactions loaded successfully:", interactions);
+          })
+          .catch((error) => {
+            console.error("Error loading interactions:", error);
+          });
+      }
+    }, 100);
+
+    // Set a timeout to prevent infinite checking
+    setTimeout(() => {
+      if (!localStorage.getItem("merchantId")) {
+        clearInterval(checkMerchantId);
+        console.error("Merchant ID not found after timeout");
+      }
+    }, 5000);
+  });
 })(); // Don't add anything below this line
