@@ -1635,7 +1635,7 @@ const audio = new Audio(
       // const user_id = "89c18774-33d1-4759-bcc3-e9ce7d5c482a";
       const user_id = localStorage.getItem("merchantId");
       console.log(user_id, "user_id from local storage in interactions");
-
+      alert(user_id + "user_id from local storage in interactions");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1699,10 +1699,10 @@ const audio = new Audio(
   };
 
   // Initialize interactions when the page loads
-  document.addEventListener("DOMContentLoaded", async () => {
-    await getInteractions();
-    console.log("Interactions loaded successfully:", INTERACTION_DATA);
-  });
+  // document.addEventListener("DOMContentLoaded", async () => {
+  //   await getInteractions();
+  //   console.log("Interactions loaded successfully:", INTERACTION_DATA);
+  // });
 
   // ***********************************************Function to initialize interactions based on their status*****************************************************
   const initializeInteractions = (interactions) => {
@@ -2496,7 +2496,9 @@ const audio = new Audio(
     // Wait for merchantId to be set
     const checkMerchantId = setInterval(() => {
       const merchantId = localStorage.getItem("merchantId");
+      alert("dom content loaded");
       if (merchantId) {
+        alert("merchant id found");
         clearInterval(checkMerchantId);
         console.log("Merchant ID found, initializing interactions");
         getInteractions()
@@ -2511,7 +2513,9 @@ const audio = new Audio(
 
     // Set a timeout to prevent infinite checking
     setTimeout(() => {
+      alert("timeout 5 seconds");
       if (!localStorage.getItem("merchantId")) {
+        alert("merchant id not found");
         clearInterval(checkMerchantId);
         console.error("Merchant ID not found after timeout");
       }
