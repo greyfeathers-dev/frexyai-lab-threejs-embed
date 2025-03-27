@@ -104,8 +104,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1754,13 +1754,11 @@ const audio = new Audio(
     if (isEnabled("Idle on Page")) {
       console.log("Idle on page is enabled");
       document.addEventListener("DOMContentLoaded", () => {
-        sessionStorage.removeItem("inactivityTriggerCount");
         window.inactivityTracker = new InactivityTracker();
       });
 
       window.addEventListener("load", () => {
         if (!window.inactivityTracker) {
-          sessionStorage.removeItem("inactivityTriggerCount");
           window.inactivityTracker = new InactivityTracker();
         }
       });
