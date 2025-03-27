@@ -104,6 +104,7 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
+  const user_id = localStorage.getItem("merchantId");
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1633,7 +1634,6 @@ const audio = new Audio(
     try {
       // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
       // const user_id = "89c18774-33d1-4759-bcc3-e9ce7d5c482a";
-      const user_id = localStorage.getItem("merchantId");
       console.log(user_id, "user_id from local storage in interactions");
       alert(user_id + "user_id from local storage in interactions");
       const response = await fetch(
@@ -1697,9 +1697,9 @@ const audio = new Audio(
       return [];
     }
   };
-  setTimeout(() => {
-    getInteractions();
-  }, 2000);
+  // setTimeout(() => {
+  getInteractions();
+  // }, 2000);
   // Initialize interactions when the page loads
   // document.addEventListener("DOMContentLoaded", async () => {
   //   await getInteractions();
