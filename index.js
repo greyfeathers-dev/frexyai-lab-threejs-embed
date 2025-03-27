@@ -2491,4 +2491,30 @@ const audio = new Audio(
     }
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Wait for merchantId to be set
+    const checkMerchantId = setInterval(() => {
+      const merchantId = localStorage.getItem("merchantId");
+      if (merchantId) {
+        clearInterval(checkMerchantId);
+        console.log("Merchant ID found, initializing interactions");
+        getInteractions()
+          .then((interactions) => {
+            console.log("Interactions loaded successfully:", interactions);
+          })
+          .catch((error) => {
+            console.error("Error loading interactions:", error);
+          });
+      }
+    }, 100);
+
+    // Set a timeout to prevent infinite checking
+    setTimeout(() => {
+      if (!localStorage.getItem("merchantId")) {
+        clearInterval(checkMerchantId);
+        console.error("Merchant ID not found after timeout");
+      }
+    }, 5000);
+  });
 })(); // Don't add anything below this line
