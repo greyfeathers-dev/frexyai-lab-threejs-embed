@@ -1604,27 +1604,43 @@ const audio = new Audio(
       dy = 0;
     let w = { x: window.innerWidth, y: window.innerHeight };
 
-    // Calculate reference point (center of the screen)
-    const xRef = w.x / 2;
-    const yRef = w.y / 2;
+    // Get the model's position on screen (bottom-right corner)
+    const modelX = w.x - 340; // 280px + 60px offset from right
+    const modelY = w.y - 40; // Accounting for bottom offset
 
-    // Calculate differences from center
-    const xDiff = x - xRef;
-    const yDiff = y - yRef;
+    // Calculate the model's head center point
+    // Adjusted to be more centered in the canvas
+    const modelCenterX = modelX + 140; // Center of canvas width
+    const modelCenterY = modelY + 100; // Adjusted higher for better head position
 
-    // Convert to percentages
-    const xPercentage = (xDiff / (w.x / 2)) * 100;
-    const yPercentage = (yDiff / (w.y / 2)) * 100;
+    // Calculate vector from model's center to mouse position
+    const deltaX = x - modelCenterX;
+    const deltaY = y - modelCenterY;
 
-    // Apply degree limits without reducing vertical movement
-    dx = (degreeLimit * xPercentage) / 100;
-    dy = (degreeLimit * yPercentage) / 100;
+    // Calculate distance from mouse to model's center
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-    // Clamp values
+    // Create a non-linear response curve for more natural movement
+    const maxDistance = 500; // Increased range for smoother rotation
+    const distanceFactor = Math.min(distance / maxDistance, 1);
+
+    // Calculate normalized direction with adjusted sensitivity
+    const dirX = deltaX / (distance || 1);
+    const dirY = deltaY / (distance || 1);
+
+    // Apply the non-linear curve and degree limit with adjusted sensitivity
+    const sensitivity = 0.8; // Reduced sensitivity for more natural movement
+    dx = dirX * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
+    dy = dirY * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
+
+    // Adjust resting position to be more centered
+    dx = dx + 0; // Removed right turn bias
+    dy = dy + 0; // Removed downward tilt bias
+
+    // Clamp values to prevent extreme rotations
     dx = Math.max(-degreeLimit, Math.min(degreeLimit, dx));
     dy = Math.max(-degreeLimit, Math.min(degreeLimit, dy));
 
-    console.log("Calculated degrees:", { dx, dy });
     return { x: dx, y: dy };
   }
 
