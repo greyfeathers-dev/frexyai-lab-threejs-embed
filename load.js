@@ -6,7 +6,9 @@ function getMerchantId() {
 
     if (script) {
       const src = new URL(script.src);
-      return src.searchParams.get("merchantId") || "default";
+      const id = src.searchParams.get("merchantId") || "default";
+      console.log("Extracted merchantId from URL:", id);
+      return id;
     }
   } catch (error) {
     console.error("Error getting merchantId:", error);
@@ -17,10 +19,8 @@ function getMerchantId() {
 const merchantId = getMerchantId();
 console.log("Merchant ID:", merchantId);
 
-window.parent.postMessage(
-  { type: "MERCHANT_ID", merchantId },
-  "https://frexyai-lab-saas-dashboard-staging.vercel.app"
-);
+// Use '*' as target origin to allow cross-origin communication
+window.parent.postMessage({ type: "MERCHANT_ID", merchantId }, "*");
 
 try {
   localStorage.setItem("merchantId", merchantId);
@@ -37,8 +37,14 @@ function loadScript(url) {
     let script = document.createElement("script");
     script.type = "text/javascript";
     script.src = url;
-    script.onload = resolve;
-    script.onerror = reject;
+    script.onload = () => {
+      console.log(`Script loaded successfully: ${url}`);
+      resolve();
+    };
+    script.onerror = (error) => {
+      console.error(`Error loading script ${url}:`, error);
+      reject(error);
+    };
     document.head.appendChild(script);
   });
 }
@@ -55,7 +61,7 @@ loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js")
       "https://frexyai-lab-threejs-embed-pre-staging.vercel.app/index.js"
     )
   )
-  .then(() => console.log("All scripts loaded!"))
+  .then(() => console.log("All scripts loaded successfully!"))
   .catch((error) => console.error("Error loading scripts:", error));
 
 //This is loadjs
