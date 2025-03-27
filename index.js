@@ -108,7 +108,6 @@ const audio = new Audio(
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
-    alert("init");
     fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
@@ -1698,7 +1697,9 @@ const audio = new Audio(
       return [];
     }
   };
-
+  setTimeout(() => {
+    getInteractions();
+  }, 2000);
   // Initialize interactions when the page loads
   // document.addEventListener("DOMContentLoaded", async () => {
   //   await getInteractions();
@@ -2493,42 +2494,42 @@ const audio = new Audio(
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    console.log("DOM Content Loaded event fired");
+  // document.addEventListener("DOMContentLoaded", async () => {
+  //   console.log("DOM Content Loaded event fired");
 
-    // Function to check for merchantId and initialize interactions
-    const initializeWithMerchantId = async () => {
-      const merchantId = localStorage.getItem("merchantId");
-      console.log("Checking for merchantId:", merchantId);
+  //   // Function to check for merchantId and initialize interactions
+  //   const initializeWithMerchantId = async () => {
+  //     const merchantId = localStorage.getItem("merchantId");
+  //     console.log("Checking for merchantId:", merchantId);
 
-      if (merchantId) {
-        console.log("Found merchantId, initializing interactions");
-        try {
-          const interactions = await getInteractions();
-          console.log("Interactions loaded successfully:", interactions);
-        } catch (error) {
-          console.error("Error loading interactions:", error);
-        }
-        return true;
-      }
-      return false;
-    };
+  //     if (merchantId) {
+  //       console.log("Found merchantId, initializing interactions");
+  //       try {
+  //         const interactions = await getInteractions();
+  //         console.log("Interactions loaded successfully:", interactions);
+  //       } catch (error) {
+  //         console.error("Error loading interactions:", error);
+  //       }
+  //       return true;
+  //     }
+  //     return false;
+  //   };
 
-    // First try to initialize immediately
-    if (!(await initializeWithMerchantId())) {
-      // If not successful, set up an interval to check
-      const checkInterval = setInterval(async () => {
-        console.log("Checking for merchantId again...");
-        if (await initializeWithMerchantId()) {
-          clearInterval(checkInterval);
-        }
-      }, 100);
+  //   // First try to initialize immediately
+  //   if (!(await initializeWithMerchantId())) {
+  //     // If not successful, set up an interval to check
+  //     const checkInterval = setInterval(async () => {
+  //       console.log("Checking for merchantId again...");
+  //       if (await initializeWithMerchantId()) {
+  //         clearInterval(checkInterval);
+  //       }
+  //     }, 100);
 
-      // Set a timeout to prevent infinite checking
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        console.error("Failed to initialize interactions after timeout");
-      }, 5000);
-    }
-  });
+  //     // Set a timeout to prevent infinite checking
+  //     setTimeout(() => {
+  //       clearInterval(checkInterval);
+  //       console.error("Failed to initialize interactions after timeout");
+  //     }, 5000);
+  //   }
+  // });
 })(); // Don't add anything below this line
