@@ -1754,13 +1754,11 @@ const audio = new Audio(
     if (isEnabled("Idle on Page")) {
       console.log("Idle on page is enabled");
       document.addEventListener("DOMContentLoaded", () => {
-        sessionStorage.removeItem("inactivityTriggerCount");
         window.inactivityTracker = new InactivityTracker();
       });
 
       window.addEventListener("load", () => {
         if (!window.inactivityTracker) {
-          sessionStorage.removeItem("inactivityTriggerCount");
           window.inactivityTracker = new InactivityTracker();
         }
       });
