@@ -108,6 +108,7 @@ const audio = new Audio(
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
+    alert("init");
     fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
