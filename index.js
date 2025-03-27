@@ -2493,32 +2493,41 @@ const audio = new Audio(
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 
   document.addEventListener("DOMContentLoaded", async () => {
-    // Wait for merchantId to be set
-    const checkMerchantId = setInterval(() => {
-      const merchantId = localStorage.getItem("merchantId");
-      alert("dom content loaded");
-      if (merchantId) {
-        alert("merchant id found");
-        clearInterval(checkMerchantId);
-        console.log("Merchant ID found, initializing interactions");
-        getInteractions()
-          .then((interactions) => {
-            console.log("Interactions loaded successfully:", interactions);
-          })
-          .catch((error) => {
-            console.error("Error loading interactions:", error);
-          });
-      }
-    }, 100);
+    console.log("DOM Content Loaded event fired");
 
-    // Set a timeout to prevent infinite checking
-    setTimeout(() => {
-      alert("timeout 5 seconds");
-      if (!localStorage.getItem("merchantId")) {
-        alert("merchant id not found");
-        clearInterval(checkMerchantId);
-        console.error("Merchant ID not found after timeout");
+    // Function to check for merchantId and initialize interactions
+    const initializeWithMerchantId = async () => {
+      const merchantId = localStorage.getItem("merchantId");
+      console.log("Checking for merchantId:", merchantId);
+
+      if (merchantId) {
+        console.log("Found merchantId, initializing interactions");
+        try {
+          const interactions = await getInteractions();
+          console.log("Interactions loaded successfully:", interactions);
+        } catch (error) {
+          console.error("Error loading interactions:", error);
+        }
+        return true;
       }
-    }, 5000);
+      return false;
+    };
+
+    // First try to initialize immediately
+    if (!(await initializeWithMerchantId())) {
+      // If not successful, set up an interval to check
+      const checkInterval = setInterval(async () => {
+        console.log("Checking for merchantId again...");
+        if (await initializeWithMerchantId()) {
+          clearInterval(checkInterval);
+        }
+      }, 100);
+
+      // Set a timeout to prevent infinite checking
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        console.error("Failed to initialize interactions after timeout");
+      }, 5000);
+    }
   });
 })(); // Don't add anything below this line
