@@ -105,6 +105,7 @@ const audio = new Audio(
   let CONFIG = [];
   let INTERACTION_DATA = [];
   const user_id = localStorage.getItem("merchantId");
+  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1721,20 +1722,16 @@ const audio = new Audio(
 
     if (isEnabled("Welcome Returning Visitor")) {
       console.log("Welcome returning visitor is enabled");
-      // Only show returning visitor message on page load if it's a returning visit
-      // and we haven't shown the message in this session
-      const hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
-      if (hasVisitedBefore === "true") {
-        document.addEventListener("DOMContentLoaded", () => {
-          showReturningVisitorMessage();
-        });
 
-        window.addEventListener("load", () => {
-          if (!document.returningVisitorMessageShown) {
-            showReturningVisitorMessage();
-          }
-        });
-      }
+      document.addEventListener("DOMContentLoaded", () => {
+        showReturningVisitorMessage();
+      });
+
+      window.addEventListener("load", () => {
+        if (!document.returningVisitorMessageShown) {
+          showReturningVisitorMessage();
+        }
+      });
     }
 
     if (isEnabled("Avoid Bounce")) {
@@ -1864,11 +1861,11 @@ const audio = new Audio(
 
   function showReturningVisitorMessage() {
     console.log("Showing returning visitor message");
-    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    let hasReturningVisitedBefore = localStorage.getItem("hasReturningVisitor");
     const hasShownReturningMessage = sessionStorage.getItem(
       "hasShownReturningMessage"
     );
-    if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
+    if (hasReturningVisitedBefore === "true" && !hasShownReturningMessage) {
       const returningVisitorInteraction = INTERACTION_DATA.find(
         (i) => i.key === "Welcome Returning Visitor"
       );
@@ -1887,6 +1884,7 @@ const audio = new Audio(
       // Set the flag only after the message is shown
       sessionStorage.setItem("hasShownReturningMessage", "true");
     }
+    localStorage.setItem("hasReturningVisitor", "true");
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
