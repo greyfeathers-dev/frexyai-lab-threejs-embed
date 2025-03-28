@@ -147,8 +147,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1902,17 +1902,46 @@ const audio = new Audio(
 
       switch (trimmedKey) {
         case "firstName":
-          return leadData.name || "there";
+          return leadData?.name || "there";
         case "company":
-          return leadData.company || "";
+          return leadData?.company || "";
         case "job":
-          return leadData.jobTitle || "";
+          return leadData?.jobTitle || "";
         case "source":
-          return leadData.source || "";
+          return leadData?.source || "";
         default:
           return match;
       }
     });
+  }
+
+  function showNewVisitorMessage() {
+    console.log("Showing new visitor message", INTERACTION_DATA);
+    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    console.log("Has visited before:", hasVisitedBefore);
+    if (hasVisitedBefore !== "true") {
+      const newVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Welcome New Visitor"
+      );
+      console.log("New visitor interaction:", newVisitorInteraction);
+      showUIAnimation({
+        text:
+          newVisitorInteraction?.message ||
+          "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+        time: 5,
+        hasClose: false,
+        animation: "wave",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+          },
+        ],
+      });
+      updateInteractionImpression(newVisitorInteraction.id);
+      localStorage.setItem("hasWelcomeVisitor", "true");
+    }
   }
 
   function showReturningVisitorMessage() {
