@@ -1901,7 +1901,7 @@ const audio = new Audio(
       console.log("Processing placeholder:", trimmedKey);
 
       switch (trimmedKey) {
-        case "visitor_name":
+        case "firstName":
           return leadData.name || "there";
         case "company":
           return leadData.company || "";
