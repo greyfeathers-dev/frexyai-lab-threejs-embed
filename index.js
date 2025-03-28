@@ -99,6 +99,49 @@ const audio = new Audio(
   let sourceLink = "#";
   let firstPageVisited = null;
   let leadId = null;
+  let leadData = null;
+
+  const getLeadsData = async () => {
+    // const leadId = localStorage.getItem("leadId");
+    const leadId = "1743157089204-1gqwxib4tv4";
+    try {
+      console.log(leadId, "leadId from local storage in interactions");
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const leads = await response.json();
+      console.log("LEADS FROM FETCH", leads);
+      leadData = leads[0];
+
+      // Extract the required information
+      const leadInfo = {
+        firstName: leadData.name ? leadData.name.split(" ")[0] : null,
+        jobTitle: leadData.job_title || null,
+        company: leadData.company || null,
+        country: leadData.country || null,
+        source: leadData.source || null,
+      };
+
+      console.log("Extracted Lead Info:", leadInfo);
+      return leadInfo;
+    } catch (error) {
+      console.error("Failed to get interactions:", error);
+      return [];
+    }
+  };
+  getLeadsData();
 
   init();
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -549,6 +592,7 @@ const audio = new Audio(
       }
       const config = await response.json();
       CONFIG = config.data;
+      console.log("CONFIG FROM FETCH", CONFIG);
       triggerConfig();
     } catch (error) {
       console.error("Error fetching config:", error);
@@ -1842,35 +1886,33 @@ const audio = new Audio(
 
   //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
 
-  // Add the welcome message function after the init() function
-
-  function showNewVisitorMessage() {
-    console.log("Showing new visitor message", INTERACTION_DATA);
-    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
-    console.log("Has visited before:", hasVisitedBefore);
-    if (hasVisitedBefore !== "true") {
-      const newVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome New Visitor"
-      );
-      console.log("New visitor interaction:", newVisitorInteraction);
-      showUIAnimation({
-        text:
-          newVisitorInteraction?.message ||
-          "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-        time: 5,
-        hasClose: false,
-        animation: "wave",
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-          },
-        ],
-      });
-      updateInteractionImpression(newVisitorInteraction.id);
-      localStorage.setItem("hasWelcomeVisitor", "true");
+  // Helper function to replace placeholders in messages with lead data
+  function replaceMessagePlaceholders(message, leadData) {
+    if (!message || !leadData) {
+      console.log("Message or leadData is missing:", { message, leadData });
+      return message;
     }
+
+    console.log("Replacing placeholders in message:", message);
+    console.log("Using lead data:", leadData);
+
+    return message.replace(/\{([^}]+)\}/g, (match, key) => {
+      const trimmedKey = key.trim();
+      console.log("Processing placeholder:", trimmedKey);
+
+      switch (trimmedKey) {
+        case "visitor_name":
+          return leadData.name || "there";
+        case "company":
+          return leadData.company || "";
+        case "job":
+          return leadData.jobTitle || "";
+        case "source":
+          return leadData.source || "";
+        default:
+          return match;
+      }
+    });
   }
 
   function showReturningVisitorMessage() {
@@ -1883,11 +1925,13 @@ const audio = new Audio(
       const returningVisitorInteraction = INTERACTION_DATA.find(
         (i) => i.key === "Welcome Returning Visitor"
       );
+      const message = replaceMessagePlaceholders(
+        returningVisitorInteraction?.message,
+        leadData
+      );
       setTimeout(() => {
         showUIAnimation({
-          text:
-            returningVisitorInteraction?.message ||
-            "Hey there, welcome back! I've been waiting for you. Need any help?",
+          text: message,
           time: 5,
           hasClose: false,
           animation: "wave",
