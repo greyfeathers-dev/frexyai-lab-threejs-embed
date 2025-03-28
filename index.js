@@ -2115,7 +2115,7 @@ const audio = new Audio(
           "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
         time: 5,
         hasClose: false,
-        animation: "celebration",
+        animation: "no_no",
         cta: [
           {
             text: "Show me!",
