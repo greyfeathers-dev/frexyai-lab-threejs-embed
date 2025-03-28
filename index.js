@@ -100,14 +100,14 @@ const audio = new Audio(
   let firstPageVisited = null;
   let leadId = null;
   let leadData = null;
+  const leadIdLocal = localStorage.getItem("leadId");
 
   const getLeadsData = async () => {
-    // const leadId = localStorage.getItem("leadId");
-    const leadId = "1743157089204-1gqwxib4tv4";
+    // const leadId = "1743157089204-1gqwxib4tv4";
     try {
-      console.log(leadId, "leadId from local storage in interactions");
+      console.log(leadIdLocal, "leadId from local storage in interactions");
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
         {
           method: "GET",
           headers: {
