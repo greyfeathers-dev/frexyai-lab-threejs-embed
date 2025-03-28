@@ -69,6 +69,11 @@ const ANIMATION_LIST = [
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
     animation: "wave",
   },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Wait%20Up.glb",
+    animation: "wait_up",
+  },
 ];
 
 const MODEL_TEXTURE =
@@ -1902,17 +1907,46 @@ const audio = new Audio(
 
       switch (trimmedKey) {
         case "firstName":
-          return leadData.name || "there";
+          return leadData?.name || "there";
         case "company":
-          return leadData.company || "";
+          return leadData?.company || "";
         case "job":
-          return leadData.jobTitle || "";
+          return leadData?.jobTitle || "";
         case "source":
-          return leadData.source || "";
+          return leadData?.source || "";
         default:
           return match;
       }
     });
+  }
+
+  function showNewVisitorMessage() {
+    console.log("Showing new visitor message", INTERACTION_DATA);
+    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+    console.log("Has visited before:", hasVisitedBefore);
+    if (hasVisitedBefore !== "true") {
+      const newVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Welcome New Visitor"
+      );
+      console.log("New visitor interaction:", newVisitorInteraction);
+      showUIAnimation({
+        text:
+          newVisitorInteraction?.message ||
+          "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+        time: 5,
+        hasClose: false,
+        animation: "wave",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+          },
+        ],
+      });
+      updateInteractionImpression(newVisitorInteraction.id);
+      localStorage.setItem("hasWelcomeVisitor", "true");
+    }
   }
 
   function showReturningVisitorMessage() {
@@ -2085,8 +2119,8 @@ const audio = new Audio(
           avoidBounceInteraction?.message ||
           "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
         time: 5,
-        hasClose: true,
-        animation: "celebration",
+        hasClose: false,
+        animation: "no_no",
         cta: [
           {
             text: "Show me!",
@@ -2414,8 +2448,8 @@ const audio = new Audio(
           confusedInteraction?.message ||
           "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
-        hasClose: true,
-        animation: "wave",
+        hasClose: false,
+        animation: "casual_talk_2",
       });
       updateInteractionImpression(confusedInteraction.id);
       document.removeEventListener("scroll", this.handleScroll);
@@ -2532,8 +2566,8 @@ const audio = new Audio(
           idleInteraction?.message ||
           "Still there? Let me know if you need any help!",
         time: 5,
-        hasClose: true,
-        animation: "wave",
+        hasClose: false,
+        animation: "wait_up",
       });
       updateInteractionImpression(idleInteraction.id);
     }
