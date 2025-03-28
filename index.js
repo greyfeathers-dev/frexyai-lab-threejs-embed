@@ -2114,7 +2114,7 @@ const audio = new Audio(
           avoidBounceInteraction?.message ||
           "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
         time: 5,
-        hasClose: true,
+        hasClose: false,
         animation: "celebration",
         cta: [
           {
@@ -2443,7 +2443,7 @@ const audio = new Audio(
           confusedInteraction?.message ||
           "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
-        hasClose: true,
+        hasClose: false,
         animation: "wave",
       });
       updateInteractionImpression(confusedInteraction.id);
@@ -2561,7 +2561,7 @@ const audio = new Audio(
           idleInteraction?.message ||
           "Still there? Let me know if you need any help!",
         time: 5,
-        hasClose: true,
+        hasClose: false,
         animation: "wave",
       });
       updateInteractionImpression(idleInteraction.id);
