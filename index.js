@@ -1,4 +1,9 @@
 /** @format */
+
+const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
+
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
@@ -94,10 +99,57 @@ const audio = new Audio(
   let sourceLink = "#";
   let firstPageVisited = null;
   let leadId = null;
+  let leadData = null;
+  const leadIdLocal = localStorage.getItem("leadId");
+
+  const getLeadsData = async () => {
+    // const leadId = "1743157089204-1gqwxib4tv4";
+    try {
+      console.log(leadIdLocal, "leadId from local storage in interactions");
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const leads = await response.json();
+      console.log("LEADS FROM FETCH", leads);
+      leadData = leads[0];
+
+      // Extract the required information
+      const leadInfo = {
+        firstName: leadData.name ? leadData.name.split(" ")[0] : null,
+        jobTitle: leadData.job_title || null,
+        company: leadData.company || null,
+        country: leadData.country || null,
+        source: leadData.source || null,
+      };
+
+      console.log("Extracted Lead Info:", leadInfo);
+      return leadInfo;
+    } catch (error) {
+      console.error("Failed to get interactions:", error);
+      return [];
+    }
+  };
+  getLeadsData();
 
   init();
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
+  let INTERACTION_DATA = [];
+  const user_id = localStorage.getItem("merchantId");
+  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
@@ -107,9 +159,6 @@ const audio = new Audio(
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source = getSource();
     const MODEL_PATH = BASE_MODEL.model_url;
-
-    // Add welcome message check
-    checkAndShowWelcomeMessage();
 
     const fallbackLoader = document.createElement("div");
     fallbackLoader.id = "loader";
@@ -249,9 +298,13 @@ const audio = new Audio(
               o.material.needsUpdate = true;
             }
           }
-          // Reference the neck and waist bones
-          if (o.isBone && o.name === "CC_Base_Head") {
-            neck = o;
+          // Add detailed bone logging
+          if (o.isBone) {
+            console.log("Found bone:", o.name);
+            if (o.name === "CC_Base_Head") {
+              neck = o;
+              console.log("Neck bone assigned successfully:", neck);
+            }
           }
           if (o.isBone && o.name === "spine_01x") {
             waist = o;
@@ -285,10 +338,15 @@ const audio = new Audio(
           let clonedIdleAnim = idleAnim.clone();
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
             .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"));
+            .filter((track) => !track.name.includes("position"))
+            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out neck bone animations
           idle = mixer.clipAction(clonedIdleAnim);
-          idle.setLoop(THREE.LoopRepeat, Infinity); // Loop the idle animation
-          idle.play(); // Play the idle animation
+          idle.setLoop(THREE.LoopRepeat, Infinity);
+          idle.play();
+          console.log(
+            "Idle animation setup complete, filtered tracks:",
+            clonedIdleAnim.tracks.map((t) => t.name)
+          );
         }
 
         // Add click event listener for the model
@@ -316,6 +374,16 @@ const audio = new Audio(
     // Add click handler function
     function onModelClick(event) {
       if (currentlyAnimating) return;
+
+      // Check if Click-to-Dance interaction is enabled
+      const clickToDanceInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Click-to-Dance"
+      );
+
+      if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
+        console.log("Click-to-Dance interaction is not enabled");
+        return;
+      }
 
       // Get the canvas element and its bounds
       const canvas = renderer.domElement;
@@ -524,6 +592,7 @@ const audio = new Audio(
       }
       const config = await response.json();
       CONFIG = config.data;
+      console.log("CONFIG FROM FETCH", CONFIG);
       triggerConfig();
     } catch (error) {
       console.error("Error fetching config:", error);
@@ -1014,8 +1083,6 @@ const audio = new Audio(
     tooltip.style.color = color;
     tooltip.style.padding = "16px 20px";
     tooltip.style.borderRadius = "16px";
-    // tooltip.style.fontSize = isMobile ? '16px': '16px';
-    // tooltip.style.lineHeight = isMobile ? '10px': '24px';
     tooltip.style.fontSize = "16px";
     tooltip.style.lineHeight = "24px";
     tooltip.style.fontFamily = "sans-serif";
@@ -1033,48 +1100,50 @@ const audio = new Audio(
       timeoutDisappear = null;
     }
 
-    const closeBtn = document.createElement("button");
-    closeBtn.style.background = "white";
-    closeBtn.style.padding = "4px";
-    closeBtn.style.border = "0";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "-6px";
-    closeBtn.style.left = "-12px";
-    closeBtn.style.width = "26px";
-    closeBtn.style.height = "26px";
-    closeBtn.style.fontSize = "10px";
-    closeBtn.style.borderRadius = "50%";
-    closeBtn.style.display = "flex";
-    closeBtn.style.justifyContent = "center";
-    closeBtn.style.alignItems = "center";
-    closeBtn.style.zIndex = "99";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
-    // closeBtn.innerHTML = 'X';
+    // Only create and append close button if hasClose is true
+    if (hasClose) {
+      const closeBtn = document.createElement("button");
+      closeBtn.style.background = "white";
+      closeBtn.style.padding = "4px";
+      closeBtn.style.border = "0";
+      closeBtn.style.position = "absolute";
+      closeBtn.style.top = "-6px";
+      closeBtn.style.left = "-12px";
+      closeBtn.style.width = "26px";
+      closeBtn.style.height = "26px";
+      closeBtn.style.fontSize = "10px";
+      closeBtn.style.borderRadius = "50%";
+      closeBtn.style.display = "flex";
+      closeBtn.style.justifyContent = "center";
+      closeBtn.style.alignItems = "center";
+      closeBtn.style.zIndex = "99";
+      closeBtn.style.cursor = "pointer";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
 
-    const closeImageIcon = document.createElement("img");
-    closeImageIcon.src =
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
-    closeImageIcon.style.width = "16px";
-    closeImageIcon.style.height = "16px";
-    closeBtn.appendChild(closeImageIcon);
+      const closeImageIcon = document.createElement("img");
+      closeImageIcon.src =
+        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+      closeImageIcon.style.width = "16px";
+      closeImageIcon.style.height = "16px";
+      closeBtn.appendChild(closeImageIcon);
 
-    closeBtn.addEventListener("click", () => {
-      if (onClickClose) {
-        if (onClickClose.alertText) {
-          closeUI();
-          showUIAnimation({
-            hasClose: false,
-            text: onClickClose.alertText,
-            time: 2000,
-            cta: [],
-          });
-          return;
+      closeBtn.addEventListener("click", () => {
+        if (onClickClose) {
+          if (onClickClose.alertText) {
+            closeUI();
+            showUIAnimation({
+              hasClose: false,
+              text: onClickClose.alertText,
+              time: 2000,
+              cta: [],
+            });
+            return;
+          }
         }
-      }
-      closeUI();
-    });
-    tooltipContainer.appendChild(closeBtn);
+        closeUI();
+      });
+      tooltipContainer.appendChild(closeBtn);
+    }
 
     if (timerCountdown) {
       const timer = document.createElement("div");
@@ -1198,48 +1267,50 @@ const audio = new Audio(
       timeoutDisappear = null;
     }
 
-    const closeBtn = document.createElement("button");
-    closeBtn.style.background = "white";
-    closeBtn.style.padding = "2px";
-    closeBtn.style.border = "none";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "-12px";
-    closeBtn.style.left = "-12px";
+    // Only create and append close button if hasClose is true
+    if (hasClose) {
+      const closeBtn = document.createElement("button");
+      closeBtn.style.background = "white";
+      closeBtn.style.padding = "2px";
+      closeBtn.style.border = "none";
+      closeBtn.style.position = "absolute";
+      closeBtn.style.top = "-12px";
+      closeBtn.style.left = "-12px";
+      closeBtn.style.width = "26px";
+      closeBtn.style.height = "26px";
+      closeBtn.style.fontSize = "10px";
+      closeBtn.style.borderRadius = "50%";
+      closeBtn.style.display = "flex";
+      closeBtn.style.justifyContent = "center";
+      closeBtn.style.alignItems = "center";
+      closeBtn.style.zIndex = "99";
+      closeBtn.style.cursor = "pointer";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
 
-    closeBtn.style.width = "26px";
-    closeBtn.style.height = "26px";
-    closeBtn.style.fontSize = "10px";
-    closeBtn.style.borderRadius = "50%";
-    closeBtn.style.display = "flex";
-    closeBtn.style.justifyContent = "center";
-    closeBtn.style.alignItems = "center";
-    closeBtn.style.zIndex = "99";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
+      const closeImageIcon = document.createElement("img");
+      closeImageIcon.src =
+        "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
+      closeImageIcon.style.width = "16px";
+      closeImageIcon.style.height = "16px";
+      closeBtn.appendChild(closeImageIcon);
 
-    const closeImageIcon = document.createElement("img");
-    closeImageIcon.src =
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/X%20Close%20Icon.png";
-    closeImageIcon.style.width = "16px";
-    closeImageIcon.style.height = "16px";
-    closeBtn.appendChild(closeImageIcon);
-
-    closeBtn.addEventListener("click", () => {
-      if (onClickClose) {
-        if (onClickClose.alertText) {
-          closeUI();
-          showUIAnimation({
-            hasClose: false,
-            text: onClickClose.alertText,
-            time: 2000,
-            cta: [],
-          });
-          return;
+      closeBtn.addEventListener("click", () => {
+        if (onClickClose) {
+          if (onClickClose.alertText) {
+            closeUI();
+            showUIAnimation({
+              hasClose: false,
+              text: onClickClose.alertText,
+              time: 2000,
+              cta: [],
+            });
+            return;
+          }
         }
-      }
-      closeUI();
-    });
-    tooltipContainer.appendChild(closeBtn);
+        closeUI();
+      });
+      tooltipContainer.appendChild(closeBtn);
+    }
 
     if (timerCountdown) {
       const timer = document.createElement("div");
@@ -1507,26 +1578,26 @@ const audio = new Audio(
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
-    chatbot.src = sourceLink;
-    setTimeout(() => {
-      chat.style.display = "block";
-    }, 200);
-  }
 
-  if (!isMobile) {
-    let timer = setTimeout(() => resetHead());
-    document.addEventListener("mousemove", function (e) {
-      if (currentlyAnimating) return;
-      if (timer) {
-        clearTimeout(timer);
-        timer = setTimeout(() => resetHead(), 4000);
-      }
-      var mousecoords = getMousePos(e);
-      if (neck && !currentlyAnimating) {
-        moveJoint(mousecoords, neck, 50);
-        // moveJoint(mousecoords, waist, 30);
-      }
-    });
+    // Check if we have the data
+    if (!INTERACTION_DATA || INTERACTION_DATA.length === 0) {
+      console.log("Waiting for interactions data to load...");
+      // Wait for data to be available
+      const checkData = setInterval(() => {
+        if (INTERACTION_DATA && INTERACTION_DATA.length > 0) {
+          clearInterval(checkData);
+          chatbot.src = sourceLink;
+          setTimeout(() => {
+            chat.style.display = "block";
+          }, 200);
+        }
+      }, 100);
+    } else {
+      chatbot.src = sourceLink;
+      setTimeout(() => {
+        chat.style.display = "block";
+      }, 200);
+    }
   }
 
   // ============================================= MOUSE POSITION AND HEAD RESET FUNCTIONS =============================================
@@ -1537,19 +1608,36 @@ const audio = new Audio(
 
   function resetHead() {
     let w = { x: window.innerWidth, y: window.innerHeight };
+    const xRef = w.x / 2;
+    const yRef = w.y / 2;
 
-    const xRef = w.x - 160;
-    const yRef = w.y - 190;
+    if (neck) {
+      // Smoothly reset to center position
+      const targetY = THREE.Math.degToRad(0);
+      const targetX = THREE.Math.degToRad(0);
 
-    moveJoint({ x: xRef, y: yRef }, neck, 50);
-    moveJoint({ x: xRef, y: yRef }, waist, 30);
+      neck.rotation.y = THREE.Math.lerp(neck.rotation.y, targetY, 0.1);
+      neck.rotation.x = THREE.Math.lerp(neck.rotation.x, targetX, 0.1);
+    }
   }
 
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
-      joint.rotation.y = THREE.Math.degToRad(degrees.x);
-      joint.rotation.x = THREE.Math.degToRad(degrees.y);
+      // Apply rotations with easing
+      const currentY = joint.rotation.y;
+      const currentX = joint.rotation.x;
+      const targetY = THREE.Math.degToRad(degrees.x);
+      const targetX = THREE.Math.degToRad(degrees.y);
+
+      // Smooth interpolation
+      joint.rotation.y = THREE.Math.lerp(currentY, targetY, 0.1);
+      joint.rotation.x = THREE.Math.lerp(currentX, targetX, 0.1);
+
+      console.log("Joint rotation:", {
+        y: THREE.Math.radToDeg(joint.rotation.y),
+        x: THREE.Math.radToDeg(joint.rotation.x),
+      });
     }
   }
 
@@ -1557,101 +1645,304 @@ const audio = new Audio(
 
   function getMouseDegrees(x, y, degreeLimit) {
     let dx = 0,
-      dy = 0,
-      xdiff,
-      xPercentage,
-      ydiff,
-      yPercentage;
-
+      dy = 0;
     let w = { x: window.innerWidth, y: window.innerHeight };
 
-    // Left (Rotates neck left between 0 and -degreeLimit)
+    // Get the model's position on screen (bottom-right corner)
+    const modelX = w.x - 340; // 280px + 60px offset from right
+    const modelY = w.y - 40; // Accounting for bottom offset
 
-    const xRef = w.x - 160;
-    const yRef = w.y - 190;
+    // Calculate the model's head center point
+    // Adjusted to be more centered in the canvas
+    const modelCenterX = modelX + 140; // Center of canvas width
+    const modelCenterY = modelY + 100; // Adjusted higher for better head position
 
-    if (x <= xRef) {
-      // Get the difference between model and cursor position
-      xdiff = xRef - x;
-      // Find the percentage of that difference (percentage toward edge of screen)
-      xPercentage = (xdiff / xRef) * 100;
-      // Convert that to a percentage of the maximum rotation we allow for the neck
-      dx = ((degreeLimit * xPercentage) / 100) * -1;
-    }
-    // Right (Rotates neck right between 0 and degreeLimit)
-    if (x >= xRef) {
-      xdiff = x - xRef;
-      xPercentage = (xdiff / xRef) * 100;
-      dx = (degreeLimit * xPercentage) / 100;
-    }
-    // Up (Rotates neck up between 0 and -degreeLimit)
-    if (y <= yRef) {
-      ydiff = yRef - y;
-      yPercentage = (ydiff / yRef) * 100;
-      // Note that I cut degreeLimit in half when she looks up
-      dy = ((degreeLimit * 0.5 * yPercentage) / 100) * -1;
-    }
+    // Calculate vector from model's center to mouse position
+    const deltaX = x - modelCenterX;
+    const deltaY = y - modelCenterY;
 
-    // Down (Rotates neck down between 0 and degreeLimit)
-    if (y >= yRef) {
-      ydiff = y - yRef;
-      yPercentage = (ydiff / yRef) * 100;
-      dy = (degreeLimit * yPercentage) / 100;
-    }
+    // Calculate distance from mouse to model's center
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    // Create a non-linear response curve for more natural movement
+    const maxDistance = 500; // Increased range for smoother rotation
+    const distanceFactor = Math.min(distance / maxDistance, 1);
+
+    // Calculate normalized direction with adjusted sensitivity
+    const dirX = deltaX / (distance || 1);
+    const dirY = deltaY / (distance || 1);
+
+    // Apply the non-linear curve and degree limit with adjusted sensitivity
+    const sensitivity = 0.8; // Reduced sensitivity for more natural movement
+    dx = dirX * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
+    dy = dirY * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
+
+    // Adjust resting position to be more centered
+    dx = dx + 0; // Removed right turn bias
+    dy = dy + 0; // Removed downward tilt bias
+
+    // Clamp values to prevent extreme rotations
+    dx = Math.max(-degreeLimit, Math.min(degreeLimit, dx));
+    dy = Math.max(-degreeLimit, Math.min(degreeLimit, dy));
+
     return { x: dx, y: dy };
   }
 
   // ******************************************************************** INTERACTIONS ********************************************************************
 
-  //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
+  // ***********************************************Function to get interactions*****************************************************
+  const getInteractions = async () => {
+    try {
+      console.log(user_id, "user_id from local storage in interactions");
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-  // Add the welcome message function after the init() function
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-  function checkAndShowWelcomeMessage() {
-    console.log("Checking welcome message...");
-    // Wait for DOM to be fully loaded
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", showWelcomeMessage);
-    } else {
-      showWelcomeMessage();
+      const interactions = await response.json();
+      // Store the interactions in INTERACTION_DATA for use in other functions
+      INTERACTION_DATA = interactions;
+      initializeInteractions(interactions);
+
+      // Set up head-cursor sync after data is loaded
+      if (!isMobile) {
+        console.log("Setting up mouse move tracking for neck movement");
+        let timer = setTimeout(() => resetHead());
+
+        // Check if Head-Cursor Sync is enabled
+        const headCursorSync = INTERACTION_DATA.find(
+          (i) => i.key === "Head-Cursor Sync"
+        );
+        console.log("Head-Cursor Sync status:", headCursorSync);
+
+        if (headCursorSync && headCursorSync.status) {
+          console.log("Head-Cursor Sync is enabled, setting up neck tracking");
+          document.addEventListener("mousemove", function (e) {
+            console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
+            console.log("Neck bone exists:", !!neck);
+            if (currentlyAnimating) return;
+            if (timer) {
+              clearTimeout(timer);
+              timer = setTimeout(() => resetHead(), 4000);
+            }
+            var mousecoords = getMousePos(e);
+            if (neck && !currentlyAnimating) {
+              console.log("Moving neck to coordinates:", mousecoords);
+              moveJoint(mousecoords, neck, 50);
+            }
+          });
+        } else {
+          console.log(
+            "Head-Cursor Sync is disabled, neck tracking not enabled"
+          );
+        }
+      }
+
+      return interactions;
+    } catch (error) {
+      console.error("Failed to get interactions:", error);
+      return [];
+    }
+  };
+  getInteractions();
+
+  // ***********************************************Function to initialize interactions based on their status*****************************************************
+  const initializeInteractions = (interactions) => {
+    // Helper function to check if an interaction is enabled
+    const isEnabled = (key) => {
+      const interaction = interactions.find((i) => i.key === key);
+      return interaction ? interaction.status : false;
+    };
+    console.log(isEnabled("Welcome New Visitor"), "New Visitor");
+
+    // Initialize each interaction based on its status
+    if (isEnabled("Welcome New Visitor")) {
+      console.log("New visitor is enabled");
+      document.addEventListener("DOMContentLoaded", () => {
+        showNewVisitorMessage();
+      });
+
+      window.addEventListener("load", () => {
+        if (!document.newVisitorMessageShown) {
+          showNewVisitorMessage();
+        }
+      });
+    }
+
+    if (isEnabled("Welcome Returning Visitor")) {
+      console.log("Welcome returning visitor is enabled");
+
+      document.addEventListener("DOMContentLoaded", () => {
+        showReturningVisitorMessage();
+      });
+
+      window.addEventListener("load", () => {
+        if (!document.returningVisitorMessageShown) {
+          showReturningVisitorMessage();
+        }
+      });
+    }
+
+    if (isEnabled("Avoid Bounce")) {
+      console.log("Avoid bounce is enabled");
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM fully loaded");
+        window.avoidBounceHandler = new AvoidBounceHandler();
+        checkInternalNavigation();
+      });
+
+      window.addEventListener("load", () => {
+        console.log("Window loaded");
+        if (!window.avoidBounceHandler) {
+          window.avoidBounceHandler = new AvoidBounceHandler();
+        }
+        checkInternalNavigation();
+      });
+    }
+
+    if (isEnabled("Idle on Page")) {
+      console.log("Idle on page is enabled");
+      document.addEventListener("DOMContentLoaded", () => {
+        window.inactivityTracker = new InactivityTracker();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.inactivityTracker) {
+          window.inactivityTracker = new InactivityTracker();
+        }
+      });
+    }
+
+    if (isEnabled("Normal Exit Intent")) {
+      console.log("Normal exit intent is enabled");
+      window.normalExitIntentSessionStartTime = Date.now();
+      document.addEventListener("DOMContentLoaded", () => {
+        window.normalExitIntentHandler = new NormalExitIntentHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.normalExitIntentHandler) {
+          window.normalExitIntentHandler = new NormalExitIntentHandler();
+        }
+      });
+    }
+
+    if (isEnabled("Confused?")) {
+      console.log("Confused? is enabled");
+      document.addEventListener("DOMContentLoaded", () => {
+        window.confusedInteractionHandler = new ConfusedInteractionHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.confusedInteractionHandler) {
+          window.confusedInteractionHandler = new ConfusedInteractionHandler();
+        }
+      });
+    }
+
+    // Click-to-Dance is already handled by the model click event listener
+    // No additional initialization needed
+  };
+
+  // ***********************************************Function to update total_impression count*****************************************************
+  async function updateInteractionImpression(interaction_id) {
+    try {
+      const interaction = INTERACTION_DATA.find((i) => i.id === interaction_id);
+      if (!interaction) return;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/interactions?id=eq.${interaction.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            total_impressions: Number(interaction.total_impressions) + 1 || 0,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update impression count:", response.status);
+      }
+    } catch (error) {
+      console.error("Error updating impression count:", error);
     }
   }
 
-  function showWelcomeMessage() {
-    console.log("Showing welcome message...");
-    // Check if user has visited before
-    const hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+  //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
+
+  // Helper function to replace placeholders in messages with lead data
+  function replaceMessagePlaceholders(message, leadData) {
+    if (!message || !leadData) {
+      console.log("Message or leadData is missing:", { message, leadData });
+      return message;
+    }
+
+    console.log("Replacing placeholders in message:", message);
+    console.log("Using lead data:", leadData);
+
+    return message.replace(/\{([^}]+)\}/g, (match, key) => {
+      const trimmedKey = key.trim();
+      console.log("Processing placeholder:", trimmedKey);
+
+      switch (trimmedKey) {
+        case "firstName":
+          return leadData.name || "there";
+        case "company":
+          return leadData.company || "";
+        case "job":
+          return leadData.jobTitle || "";
+        case "source":
+          return leadData.source || "";
+        default:
+          return match;
+      }
+    });
+  }
+
+  function showReturningVisitorMessage() {
+    console.log("Showing returning visitor message");
+    let hasReturningVisitedBefore = localStorage.getItem("hasReturningVisitor");
     const hasShownReturningMessage = sessionStorage.getItem(
       "hasShownReturningMessage"
     );
-    console.log("Has visited before:", hasVisitedBefore);
-    console.log("Has shown returning message:", hasShownReturningMessage);
-
-    // Set a 2-second delay before showing the message
-    setTimeout(() => {
-      if (hasVisitedBefore === "true" && !hasShownReturningMessage) {
-        console.log("Showing returning visitor message");
-        setTimeout(() => {
-          showUIAnimation({
-            text: "Hey there, welcome back! I've been waiting for you. Need any help?",
-            time: 5,
-            hasClose: true,
-            animation: "wave",
-          });
-        }, 2000);
-        // Mark that we've shown the returning message in this session
-        sessionStorage.setItem("hasShownReturningMessage", "true");
-      } else if (hasVisitedBefore !== "true") {
-        console.log("Showing first-time visitor message");
-        localStorage.setItem("hasWelcomeVisitor", "true");
+    if (hasReturningVisitedBefore === "true" && !hasShownReturningMessage) {
+      const returningVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Welcome Returning Visitor"
+      );
+      const message = replaceMessagePlaceholders(
+        returningVisitorInteraction?.message,
+        leadData
+      );
+      setTimeout(() => {
         showUIAnimation({
-          text: "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+          text: message,
           time: 5,
-          hasClose: true,
+          hasClose: false,
           animation: "wave",
         });
-      }
-    }, 1000); // 2-second delay
+
+        updateInteractionImpression(returningVisitorInteraction.id);
+      }, 2000);
+      // Set the flag only after the message is shown
+      sessionStorage.setItem("hasShownReturningMessage", "true");
+    }
+    localStorage.setItem("hasReturningVisitor", "true");
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
@@ -1678,6 +1969,7 @@ const audio = new Audio(
   }
 
   function checkInternalNavigation() {
+    console.log("Checking internal navigation in avoid bounce handler");
     const initialPath =
       localStorage.getItem("initialPath") || window.location.pathname;
     if (window.location.pathname !== initialPath) {
@@ -1785,8 +2077,13 @@ const audio = new Audio(
 
     triggerInteraction() {
       this.hasInteracted = true;
+      const avoidBounceInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Avoid Bounce"
+      );
       showUIAnimation({
-        text: "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
+        text:
+          avoidBounceInteraction?.message ||
+          "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
         time: 5,
         hasClose: true,
         animation: "celebration",
@@ -1798,23 +2095,10 @@ const audio = new Audio(
           },
         ],
       });
+      updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
     }
   }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM fully loaded");
-    window.avoidBounceHandler = new AvoidBounceHandler();
-    checkInternalNavigation();
-  });
-
-  window.addEventListener("load", () => {
-    console.log("Window loaded");
-    if (!window.avoidBounceHandler) {
-      window.avoidBounceHandler = new AvoidBounceHandler();
-    }
-    checkInternalNavigation();
-  });
 
   //*************************************************NORMAL EXIT INTENT HANDLER*****************************************************
 
@@ -1825,7 +2109,7 @@ const audio = new Audio(
   // Function to check if the user has visited multiple pages
   function normalExitIntentHasVisitedMultiplePages() {
     const normalExitIntentVisitedPages = JSON.parse(
-      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
+      sessionStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
     return normalExitIntentVisitedPages.length > 2;
   }
@@ -1833,12 +2117,12 @@ const audio = new Audio(
   // Function to mark page visit
   function normalExitIntentMarkPageVisit() {
     const normalExitIntentVisitedPages = JSON.parse(
-      localStorage.getItem("normalExitIntentVisitedPages") || "[]"
+      sessionStorage.getItem("normalExitIntentVisitedPages") || "[]"
     );
     const currentPath = window.location.pathname;
     if (!normalExitIntentVisitedPages.includes(currentPath)) {
       normalExitIntentVisitedPages.push(currentPath);
-      localStorage.setItem(
+      sessionStorage.setItem(
         "normalExitIntentVisitedPages",
         JSON.stringify(normalExitIntentVisitedPages)
       );
@@ -1847,12 +2131,12 @@ const audio = new Audio(
 
   // Function to check if the interaction has already been triggered
   function normalExitIntentHasInteractedBefore() {
-    return localStorage.getItem("normalExitIntentTriggered") === "true";
+    return sessionStorage.getItem("normalExitIntentTriggered") === "true";
   }
 
   // Function to store that interaction has been triggered
   function normalExitIntentMarkInteractionTriggered() {
-    localStorage.setItem("normalExitIntentTriggered", "true");
+    sessionStorage.setItem("normalExitIntentTriggered", "true");
   }
 
   // Function to calculate scroll percentage
@@ -1928,33 +2212,24 @@ const audio = new Audio(
 
     normalExitIntentTriggerInteraction() {
       normalExitIntentMarkInteractionTriggered();
+      const normalExitIntentInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Normal Exit Intent"
+      );
       showUIAnimation({
-        text: "Leaving already? If you ever need help, I'm always here!",
+        text:
+          normalExitIntentInteraction?.message ||
+          "Leaving already? If you ever need help, I'm always here!",
         time: 5,
-        hasClose: true,
-        animation: "wave",
+        hasClose: false,
+        animation: "casual_talk_2",
       });
+      updateInteractionImpression(normalExitIntentInteraction.id);
       document.removeEventListener(
         "mousemove",
         this.normalExitIntentHandleMouseMovement
       );
     }
   }
-
-  // Store session start time
-  window.normalExitIntentSessionStartTime = Date.now();
-
-  // Wait for DOM to load
-  document.addEventListener("DOMContentLoaded", () => {
-    window.normalExitIntentHandler = new NormalExitIntentHandler();
-  });
-
-  // Backup check on full page load
-  window.addEventListener("load", () => {
-    if (!window.normalExitIntentHandler) {
-      window.normalExitIntentHandler = new NormalExitIntentHandler();
-    }
-  });
 
   //*************************************************CONFUSSED INTERACTION HANDLER*****************************************************
   function hasConfusedInteractionTriggered() {
@@ -2131,91 +2406,64 @@ const audio = new Audio(
 
     triggerInteraction() {
       markConfusedInteractionTriggered();
+      const confusedInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Confused?"
+      );
       showUIAnimation({
-        text: "Looks like you're exploring 🤔….need a hand finding something?",
+        text:
+          confusedInteraction?.message ||
+          "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
+      updateInteractionImpression(confusedInteraction.id);
       document.removeEventListener("scroll", this.handleScroll);
     }
   }
 
-  // Initialize on DOM load
-  document.addEventListener("DOMContentLoaded", () => {
-    window.confusedInteractionHandler = new ConfusedInteractionHandler();
-  });
-
-  // Backup initialization on full page load
-  window.addEventListener("load", () => {
-    if (!window.confusedInteractionHandler) {
-      window.confusedInteractionHandler = new ConfusedInteractionHandler();
-    }
-  });
   //*************************************************IDEAL ON PAGE INTERACTION HANDLER*****************************************************
-
-  // Function to safely get localStorage value
-  function getLocalStorageValue(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.error("Error accessing localStorage:", e);
-      return null;
-    }
-  }
-
-  // Function to safely set localStorage value
-  function setLocalStorageValue(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) {
-      console.error("Error setting localStorage:", e);
-      return false;
-    }
-  }
-
-  // Function to get session trigger count
-  function getTriggerCount() {
-    const count = sessionStorage.getItem("inactivityTriggerCount");
-    return count ? parseInt(count) : 0;
-  }
-
-  // Function to increment trigger count
-  function incrementTriggerCount() {
-    const currentCount = getTriggerCount();
-    console.log("Current trigger count before increment:", currentCount);
-    sessionStorage.setItem(
-      "inactivityTriggerCount",
-      (currentCount + 1).toString()
-    );
-    console.log("Trigger count after increment:", currentCount + 1);
-  }
-
-  // Function to check if we can trigger the message
-  function canTriggerMessage() {
-    const count = getTriggerCount();
-    console.log("Current trigger count in canTriggerMessage:", count);
-    return count < 3;
-  }
-
-  // Main inactivity handler
-  class InactivityHandler {
+  class InactivityTracker {
     constructor() {
-      this.lastActivityTime = Date.now();
-      this.sessionStartTime = Date.now();
-      this.isCheckingInactivity = false;
+      this.lastActivity = Date.now();
+      this.triggerCount = this.getTriggerCount();
+      this.trackingInterval = null;
       this.lastTriggerTime = 0;
-      this.setupEventListeners();
-      this.checkInactivity();
-      console.log(
-        "InactivityHandler initialized, starting count:",
-        getTriggerCount()
-      );
+      this.isShowingMessage = false;
+      console.log("Initial trigger count:", this.triggerCount);
+      this.setupListeners();
+      this.startTracking();
     }
 
-    setupEventListeners() {
-      // Track user activity
+    getTriggerCount() {
+      const count = sessionStorage.getItem("inactivityTriggerCount");
+      console.log("Getting trigger count from storage:", count);
+      return count ? parseInt(count) : 0;
+    }
+
+    incrementTriggerCount() {
+      const newCount = this.triggerCount + 1;
+      console.log(
+        "Incrementing trigger count from",
+        this.triggerCount,
+        "to",
+        newCount
+      );
+      sessionStorage.setItem("inactivityTriggerCount", newCount.toString());
+      this.triggerCount = newCount;
+
+      // Verify the storage was updated
+      const storedCount = sessionStorage.getItem("inactivityTriggerCount");
+      console.log("Verified storage count:", storedCount);
+
+      // Stop tracking if we've reached the limit
+      if (this.triggerCount >= 3) {
+        console.log("Reached trigger limit, stopping tracking");
+        this.stopTracking();
+      }
+    }
+
+    setupListeners() {
       const events = [
         "mousedown",
         "mousemove",
@@ -2224,84 +2472,71 @@ const audio = new Audio(
         "touchstart",
       ];
       events.forEach((event) => {
-        document.addEventListener(event, () => this.updateLastActivity());
-      });
-
-      // Handle visibility change
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          this.updateLastActivity();
-        }
+        document.addEventListener(event, () => this.updateActivity());
       });
     }
 
-    updateLastActivity() {
-      this.lastActivityTime = Date.now();
+    updateActivity() {
+      this.lastActivity = Date.now();
+      this.isShowingMessage = false;
     }
 
-    checkInactivity() {
-      const currentTime = Date.now();
-      const timeSinceLastActivity = currentTime - this.lastActivityTime;
-      const timeSinceSessionStart = currentTime - this.sessionStartTime;
-      const timeSinceLastTrigger = currentTime - this.lastTriggerTime;
+    startTracking() {
+      // Only start tracking if we haven't reached the limit
+      if (this.triggerCount < 3) {
+        console.log("Starting tracking with count:", this.triggerCount);
+        this.trackingInterval = setInterval(() => {
+          const inactiveTime = Date.now() - this.lastActivity;
+          const currentCount = this.getTriggerCount();
+          const timeSinceLastTrigger = Date.now() - this.lastTriggerTime;
 
-      if (
-        timeSinceSessionStart >= 40000 && // 40 seconds
-        timeSinceLastActivity >= 30000 && // 30 seconds
-        timeSinceLastTrigger >= 45000 && // 45 seconds between triggers
-        canTriggerMessage() &&
-        !this.isCheckingInactivity &&
-        !currentlyAnimating
-      ) {
-        this.triggerMessage();
+          if (
+            inactiveTime >= 30000 &&
+            currentCount < 3 &&
+            !this.isShowingMessage &&
+            timeSinceLastTrigger >= 10000
+          ) {
+            // 10 second cooldown between triggers
+            this.showMessage();
+            this.incrementTriggerCount();
+          }
+        }, 1000);
+      } else {
+        console.log("Already reached trigger limit, not starting tracking");
+      }
+    }
+
+    stopTracking() {
+      if (this.trackingInterval) {
+        clearInterval(this.trackingInterval);
+        this.trackingInterval = null;
+        console.log("Tracking stopped");
+      }
+    }
+
+    showMessage() {
+      const currentCount = this.getTriggerCount();
+      if (currentCount >= 3) {
+        console.log("Skipping message - already reached trigger limit");
+        return;
       }
 
-      // Continue checking every second
-      setTimeout(() => this.checkInactivity(), 1000);
-    }
-
-    triggerMessage() {
-      if (!canTriggerMessage()) return;
-
-      this.isCheckingInactivity = true;
+      this.isShowingMessage = true;
       this.lastTriggerTime = Date.now();
 
-      console.log(
-        "Triggering inactivity message, count before increment:",
-        getTriggerCount()
+      const idleInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Idle on Page"
       );
-      incrementTriggerCount();
-      console.log("Count after increment:", getTriggerCount());
-
       showUIAnimation({
-        text: "Still there? Let me know if you need any help!",
+        text:
+          idleInteraction?.message ||
+          "Still there? Let me know if you need any help!",
         time: 5,
         hasClose: true,
         animation: "wave",
       });
-
-      // Reset the checking flag after the animation duration
-      setTimeout(() => {
-        this.isCheckingInactivity = false;
-        this.updateLastActivity(); // Reset activity timer after message closes
-      }, 5000);
+      updateInteractionImpression(idleInteraction.id);
     }
   }
-
-  // Initialize handler when DOM is ready
-  document.addEventListener("DOMContentLoaded", () => {
-    // Clear the trigger count when the page loads
-    sessionStorage.removeItem("inactivityTriggerCount");
-    window.inactivityHandler = new InactivityHandler();
-  });
-
-  // Backup initialization on full page load
-  window.addEventListener("load", () => {
-    if (!window.inactivityHandler) {
-      // Clear the trigger count when the page loads
-      sessionStorage.removeItem("inactivityTriggerCount");
-      window.inactivityHandler = new InactivityHandler();
-    }
-  });
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
