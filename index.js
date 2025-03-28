@@ -69,6 +69,11 @@ const ANIMATION_LIST = [
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
     animation: "wave",
   },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Wait%20Up.glb",
+    animation: "wait_up",
+  },
 ];
 
 const MODEL_TEXTURE =
@@ -2444,7 +2449,7 @@ const audio = new Audio(
           "Looks like you're exploring 🤔….need a hand finding something?",
         time: 5,
         hasClose: false,
-        animation: "wave",
+        animation: "casual_talk_2",
       });
       updateInteractionImpression(confusedInteraction.id);
       document.removeEventListener("scroll", this.handleScroll);
@@ -2562,7 +2567,7 @@ const audio = new Audio(
           "Still there? Let me know if you need any help!",
         time: 5,
         hasClose: false,
-        animation: "wave",
+        animation: "wait_up",
       });
       updateInteractionImpression(idleInteraction.id);
     }
