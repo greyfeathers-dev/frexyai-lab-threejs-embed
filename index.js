@@ -963,7 +963,7 @@ const audio = new Audio(
                 setTimeout(() => {
                   alert("pathChange");
                   displayState[config.id] = true;
-                  showUIAnimation(config), config.delay;
+                  // showUIAnimation(config), config.delay;
                 });
               } else {
                 alert("pathChange match");
