@@ -879,17 +879,20 @@ const audio = new Audio(
       switch (config.type) {
         case "onFirstLand":
           if (!isFirstLandTriggered) {
+            alert("onFirstLand");
             showUIAnimation(config);
           }
           break;
         case "inActive":
           let timer;
+          alert("inActive");
           timer = setTimeout(
             () => showUIAnimation(config),
             config.inActiveTime
           );
           window.addEventListener("click", () => {
             if (timer) {
+              alert("click");
               clearTimeout(timer);
               timer = setTimeout(
                 () => showUIAnimation(config),
@@ -900,6 +903,7 @@ const audio = new Audio(
           window.addEventListener("scroll", () => {
             if (timer) {
               clearTimeout(timer);
+              alert("scroll");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -909,6 +913,7 @@ const audio = new Audio(
           document.addEventListener("mousemove", () => {
             if (timer) {
               clearTimeout(timer);
+              alert("mousemove");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -932,6 +937,7 @@ const audio = new Audio(
             ) {
               if (displayState[config.id]) return;
               displayState[config.id] = true;
+              alert("scroll match");
               showUIAnimation(config);
             }
           });
@@ -955,10 +961,12 @@ const audio = new Audio(
               if (config.delay) {
                 if (displayState[config.id]) return;
                 setTimeout(() => {
+                  alert("pathChange");
                   displayState[config.id] = true;
                   showUIAnimation(config), config.delay;
                 });
               } else {
+                alert("pathChange match");
                 if (displayState[config.id]) return;
                 displayState[config.id] = true;
                 showUIAnimation(config);
@@ -988,6 +996,13 @@ const audio = new Audio(
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
     }
     incrementImpression(config.id);
+
+    // Return early if no text is available
+    if (!config.text) {
+      showInput();
+      return;
+    }
+
     if (type === "tooltip") {
       showTooltip(
         config.id,
@@ -1963,6 +1978,7 @@ const audio = new Audio(
         returningVisitorInteraction?.message,
         leadData
       );
+
       setTimeout(() => {
         showUIAnimation({
           text: message,
@@ -1980,7 +1996,6 @@ const audio = new Audio(
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
-
   function isFirstTimeVisit() {
     console.log("Checking first time visit");
     const userAlreadyVisited = localStorage.getItem("hasNewVisitor");
@@ -2043,7 +2058,7 @@ const audio = new Audio(
       this.sessionStartTime = Date.now();
       this.hasInteracted = false;
       this.hasReachedBottom = false;
-      this.hasScrolledPast90 = false; // New flag to track if user has ever scrolled past 90%
+      this.hasScrolledPast90 = false;
       this.isFirstVisit = isFirstTimeVisit();
       this.handleMouseMovement = this.handleMouseMovement.bind(this);
       this.lastY = null;
@@ -2058,7 +2073,6 @@ const audio = new Audio(
         const currentScrollPercentage = getScrollPercentage();
         console.log("Current scroll percentage:", currentScrollPercentage);
 
-        // Check if user has scrolled past 90% at any point
         if (currentScrollPercentage >= 90) {
           this.hasScrolledPast90 = true;
           console.log("User has scrolled past 90%");
@@ -2100,7 +2114,7 @@ const audio = new Audio(
         isWithin30Seconds &&
         isMovingUpward &&
         isNearTop &&
-        !this.hasScrolledPast90 && // Only show if user hasn't scrolled past 90%
+        !this.hasScrolledPast90 &&
         isFirstVisit &&
         hasNotVisitedInternalPages
       ) {
@@ -2121,16 +2135,40 @@ const audio = new Audio(
         time: 5,
         hasClose: false,
         animation: "no_no",
-        cta: [
-          {
-            text: "Show me!",
-            bg: "#BE0EFF",
-            color: "#fff",
-          },
-        ],
       });
       updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
+
+      // Follow-up interactions after 5 seconds
+      setTimeout(() => {
+        showUIAnimation({
+          animation: "dance_like_anto",
+          time: 5,
+          hasClose: false,
+        });
+
+        // Show casual talk after dance
+        setTimeout(() => {
+          showUIAnimation({
+            text: "Liked my dance? Let me help you with something!",
+            time: 5,
+            hasClose: false,
+            animation: "casual_talk_2",
+            cta: [
+              {
+                text: "Ask me anything",
+                bg: "#007AFF",
+                color: "#fff",
+              },
+            ],
+          });
+
+          // Switch back to idle after 20 seconds
+          setTimeout(() => {
+            playModifierAnimation(idle, 1, idle, 1.5);
+          }, 20000);
+        }, 5000);
+      }, 5000);
     }
   }
 
