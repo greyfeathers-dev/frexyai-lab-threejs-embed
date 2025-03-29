@@ -316,8 +316,8 @@ const audio = new Audio(
           }
         });
 
-        model.scale.set(14.5, 14.5, 14.5);
-        model.position.y = -11;
+        model.scale.set(16.5, 16.5, 16.5); // Increased scale from 14.5 to 16.5
+        model.position.y = -12; // Adjusted Y position from -11 to -13 to maintain proper ground alignment
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
         let clips = fileAnimations.filter((val) => val.name !== "idle ");
@@ -1988,8 +1988,9 @@ const audio = new Audio(
       }, 2000);
       // Set the flag only after the message is shown
       sessionStorage.setItem("hasShownReturningMessage", "true");
+    } else {
+      localStorage.setItem("hasReturningVisitor", "true");
     }
-    localStorage.setItem("hasReturningVisitor", "true");
   }
 
   //*************************************************AVOID BOUNCE HANDLER*****************************************************
