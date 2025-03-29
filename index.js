@@ -1413,37 +1413,42 @@ const audio = new Audio(
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
     const to = finalAnim.clip;
 
-    // Stop any currently playing animations
+    // Instead of stopping all animations, we'll handle the transition more smoothly
     if (mixer) {
-      mixer.stopAllAction();
+      // Only stop other animations if they're not the idle animation
+      mixer._actions.forEach((action) => {
+        if (action !== from && action !== to) {
+          action.stop();
+        }
+      });
     }
 
     // Reset and play the new animation
     to.reset();
-    to.setLoop(THREE.LoopOnce); // Set to play only once
-    to.clampWhenFinished = true; // Hold the last frame when finished
+    to.setLoop(THREE.LoopOnce);
+    to.clampWhenFinished = true;
     to.play();
 
-    // Crossfade from idle to the new animation
-    from.crossFadeTo(to, fSpeed, true);
+    // Crossfade from idle to the new animation with a shorter duration
+    from.crossFadeTo(to, fSpeed * 0.5, true);
 
     // Calculate when the animation will finish
     const animationDuration = to._clip.duration;
 
-    // Set up the transition back to idle
+    // Set up the transition back to idle with a shorter duration
     setTimeout(() => {
       // Reset and play the idle animation
       from.reset();
       from.setLoop(THREE.LoopRepeat, Infinity);
       from.play();
 
-      // Crossfade from the current animation back to idle
-      to.crossFadeTo(from, tSpeed, true);
+      // Crossfade from the current animation back to idle with a shorter duration
+      to.crossFadeTo(from, tSpeed * 0.5, true);
 
       // After the crossfade is complete, stop the temporary animation
       setTimeout(() => {
         to.stop();
-      }, tSpeed * 1000);
+      }, tSpeed * 500); // Reduced from 1000ms to 500ms
     }, (animationDuration - tSpeed) * 1000);
   }
 
