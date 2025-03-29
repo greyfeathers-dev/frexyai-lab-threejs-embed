@@ -879,20 +879,17 @@ const audio = new Audio(
       switch (config.type) {
         case "onFirstLand":
           if (!isFirstLandTriggered) {
-            alert("onFirstLand");
             showUIAnimation(config);
           }
           break;
         case "inActive":
           let timer;
-          alert("inActive");
           timer = setTimeout(
             () => showUIAnimation(config),
             config.inActiveTime
           );
           window.addEventListener("click", () => {
             if (timer) {
-              alert("click");
               clearTimeout(timer);
               timer = setTimeout(
                 () => showUIAnimation(config),
@@ -903,7 +900,6 @@ const audio = new Audio(
           window.addEventListener("scroll", () => {
             if (timer) {
               clearTimeout(timer);
-              alert("scroll");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -913,7 +909,6 @@ const audio = new Audio(
           document.addEventListener("mousemove", () => {
             if (timer) {
               clearTimeout(timer);
-              alert("mousemove");
               timer = setTimeout(
                 () => showUIAnimation(config),
                 config.inActiveTime
@@ -937,7 +932,6 @@ const audio = new Audio(
             ) {
               if (displayState[config.id]) return;
               displayState[config.id] = true;
-              alert("scroll match");
               showUIAnimation(config);
             }
           });
@@ -961,12 +955,10 @@ const audio = new Audio(
               if (config.delay) {
                 if (displayState[config.id]) return;
                 setTimeout(() => {
-                  alert("pathChange");
                   displayState[config.id] = true;
                   // showUIAnimation(config), config.delay;
                 });
               } else {
-                alert("pathChange match");
                 if (displayState[config.id]) return;
                 displayState[config.id] = true;
                 showUIAnimation(config);
