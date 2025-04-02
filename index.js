@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  // const user_id = localStorage.getItem("merchantId");
-  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  const user_id = localStorage.getItem("merchantId");
+  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1022,16 +1022,6 @@ const audio = new Audio(
       );
     } else {
       let innerHTML = `<></>`;
-      // if(config.orientation === 'landscape'){
-      //   innerHTML = `
-      //     <div style="display:flex;flex-direction:row;align-items:center;background:${TOOLTIP_BG};padding:8px;border-radius:12px;max-width:425px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.5)">
-      //       <img src=${config.imageUrl} style="height:180px;border-radius:10px;margin-right:12px"/>
-      //       <div id="text-area">
-      //         <div style="color:${TOOLTIP_COLOR}">${config.text}</div>
-      //       </div>
-      //     </div>
-      //   `;
-      // } else {
       innerHTML = `
             <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
               <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
@@ -1040,7 +1030,6 @@ const audio = new Audio(
               </div>
             </div>
           `;
-      // }
       showOverlay(
         config.id,
         config.format,
@@ -2154,18 +2143,24 @@ const audio = new Audio(
       const currentY = event.clientY;
       const currentX = event.clientX;
 
+      // Initialize lastY if not set
       if (this.lastY === null) {
         this.lastY = currentY;
         return;
       }
 
-      this.mouseMovingUp = currentY < this.lastY;
+      // Calculate the vertical movement
+      const verticalMovement = currentY - this.lastY;
       this.lastY = currentY;
+
+      // Update mouseMovingUp flag based on movement direction
+      // Consider movement "upward" if moving up by at least 1 pixel
+      this.mouseMovingUp = verticalMovement < 0;
 
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 1;
+      const isNearTop = event.clientY < 10; // Increased threshold to 50px from top
       const isMovingUpward = this.mouseMovingUp;
       const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
@@ -2203,7 +2198,7 @@ const audio = new Audio(
       setTimeout(() => {
         showUIAnimation({
           animation: "dance_like_anto",
-          time: 8,
+          time: 10,
           hasClose: false,
         });
 
@@ -2224,12 +2219,12 @@ const audio = new Audio(
             ],
           });
 
-          // Switch back to idle after 20 seconds
+          // Switch back to idle after 15 seconds
           setTimeout(() => {
             playModifierAnimation(idle, 1, idle, 1.5);
-          }, 20000);
-        }, 5000);
-      }, 5000);
+          }, 15000);
+        }, 10000); // Show casual talk after 10s dance animation
+      }, 8000); // Start dance after 8s no_no animation
     }
   }
 
@@ -2329,7 +2324,7 @@ const audio = new Audio(
     normalExitIntentHandleMouseMovement(event) {
       if (normalExitIntentHasInteractedBefore()) return;
 
-      const isNearTop = event.clientY < 1; // Reduced threshold to 10px from top
+      const isNearTop = event.clientY < 10; // Reduced threshold to 10px from top
       const isMovingUpward = this.normalExitIntentMouseMovingUp;
 
       if (
