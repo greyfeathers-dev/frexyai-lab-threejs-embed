@@ -1634,12 +1634,36 @@ const audio = new Audio(
     const yRef = w.y / 2;
 
     if (neck) {
-      // Smoothly reset to center position
+      // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
-      const targetX = THREE.Math.degToRad(0);
+      const targetX = THREE.Math.degToRad(-15); // Negative value tilts head upward
 
-      neck.rotation.y = THREE.Math.lerp(neck.rotation.y, targetY, 0.1);
-      neck.rotation.x = THREE.Math.lerp(neck.rotation.x, targetX, 0.1);
+      // Create a function to update the head position
+      function updateHeadPosition() {
+        const currentY = neck.rotation.y;
+        const currentX = neck.rotation.x;
+
+        // Calculate new positions with lerp - reduced factor for smoother movement
+        const newY = THREE.Math.lerp(currentY, targetY, 0.05); // Reduced from 0.1 to 0.05
+        const newX = THREE.Math.lerp(currentX, targetX, 0.05); // Reduced from 0.1 to 0.05
+
+        // Update the neck rotation
+        neck.rotation.y = newY;
+        neck.rotation.x = newX;
+
+        // Check if we're close enough to the target position
+        const threshold = 0.001; // Adjust this value to control how close we need to be
+        if (
+          Math.abs(newY - targetY) > threshold ||
+          Math.abs(newX - targetX) > threshold
+        ) {
+          // Continue updating if we're not close enough
+          requestAnimationFrame(updateHeadPosition);
+        }
+      }
+
+      // Start the update loop
+      updateHeadPosition();
     }
   }
 
@@ -1750,19 +1774,31 @@ const audio = new Audio(
 
         if (headCursorSync && headCursorSync.status) {
           console.log("Head-Cursor Sync is enabled, setting up neck tracking");
+          let timer = null;
+
           document.addEventListener("mousemove", function (e) {
             console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
             console.log("Neck bone exists:", !!neck);
             if (currentlyAnimating) return;
+
+            // Clear existing timer if any
             if (timer) {
               clearTimeout(timer);
-              timer = setTimeout(() => resetHead(), 4000);
             }
+
             var mousecoords = getMousePos(e);
             if (neck && !currentlyAnimating) {
               console.log("Moving neck to coordinates:", mousecoords);
               moveJoint(mousecoords, neck, 50);
             }
+
+            // Set new timer to reset head after 5 seconds
+            timer = setTimeout(() => {
+              console.log(
+                "Resetting head position after 5 seconds of inactivity"
+              );
+              resetHead();
+            }, 5000);
           });
         } else {
           console.log(
