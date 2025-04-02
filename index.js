@@ -1,5 +1,5 @@
 /** @format */
-
+// localStorage.clear();
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
@@ -1198,6 +1198,8 @@ const audio = new Audio(
     }
 
     if (ctaList) {
+      console.log(ctaList, "ctaList from tooltip");
+
       const ctaContainer = document.createElement("div");
       ctaContainer.style.marginTop = "12px";
       ctaList.map((ctaItem) => {
@@ -1226,6 +1228,9 @@ const audio = new Audio(
           } else if (format === "pageVisit") {
             if (destination_page)
               window.location.href = `https://${destination_page}`;
+          } else if (ctaItem.format === "chat") {
+            sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+            showChatWindow();
           }
         });
         ctaContainer.appendChild(btn);
@@ -1953,6 +1958,7 @@ const audio = new Audio(
             text: "Ask me anything!",
             bg: "#007AFF",
             color: "#fff",
+            format: "chat",
           },
         ],
       });
@@ -2103,7 +2109,7 @@ const audio = new Audio(
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 100;
+      const isNearTop = event.clientY < 1;
       const isMovingUpward = this.mouseMovingUp;
       const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
@@ -2266,7 +2272,7 @@ const audio = new Audio(
     normalExitIntentHandleMouseMovement(event) {
       if (normalExitIntentHasInteractedBefore()) return;
 
-      const isNearTop = event.clientY < 100; // Increased area for browser controls
+      const isNearTop = event.clientY < 1; // Reduced threshold to 10px from top
       const isMovingUpward = this.normalExitIntentMouseMovingUp;
 
       if (
