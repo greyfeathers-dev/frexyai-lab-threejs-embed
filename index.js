@@ -756,6 +756,7 @@ const audio = new Audio(
   let currentlyAnimating = false;
   let currentAnimationID = null;
   let timeoutDisappear = null;
+  let isInteractionActive = false; // Add this flag at the top with other state variables
 
   // ============================================= PATH CHANGE EVENT FUNCTIONS =============================================
 
@@ -976,6 +977,7 @@ const audio = new Audio(
     console.log("showing ui animation", config);
     if (currentlyAnimating) return;
     resetHead();
+    isInteractionActive = true; // Set flag when interaction starts
     let animationIdx = -1;
     if (config.animation) {
       animationIdx = possibleAnims?.findIndex(
@@ -992,6 +994,7 @@ const audio = new Audio(
     // Return early if no text is available
     if (!config.text) {
       showInput();
+      isInteractionActive = false; // Reset flag if no text
       return;
     }
 
@@ -1011,7 +1014,10 @@ const audio = new Audio(
         () => {
           if (config.onEnd)
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
-          else showInput();
+          else {
+            showInput();
+            isInteractionActive = false; // Reset flag when interaction ends
+          }
         }
       );
     } else {
@@ -1049,7 +1055,10 @@ const audio = new Audio(
         () => {
           if (config.onEnd)
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
-          else showInput();
+          else {
+            showInput();
+            isInteractionActive = false; // Reset flag when interaction ends
+          }
         }
       );
     }
@@ -1779,7 +1788,10 @@ const audio = new Audio(
           document.addEventListener("mousemove", function (e) {
             console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
             console.log("Neck bone exists:", !!neck);
-            if (currentlyAnimating) return;
+            console.log("Interaction active:", isInteractionActive);
+
+            // Skip if interaction is active or currently animating
+            if (currentlyAnimating || isInteractionActive) return;
 
             // Clear existing timer if any
             if (timer) {
