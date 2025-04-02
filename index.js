@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -461,7 +461,7 @@ const audio = new Audio(
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // Consider click "near" if within this threshold
-      return distance < 0.5; // Adjust this value as needed
+      return distance < 1; // Increased threshold for better head detection
     }
 
     //====================================================End of Model Click Event Listener====================================================
@@ -1950,7 +1950,7 @@ const audio = new Audio(
         text:
           newVisitorInteraction?.message ||
           "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-        time: 5,
+        time: 15,
         hasClose: false,
         animation: "wave",
         cta: [
@@ -1985,9 +1985,17 @@ const audio = new Audio(
       setTimeout(() => {
         showUIAnimation({
           text: message,
-          time: 5,
+          time: 8,
           hasClose: false,
           animation: "wave",
+          cta: [
+            {
+              text: "Ask me anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
         });
 
         updateInteractionImpression(returningVisitorInteraction.id);
@@ -2136,7 +2144,7 @@ const audio = new Audio(
         text:
           avoidBounceInteraction?.message ||
           "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
-        time: 5,
+        time: 8,
         hasClose: false,
         animation: "no_no",
       });
@@ -2147,7 +2155,7 @@ const audio = new Audio(
       setTimeout(() => {
         showUIAnimation({
           animation: "dance_like_anto",
-          time: 5,
+          time: 8,
           hasClose: false,
         });
 
@@ -2155,14 +2163,15 @@ const audio = new Audio(
         setTimeout(() => {
           showUIAnimation({
             text: "Liked my dance? Let me help you with something!",
-            time: 5,
+            time: 15,
             hasClose: false,
             animation: "casual_talk_2",
             cta: [
               {
-                text: "Ask me anything",
+                text: "Ask me anything!",
                 bg: "#007AFF",
                 color: "#fff",
+                format: "chat",
               },
             ],
           });
@@ -2295,9 +2304,17 @@ const audio = new Audio(
         text:
           normalExitIntentInteraction?.message ||
           "Leaving already? If you ever need help, I'm always here!",
-        time: 5,
+        time: 8,
         hasClose: false,
         animation: "casual_talk_2",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+            format: "chat",
+          },
+        ],
       });
       updateInteractionImpression(normalExitIntentInteraction.id);
       document.removeEventListener(
@@ -2489,9 +2506,17 @@ const audio = new Audio(
         text:
           confusedInteraction?.message ||
           "Looks like you're exploring 🤔….need a hand finding something?",
-        time: 5,
+        time: 8,
         hasClose: false,
         animation: "casual_talk_2",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+            format: "chat",
+          },
+        ],
       });
       updateInteractionImpression(confusedInteraction.id);
       document.removeEventListener("scroll", this.handleScroll);
@@ -2607,9 +2632,17 @@ const audio = new Audio(
         text:
           idleInteraction?.message ||
           "Still there? Let me know if you need any help!",
-        time: 5,
+        time: 8,
         hasClose: false,
         animation: "wait_up",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+            format: "chat",
+          },
+        ],
       });
       updateInteractionImpression(idleInteraction.id);
     }
