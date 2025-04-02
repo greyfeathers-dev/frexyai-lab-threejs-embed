@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  // const user_id = localStorage.getItem("merchantId");
-  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  const user_id = localStorage.getItem("merchantId");
+  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -756,6 +756,7 @@ const audio = new Audio(
   let currentlyAnimating = false;
   let currentAnimationID = null;
   let timeoutDisappear = null;
+  let isInteractionActive = false; // Add this flag at the top with other state variables
 
   // ============================================= PATH CHANGE EVENT FUNCTIONS =============================================
 
@@ -976,6 +977,7 @@ const audio = new Audio(
     console.log("showing ui animation", config);
     if (currentlyAnimating) return;
     resetHead();
+    isInteractionActive = true; // Set flag when interaction starts
     let animationIdx = -1;
     if (config.animation) {
       animationIdx = possibleAnims?.findIndex(
@@ -992,6 +994,7 @@ const audio = new Audio(
     // Return early if no text is available
     if (!config.text) {
       showInput();
+      isInteractionActive = false; // Reset flag if no text
       return;
     }
 
@@ -1011,21 +1014,14 @@ const audio = new Audio(
         () => {
           if (config.onEnd)
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
-          else showInput();
+          else {
+            showInput();
+            isInteractionActive = false; // Reset flag when interaction ends
+          }
         }
       );
     } else {
       let innerHTML = `<></>`;
-      // if(config.orientation === 'landscape'){
-      //   innerHTML = `
-      //     <div style="display:flex;flex-direction:row;align-items:center;background:${TOOLTIP_BG};padding:8px;border-radius:12px;max-width:425px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.5)">
-      //       <img src=${config.imageUrl} style="height:180px;border-radius:10px;margin-right:12px"/>
-      //       <div id="text-area">
-      //         <div style="color:${TOOLTIP_COLOR}">${config.text}</div>
-      //       </div>
-      //     </div>
-      //   `;
-      // } else {
       innerHTML = `
             <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
               <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
@@ -1034,7 +1030,6 @@ const audio = new Audio(
               </div>
             </div>
           `;
-      // }
       showOverlay(
         config.id,
         config.format,
@@ -1049,7 +1044,10 @@ const audio = new Audio(
         () => {
           if (config.onEnd)
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
-          else showInput();
+          else {
+            showInput();
+            isInteractionActive = false; // Reset flag when interaction ends
+          }
         }
       );
     }
@@ -1634,12 +1632,36 @@ const audio = new Audio(
     const yRef = w.y / 2;
 
     if (neck) {
-      // Smoothly reset to center position
+      // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
-      const targetX = THREE.Math.degToRad(0);
+      const targetX = THREE.Math.degToRad(-15); // Negative value tilts head upward
 
-      neck.rotation.y = THREE.Math.lerp(neck.rotation.y, targetY, 0.1);
-      neck.rotation.x = THREE.Math.lerp(neck.rotation.x, targetX, 0.1);
+      // Create a function to update the head position
+      function updateHeadPosition() {
+        const currentY = neck.rotation.y;
+        const currentX = neck.rotation.x;
+
+        // Calculate new positions with lerp - reduced factor for smoother movement
+        const newY = THREE.Math.lerp(currentY, targetY, 0.05); // Reduced from 0.1 to 0.05
+        const newX = THREE.Math.lerp(currentX, targetX, 0.05); // Reduced from 0.1 to 0.05
+
+        // Update the neck rotation
+        neck.rotation.y = newY;
+        neck.rotation.x = newX;
+
+        // Check if we're close enough to the target position
+        const threshold = 0.001; // Adjust this value to control how close we need to be
+        if (
+          Math.abs(newY - targetY) > threshold ||
+          Math.abs(newX - targetX) > threshold
+        ) {
+          // Continue updating if we're not close enough
+          requestAnimationFrame(updateHeadPosition);
+        }
+      }
+
+      // Start the update loop
+      updateHeadPosition();
     }
   }
 
@@ -1750,19 +1772,34 @@ const audio = new Audio(
 
         if (headCursorSync && headCursorSync.status) {
           console.log("Head-Cursor Sync is enabled, setting up neck tracking");
+          let timer = null;
+
           document.addEventListener("mousemove", function (e) {
             console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
             console.log("Neck bone exists:", !!neck);
-            if (currentlyAnimating) return;
+            console.log("Interaction active:", isInteractionActive);
+
+            // Skip if interaction is active or currently animating
+            if (currentlyAnimating || isInteractionActive) return;
+
+            // Clear existing timer if any
             if (timer) {
               clearTimeout(timer);
-              timer = setTimeout(() => resetHead(), 4000);
             }
+
             var mousecoords = getMousePos(e);
             if (neck && !currentlyAnimating) {
               console.log("Moving neck to coordinates:", mousecoords);
               moveJoint(mousecoords, neck, 50);
             }
+
+            // Set new timer to reset head after 5 seconds
+            timer = setTimeout(() => {
+              console.log(
+                "Resetting head position after 5 seconds of inactivity"
+              );
+              resetHead();
+            }, 5000);
           });
         } else {
           console.log(
@@ -2106,18 +2143,24 @@ const audio = new Audio(
       const currentY = event.clientY;
       const currentX = event.clientX;
 
+      // Initialize lastY if not set
       if (this.lastY === null) {
         this.lastY = currentY;
         return;
       }
 
-      this.mouseMovingUp = currentY < this.lastY;
+      // Calculate the vertical movement
+      const verticalMovement = currentY - this.lastY;
       this.lastY = currentY;
+
+      // Update mouseMovingUp flag based on movement direction
+      // Consider movement "upward" if moving up by at least 1 pixel
+      this.mouseMovingUp = verticalMovement < 0;
 
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 1;
+      const isNearTop = event.clientY < 10; // Increased threshold to 50px from top
       const isMovingUpward = this.mouseMovingUp;
       const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
@@ -2155,7 +2198,7 @@ const audio = new Audio(
       setTimeout(() => {
         showUIAnimation({
           animation: "dance_like_anto",
-          time: 8,
+          time: 10,
           hasClose: false,
         });
 
@@ -2176,12 +2219,12 @@ const audio = new Audio(
             ],
           });
 
-          // Switch back to idle after 20 seconds
+          // Switch back to idle after 15 seconds
           setTimeout(() => {
             playModifierAnimation(idle, 1, idle, 1.5);
-          }, 20000);
-        }, 5000);
-      }, 5000);
+          }, 15000);
+        }, 10000); // Show casual talk after 10s dance animation
+      }, 8000); // Start dance after 8s no_no animation
     }
   }
 
@@ -2281,7 +2324,7 @@ const audio = new Audio(
     normalExitIntentHandleMouseMovement(event) {
       if (normalExitIntentHasInteractedBefore()) return;
 
-      const isNearTop = event.clientY < 1; // Reduced threshold to 10px from top
+      const isNearTop = event.clientY < 10; // Reduced threshold to 10px from top
       const isMovingUpward = this.normalExitIntentMouseMovingUp;
 
       if (
