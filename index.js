@@ -1,5 +1,5 @@
 /** @format */
-localStorage.clear();
+// localStorage.clear();
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  // const user_id = localStorage.getItem("merchantId");
-  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  const user_id = localStorage.getItem("merchantId");
+  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1505,6 +1505,8 @@ const audio = new Audio(
     input.style.fontSize = "14px";
     input.style.cursor = "pointer";
     input.style.zIndex = "10";
+    input.style.fontFamily = "Inter, sans-serif";
+    input.style.fontWeight = "400";
 
     const imageIcon = document.createElement("img");
     imageIcon.src =
