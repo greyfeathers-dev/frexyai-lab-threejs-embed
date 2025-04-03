@@ -231,7 +231,7 @@ const audio = new Audio(
     document.body.appendChild(canvas);
     canvas.style.position = "fixed";
     canvas.style.bottom = "-40px";
-    canvas.style.right = isMobile ? "-76px" : "-60px";
+    canvas.style.right = isMobile ? "-76px" : "-45px";
     canvas.style.height = isMobile ? "260px" : "280px";
     canvas.style.width = isMobile ? "260px" : "280px";
 
@@ -316,7 +316,7 @@ const audio = new Audio(
           }
         });
 
-        model.scale.set(16.5, 16.5, 16.5); // Increased scale from 14.5 to 16.5
+        model.scale.set(17, 17, 17); // Increased scale from 14.5 to 16.5
         model.position.y = -12; // Adjusted Y position from -11 to -13 to maintain proper ground alignment
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
@@ -477,12 +477,13 @@ const audio = new Audio(
     dirLight.shadow.mapSize = new THREE.Vector2(2048, 2048);
     dirLight.shadow.camera.near = 0.1;
     dirLight.shadow.camera.far = 1500;
-    let d = 8.25;
+    let d = 12; // Increased shadow camera size
     dirLight.shadow.camera.left = d * -1;
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.001;
+    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
+    dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
     scene.add(dirLight);
 
     // Add fill light
@@ -497,12 +498,12 @@ const audio = new Audio(
     // Enhanced floor setup
     let floorGeometry = new THREE.PlaneGeometry(5000, 5000, 1, 1);
     let floorMaterial = new THREE.ShadowMaterial({
-      opacity: 0.3,
+      opacity: 0.4, // Increased opacity for better shadow visibility
     });
     let floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -0.5 * Math.PI;
     floor.receiveShadow = true;
-    floor.position.y = -11;
+    floor.position.y = -12; // Adjusted floor position to match model
     scene.add(floor);
   }
 
@@ -1510,8 +1511,8 @@ const audio = new Audio(
 
     // Positioning of the input box
     inputContainer.style.position = "fixed";
-    inputContainer.style.bottom = isMobile ? "8px" : "32px";
-    inputContainer.style.right = isMobile ? "80px" : "108px";
+    inputContainer.style.bottom = isMobile ? "8px" : "30px";
+    inputContainer.style.right = isMobile ? "80px" : "125px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
