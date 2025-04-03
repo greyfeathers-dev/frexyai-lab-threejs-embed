@@ -182,6 +182,8 @@ const audio = new Audio(
     const style = document.createElement("style");
     style.type = "text/css";
     const css = `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
         #loader {
           width: 60px;
           height: 60px;
@@ -220,6 +222,10 @@ const audio = new Audio(
           100% {
               transform: rotate(360deg);
           }
+      }
+
+      #tooltip, #input, button {
+        font-family: 'Inter', sans-serif;
       }
       `;
     style.appendChild(document.createTextNode(css));
@@ -1077,7 +1083,7 @@ const audio = new Audio(
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "260px" : "300px";
+    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
 
     const tooltip = document.createElement("div");
     tooltip.id = "tooltip";
@@ -1093,10 +1099,12 @@ const audio = new Audio(
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
     tooltip.style.padding = "16px 20px";
-    tooltip.style.borderRadius = "16px";
-    tooltip.style.fontSize = "16px";
+    tooltip.style.borderRadius = "17px";
+    tooltip.style.fontSize = "14px";
+    tooltip.style.color = "#0D1934";
     tooltip.style.lineHeight = "24px";
-    tooltip.style.fontFamily = "sans-serif";
+    tooltip.style.fontFamily = "Inter, sans-serif";
+    tooltip.style.fontWeight = "400";
     tooltip.style.pointerEvents = "none";
     tooltip.style.whiteSpace = "wrap";
     tooltip.style.zIndex = "10";
@@ -1200,22 +1208,21 @@ const audio = new Audio(
       console.log(ctaList, "ctaList from tooltip");
 
       const ctaContainer = document.createElement("div");
-      ctaContainer.style.marginTop = "12px";
+      ctaContainer.style.marginTop = "15px";
       ctaList.map((ctaItem) => {
         const btn = document.createElement("button");
         btn.innerHTML = ctaItem.text;
         btn.style.borderRadius = "28px";
         btn.style.border = "0";
-        // tooltip.style.fontSize = isMobile ? '12px': '14px';
-        // tooltip.style.lineHeight = isMobile ? '16px': '18px';
-        tooltip.style.fontSize = "14px";
-        tooltip.style.lineHeight = "24px";
-        tooltip.style.fontFamily = "sans-serif";
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = "10px 14px";
+        btn.style.padding = "12px 20px";
         btn.style.marginRight = "6px";
         btn.style.cursor = "pointer";
+        btn.style.fontSize = "14px";
+        btn.style.fontWeight = "400";
+        btn.style.fontFamily = "Inter, sans-serif";
+        btn.style.letterSpacing = "0.02em";
         btn.addEventListener("click", () => {
           incrementClick(id);
           closeUI();
@@ -1238,7 +1245,7 @@ const audio = new Audio(
     }
 
     document.body.appendChild(tooltipContainer);
-    tooltipContainer.style.right = isMobile ? "90px" : "120px";
+    tooltipContainer.style.right = isMobile ? "90px" : "140px";
     tooltipContainer.style.bottom = isMobile ? "40px" : "52px";
     tooltipContainer.style.display = "block";
 
@@ -1498,6 +1505,8 @@ const audio = new Audio(
     input.style.fontSize = "14px";
     input.style.cursor = "pointer";
     input.style.zIndex = "10";
+    input.style.fontFamily = "Inter, sans-serif";
+    input.style.fontWeight = "400";
 
     const imageIcon = document.createElement("img");
     imageIcon.src =
@@ -1988,12 +1997,12 @@ const audio = new Audio(
         text:
           newVisitorInteraction?.message ||
           "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-        time: 15,
+        time: 1500000,
         hasClose: false,
         animation: "wave",
         cta: [
           {
-            text: "Ask me anything!",
+            text: "Ask me Anything!",
             bg: "#007AFF",
             color: "#fff",
             format: "chat",
