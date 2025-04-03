@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -478,7 +478,7 @@ const audio = new Audio(
     scene.add(hemiLight);
 
     let dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    dirLight.position.set(-9, 12, 8);
+    dirLight.position.set(-9, 12, 16);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize = new THREE.Vector2(2048, 2048);
     dirLight.shadow.camera.near = 0.1;
@@ -1997,7 +1997,7 @@ const audio = new Audio(
         text:
           newVisitorInteraction?.message ||
           "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
-        time: 1500000,
+        time: 15,
         hasClose: false,
         animation: "wave",
         cta: [
@@ -2204,15 +2204,15 @@ const audio = new Audio(
       updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
 
-      // Follow-up interactions after 5 seconds
+      // Follow-up interactions after 8 seconds (after no_no animation)
       setTimeout(() => {
         showUIAnimation({
           animation: "dance_like_anto",
-          time: 10,
+          time: 0, // Reduced dance time to 6 seconds
           hasClose: false,
         });
 
-        // Show casual talk after dance
+        // Show casual talk 2 seconds after dance ends (total 8 + 6 + 2 = 16s)
         setTimeout(() => {
           showUIAnimation({
             text: "Liked my dance? Let me help you with something!",
@@ -2233,7 +2233,7 @@ const audio = new Audio(
           setTimeout(() => {
             playModifierAnimation(idle, 1, idle, 1.5);
           }, 15000);
-        }, 10000); // Show casual talk after 10s dance animation
+        }, 6000); // Show casual talk 2s after 6s dance ends
       }, 8000); // Start dance after 8s no_no animation
     }
   }
