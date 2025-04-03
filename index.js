@@ -2574,6 +2574,7 @@ const audio = new Audio(
       this.trackingInterval = null;
       this.lastTriggerTime = 0;
       this.isShowingMessage = false;
+      this.isTabVisible = !document.hidden;
       console.log("Initial trigger count:", this.triggerCount);
       this.setupListeners();
       this.startTracking();
@@ -2601,7 +2602,7 @@ const audio = new Audio(
       console.log("Verified storage count:", storedCount);
 
       // Stop tracking if we've reached the limit
-      if (this.triggerCount >= 3) {
+      if (this.triggerCount >= 1) {
         console.log("Reached trigger limit, stopping tracking");
         this.stopTracking();
       }
@@ -2618,6 +2619,14 @@ const audio = new Audio(
       events.forEach((event) => {
         document.addEventListener(event, () => this.updateActivity());
       });
+
+      // Add visibility change listener
+      document.addEventListener("visibilitychange", () => {
+        this.isTabVisible = !document.hidden;
+        if (this.isTabVisible) {
+          this.updateActivity(); // Reset activity when tab becomes visible
+        }
+      });
     }
 
     updateActivity() {
@@ -2627,7 +2636,7 @@ const audio = new Audio(
 
     startTracking() {
       // Only start tracking if we haven't reached the limit
-      if (this.triggerCount < 3) {
+      if (this.triggerCount < 1) {
         console.log("Starting tracking with count:", this.triggerCount);
         this.trackingInterval = setInterval(() => {
           const inactiveTime = Date.now() - this.lastActivity;
@@ -2636,9 +2645,10 @@ const audio = new Audio(
 
           if (
             inactiveTime >= 30000 &&
-            currentCount < 3 &&
+            currentCount < 1 &&
             !this.isShowingMessage &&
-            timeSinceLastTrigger >= 10000
+            timeSinceLastTrigger >= 10000 &&
+            this.isTabVisible // Only trigger if tab is visible
           ) {
             // 10 second cooldown between triggers
             this.showMessage();
@@ -2660,7 +2670,7 @@ const audio = new Audio(
 
     showMessage() {
       const currentCount = this.getTriggerCount();
-      if (currentCount >= 3) {
+      if (currentCount >= 1) {
         console.log("Skipping message - already reached trigger limit");
         return;
       }
