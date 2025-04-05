@@ -132,11 +132,11 @@ const audio = new Audio(
 
       // Extract the required information
       const leadInfo = {
-        firstName: leadData.name ? leadData.name.split(" ")[0] : null,
-        jobTitle: leadData.job_title || null,
-        company: leadData.company || null,
-        country: leadData.country || null,
-        source: leadData.source || null,
+        firstName: leadData?.name ? leadData.name.split(" ")[0] : null,
+        jobTitle: leadData?.job_title || null,
+        company: leadData?.company || null,
+        country: leadData?.country || null,
+        source: leadData?.source || null,
       };
 
       console.log("Extracted Lead Info:", leadInfo);
@@ -1781,16 +1781,31 @@ const audio = new Audio(
         console.log("Head-Cursor Sync status:", headCursorSync);
 
         if (headCursorSync && headCursorSync.status) {
-          console.log("Head-Cursor Sync is enabled, setting up neck tracking");
           let timer = null;
+          let lastMouseMoveTime = Date.now();
+          let isResetting = false;
+          let isInitialized = false;
+
+          // Initialize head position after a short delay
+          setTimeout(() => {
+            resetHead();
+            isInitialized = true;
+          }, 1000);
 
           document.addEventListener("mousemove", function (e) {
-            console.log("Mouse moved, currentlyAnimating:", currentlyAnimating);
-            console.log("Neck bone exists:", !!neck);
-            console.log("Interaction active:", isInteractionActive);
+            if (!isInitialized) {
+              return;
+            }
 
             // Skip if interaction is active or currently animating
-            if (currentlyAnimating || isInteractionActive) return;
+            if (currentlyAnimating || isInteractionActive) {
+              return;
+            }
+
+            // Update last mouse move time
+            const currentTime = Date.now();
+            const timeSinceLastMove = currentTime - lastMouseMoveTime;
+            lastMouseMoveTime = currentTime;
 
             // Clear existing timer if any
             if (timer) {
@@ -1799,17 +1814,37 @@ const audio = new Audio(
 
             var mousecoords = getMousePos(e);
             if (neck && !currentlyAnimating) {
-              console.log("Moving neck to coordinates:", mousecoords);
               moveJoint(mousecoords, neck, 50);
             }
 
-            // Set new timer to reset head after 5 seconds
-            timer = setTimeout(() => {
-              console.log(
-                "Resetting head position after 5 seconds of inactivity"
-              );
+            // Only set new timer if we're not already resetting
+            if (!isResetting) {
+              timer = setTimeout(() => {
+                const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                // Only reset if there's been no movement for at least 5 seconds
+                if (timeSinceLastMove >= 5000) {
+                  isResetting = true;
+                  resetHead();
+                  // Add a small delay before allowing another reset
+                  setTimeout(() => {
+                    isResetting = false;
+                  }, 1000);
+                } else {
+                  console.log("Skipping reset - mouse moved recently");
+                }
+              }, 5000);
+            } else {
+              console.log("Skipping timer set - reset in progress");
+            }
+          });
+
+          // Add visibility change handler to handle tab switching
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+              console.log("Tab became visible, resetting head position");
               resetHead();
-            }, 5000);
+              lastMouseMoveTime = Date.now();
+            }
           });
         } else {
           console.log(
