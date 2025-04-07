@@ -1,11 +1,173 @@
 /** @format */
-// localStorage.clear();
+localStorage.clear();
+
+// ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
 
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
+
+// ElevenLabs Configuration
+const ELEVENLABS_API_KEY =
+  "sk_e9995c8fc23b1f8a0a788bd09a3c9fed43a3d929978778e7"; // Replace with your actual API key
+const ELEVENLABS_VOICE_ID = "5Q0t7uMcjvnagumLfvZi"; // Replace with your actual voice ID
+const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
+
+// ***************************************************************************************************************************************************
+
+// ***************************************************************** ELEVENLABS AUDIO QUEUE MANAGEMENT *****************************************************************
+let audioQueue = [];
+let isPlaying = false;
+let retryCount = 0;
+const MAX_RETRIES = 3;
+const AUDIO_DELAY = 300; // Delay between audio plays in milliseconds
+
+// Function to convert text to speech using ElevenLabs
+async function textToSpeech(text) {
+  try {
+    const response = await fetch(
+      `${ELEVENLABS_BASE_URL}/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": ELEVENLABS_API_KEY,
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    return audioUrl;
+  } catch (error) {
+    return null;
+  }
+}
+// Function to safely play audio with retries
+async function safePlayAudio(audio, retry = 0) {
+  try {
+    if (retry >= MAX_RETRIES) {
+      console.log("Max retries reached, giving up on audio playback");
+      return false;
+    }
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      await playPromise;
+      return true;
+    }
+    return true;
+  } catch (error) {
+    console.log(`Audio play attempt ${retry + 1} failed:`, error);
+    if (retry < MAX_RETRIES) {
+      // Wait before retrying
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return safePlayAudio(audio, retry + 1);
+    }
+    return false;
+  }
+}
+
+// Function to play audio from ElevenLabs
+async function playElevenLabsAudio(text) {
+  try {
+    console.log("Starting text-to-speech for:", text);
+    const audioUrl = await textToSpeech(text);
+    if (!audioUrl) {
+      console.error("Failed to get audio URL");
+      return;
+    }
+
+    console.log("Audio URL created:", audioUrl);
+
+    const audio = new Audio();
+    audio.src = audioUrl;
+
+    // Add event listeners for debugging
+    audio.addEventListener("loadeddata", () => {
+      console.log("Audio loaded successfully");
+    });
+
+    audio.addEventListener("error", (e) => {
+      console.error("Audio error:", e);
+    });
+
+    audio.addEventListener("canplaythrough", () => {
+      console.log("Audio can play through");
+    });
+
+    audio.onended = () => {
+      console.log("Audio playback ended");
+      URL.revokeObjectURL(audioUrl);
+      isPlaying = false;
+      // Add delay before playing next audio
+      setTimeout(() => {
+        playNextInQueue();
+      }, AUDIO_DELAY);
+    };
+
+    if (isPlaying) {
+      console.log("Audio is already playing, adding to queue");
+      audioQueue.push(audio);
+    } else {
+      console.log("Starting audio playback");
+      isPlaying = true;
+
+      // Try to play with retries
+      const success = await safePlayAudio(audio);
+      if (!success) {
+        console.log("Failed to play audio after retries, adding to queue");
+        audioQueue.push(audio);
+        isPlaying = false;
+      }
+    }
+  } catch (error) {
+    console.error("Error in playAudio:", error);
+    isPlaying = false;
+    playNextInQueue();
+  }
+}
+
+// Function to play next audio in queue
+async function playNextInQueue() {
+  if (audioQueue.length > 0) {
+    console.log("Playing next audio in queue");
+    const nextAudio = audioQueue.shift();
+    isPlaying = true;
+
+    const success = await safePlayAudio(nextAudio);
+    if (!success) {
+      console.log("Failed to play queued audio, putting back in queue");
+      audioQueue.unshift(nextAudio);
+      isPlaying = false;
+    }
+  } else {
+    console.log("No more audio in queue");
+  }
+}
+
+// Function to clear audio queue
+function clearAudioQueue() {
+  audioQueue = [];
+  isPlaying = false;
+}
+
+// ***************************************************************************************************************************************************
 
 const BASE_MODEL = {
   model_url:
@@ -139,7 +301,6 @@ const audio = new Audio(
         source: leadData?.source || null,
       };
 
-      console.log("Extracted Lead Info:", leadInfo);
       return leadInfo;
     } catch (error) {
       console.error("Failed to get interactions:", error);
@@ -152,8 +313,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -311,10 +472,8 @@ const audio = new Audio(
           }
           // Add detailed bone logging
           if (o.isBone) {
-            console.log("Found bone:", o.name);
             if (o.name === "CC_Base_Head") {
               neck = o;
-              console.log("Neck bone assigned successfully:", neck);
             }
           }
           if (o.isBone && o.name === "spine_01x") {
@@ -354,10 +513,6 @@ const audio = new Audio(
           idle = mixer.clipAction(clonedIdleAnim);
           idle.setLoop(THREE.LoopRepeat, Infinity);
           idle.play();
-          console.log(
-            "Idle animation setup complete, filtered tracks:",
-            clonedIdleAnim.tracks.map((t) => t.name)
-          );
         }
 
         // Add click event listener for the model
@@ -984,7 +1139,7 @@ const audio = new Audio(
     console.log("showing ui animation", config);
     if (currentlyAnimating) return;
     resetHead();
-    isInteractionActive = true; // Set flag when interaction starts
+    isInteractionActive = true;
     let animationIdx = -1;
     if (config.animation) {
       animationIdx = possibleAnims?.findIndex(
@@ -1001,7 +1156,7 @@ const audio = new Audio(
     // Return early if no text is available
     if (!config.text) {
       showInput();
-      isInteractionActive = false; // Reset flag if no text
+      isInteractionActive = false;
       return;
     }
 
@@ -1023,7 +1178,7 @@ const audio = new Audio(
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
           else {
             showInput();
-            isInteractionActive = false; // Reset flag when interaction ends
+            isInteractionActive = false;
           }
         }
       );
@@ -1053,12 +1208,24 @@ const audio = new Audio(
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
           else {
             showInput();
-            isInteractionActive = false; // Reset flag when interaction ends
+            isInteractionActive = false;
           }
         }
       );
     }
-    audio.play();
+
+    // Play notification sound with delay
+    setTimeout(() => {
+      playNotificationSound();
+    }, 100);
+
+    // Play text-to-speech if text is available and it's not the welcome message
+    if (config.text) {
+      console.log("Preparing to play text-to-speech for:", config.text);
+      setTimeout(() => {
+        playElevenLabsAudio(config.text);
+      }, 500);
+    }
   }
 
   // ============================================= TOOLTIP FUNCTIONS =============================================
@@ -1115,6 +1282,7 @@ const audio = new Audio(
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
       currentlyAnimating = false;
+      clearAudioQueue();
       animationCB();
       timeoutDisappear = null;
     }
@@ -1286,6 +1454,7 @@ const audio = new Audio(
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
       currentlyAnimating = false;
+      clearAudioQueue();
       animationCB();
       timeoutDisappear = null;
     }
@@ -1554,6 +1723,7 @@ const audio = new Audio(
     input.style.display = "none";
   }
 
+  // Modify the appendChatWindow function to include autoplay permissions
   function appendChatWindow() {
     // Create a container for the chat window
     const chatWindow = document.createElement("div");
@@ -1567,12 +1737,12 @@ const audio = new Audio(
     chatWindow.style.borderRadius = isMobile ? 0 : "16px";
     chatWindow.style.background = "#fff";
     chatWindow.style.fontSize = "14px";
-    chatWindow.style.width = isMobile ? "100%" : "390px"; // Small chat window width
-    chatWindow.style.height = isMobile ? "100%" : "625px"; // Fixed chat window height
-    chatWindow.style.bottom = isMobile ? 0 : "20px"; // Position it at the bottom of the screen
-    chatWindow.style.right = isMobile ? 0 : "20px"; // Align it to the bottom right corner
+    chatWindow.style.width = isMobile ? "100%" : "390px";
+    chatWindow.style.height = isMobile ? "100%" : "625px";
+    chatWindow.style.bottom = isMobile ? 0 : "20px";
+    chatWindow.style.right = isMobile ? 0 : "20px";
     chatWindow.style.zIndex = "1000";
-    chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)"; // Adding shadow for effect
+    chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
     const merchantId = localStorage.getItem("merchantId");
     const iframeContainer = document.createElement("iframe");
     iframeContainer.id = "chatbot-iframe";
@@ -1586,7 +1756,7 @@ const audio = new Audio(
 
     // Create a close button inside the chat header
     const closeButton = document.createElement("span");
-    closeButton.innerHTML = "×"; // Close (X) symbol
+    closeButton.innerHTML = "×";
     closeButton.style.cursor = "pointer";
     closeButton.style.position = "absolute";
     closeButton.style.right = "16px";
@@ -1594,7 +1764,6 @@ const audio = new Audio(
     closeButton.style.fontSize = "24px";
     closeButton.style.color = "#fff";
 
-    // Close chat window when close button is clicked
     closeButton.onclick = function () {
       chatWindow.style.display = "none";
     };
@@ -1605,13 +1774,13 @@ const audio = new Audio(
     chatWindow.style.display = "none";
   }
 
+  // Modify the showChatWindow function to handle autoplay permissions
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
 
     // Check if we have the data
     if (!INTERACTION_DATA || INTERACTION_DATA.length === 0) {
-      console.log("Waiting for interactions data to load...");
       // Wait for data to be available
       const checkData = setInterval(() => {
         if (INTERACTION_DATA && INTERACTION_DATA.length > 0) {
@@ -1744,7 +1913,6 @@ const audio = new Audio(
   // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      console.log(user_id, "user_id from local storage in interactions");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -1768,14 +1936,12 @@ const audio = new Audio(
 
       // Set up head-cursor sync after data is loaded
       if (!isMobile) {
-        console.log("Setting up mouse move tracking for neck movement");
         let timer = setTimeout(() => resetHead());
 
         // Check if Head-Cursor Sync is enabled
         const headCursorSync = INTERACTION_DATA.find(
           (i) => i.key === "Head-Cursor Sync"
         );
-        console.log("Head-Cursor Sync status:", headCursorSync);
 
         if (headCursorSync && headCursorSync.status) {
           let timer = null;
@@ -1845,15 +2011,10 @@ const audio = new Audio(
           // Add visibility change handler to handle tab switching
           document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
-              console.log("Tab became visible, resetting head position");
               resetHead();
               lastMouseMoveTime = Date.now();
             }
           });
-        } else {
-          console.log(
-            "Head-Cursor Sync is disabled, neck tracking not enabled"
-          );
         }
       }
 
@@ -1872,7 +2033,6 @@ const audio = new Audio(
       const interaction = interactions.find((i) => i.key === key);
       return interaction ? interaction.status : false;
     };
-    console.log(isEnabled("Welcome New Visitor"), "New Visitor");
 
     // Initialize each interaction based on its status
     if (isEnabled("Welcome New Visitor")) {
@@ -2169,7 +2329,6 @@ const audio = new Audio(
       document.addEventListener("mousemove", this.handleMouseMovement);
       document.addEventListener("scroll", () => {
         const currentScrollPercentage = getScrollPercentage();
-        console.log("Current scroll percentage:", currentScrollPercentage);
 
         if (currentScrollPercentage >= 90) {
           this.hasScrolledPast90 = true;
@@ -2631,18 +2790,11 @@ const audio = new Audio(
 
     getTriggerCount() {
       const count = sessionStorage.getItem("inactivityTriggerCount");
-      console.log("Getting trigger count from storage:", count);
       return count ? parseInt(count) : 0;
     }
 
     incrementTriggerCount() {
       const newCount = this.triggerCount + 1;
-      console.log(
-        "Incrementing trigger count from",
-        this.triggerCount,
-        "to",
-        newCount
-      );
       sessionStorage.setItem("inactivityTriggerCount", newCount.toString());
       this.triggerCount = newCount;
 
@@ -2652,7 +2804,6 @@ const audio = new Audio(
 
       // Stop tracking if we've reached the limit
       if (this.triggerCount >= 1) {
-        console.log("Reached trigger limit, stopping tracking");
         this.stopTracking();
       }
     }
