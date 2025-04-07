@@ -152,8 +152,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1636,6 +1636,22 @@ const audio = new Audio(
     return { x: e.clientX, y: e.clientY };
   }
 
+  function moveJoint(mouse, joint, degreeLimit) {
+    let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
+    if (joint) {
+      // Apply rotations with easing
+      const currentY = joint.rotation.y;
+      const currentX = joint.rotation.x;
+      const targetY = THREE.Math.degToRad(degrees.x);
+      const targetX = THREE.Math.degToRad(degrees.y);
+
+      // Smoother interpolation with easing
+      const lerpFactor = 0.15; // Increased from 0.1 for smoother movement
+      joint.rotation.y = THREE.Math.lerp(currentY, targetY, lerpFactor);
+      joint.rotation.x = THREE.Math.lerp(currentX, targetX, lerpFactor);
+    }
+  }
+
   function resetHead() {
     let w = { x: window.innerWidth, y: window.innerHeight };
     const xRef = w.x / 2;
@@ -1652,15 +1668,16 @@ const audio = new Audio(
         const currentX = neck.rotation.x;
 
         // Calculate new positions with lerp - reduced factor for smoother movement
-        const newY = THREE.Math.lerp(currentY, targetY, 0.05); // Reduced from 0.1 to 0.05
-        const newX = THREE.Math.lerp(currentX, targetX, 0.05); // Reduced from 0.1 to 0.05
+        const lerpFactor = 0.08; // Increased from 0.05 for smoother reset
+        const newY = THREE.Math.lerp(currentY, targetY, lerpFactor);
+        const newX = THREE.Math.lerp(currentX, targetX, lerpFactor);
 
         // Update the neck rotation
         neck.rotation.y = newY;
         neck.rotation.x = newX;
 
         // Check if we're close enough to the target position
-        const threshold = 0.001; // Adjust this value to control how close we need to be
+        const threshold = 0.001;
         if (
           Math.abs(newY - targetY) > threshold ||
           Math.abs(newX - targetX) > threshold
@@ -1672,26 +1689,6 @@ const audio = new Audio(
 
       // Start the update loop
       updateHeadPosition();
-    }
-  }
-
-  function moveJoint(mouse, joint, degreeLimit) {
-    let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
-    if (joint) {
-      // Apply rotations with easing
-      const currentY = joint.rotation.y;
-      const currentX = joint.rotation.x;
-      const targetY = THREE.Math.degToRad(degrees.x);
-      const targetX = THREE.Math.degToRad(degrees.y);
-
-      // Smooth interpolation
-      joint.rotation.y = THREE.Math.lerp(currentY, targetY, 0.1);
-      joint.rotation.x = THREE.Math.lerp(currentX, targetX, 0.1);
-
-      console.log("Joint rotation:", {
-        y: THREE.Math.radToDeg(joint.rotation.y),
-        x: THREE.Math.radToDeg(joint.rotation.x),
-      });
     }
   }
 
@@ -1785,15 +1782,26 @@ const audio = new Audio(
           let lastMouseMoveTime = Date.now();
           let isResetting = false;
           let isInitialized = false;
+          let isModelReady = false;
 
-          // Initialize head position after a short delay
-          setTimeout(() => {
-            resetHead();
-            isInitialized = true;
-          }, 1000);
+          // Initialize head position after model is ready
+          const initializeHeadTracking = () => {
+            if (!isModelReady) {
+              isModelReady = true;
+              setTimeout(() => {
+                resetHead();
+                isInitialized = true;
+              }, 1000);
+            }
+          };
+
+          // Call this when model is loaded
+          if (model) {
+            initializeHeadTracking();
+          }
 
           document.addEventListener("mousemove", function (e) {
-            if (!isInitialized) {
+            if (!isInitialized || !isModelReady) {
               return;
             }
 
@@ -1829,12 +1837,8 @@ const audio = new Audio(
                   setTimeout(() => {
                     isResetting = false;
                   }, 1000);
-                } else {
-                  console.log("Skipping reset - mouse moved recently");
                 }
               }, 5000);
-            } else {
-              console.log("Skipping timer set - reset in progress");
             }
           });
 
