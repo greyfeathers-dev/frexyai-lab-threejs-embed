@@ -87,7 +87,8 @@ async function safePlayAudio(audio, retry = 0) {
 async function playElevenLabsAudio(text) {
   try {
     console.log("Starting text-to-speech for:", text);
-    const audioUrl = await textToSpeech(text);
+    // const audioUrl = await textToSpeech(text);
+    const audioUrl = "";
     if (!audioUrl) {
       console.error("Failed to get audio URL");
       return;
