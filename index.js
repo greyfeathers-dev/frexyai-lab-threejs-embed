@@ -11,8 +11,8 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ElevenLabs Configuration
 const ELEVENLABS_API_KEY =
-  "sk_e9995c8fc23b1f8a0a788bd09a3c9fed43a3d929978778e7"; // Replace with your actual API key
-const ELEVENLABS_VOICE_ID = "5Q0t7uMcjvnagumLfvZi"; // Replace with your actual voice ID
+  "sk_09a3f745c965e473ddf6ec867b9cfe268aad70a5a15c56ff"; // Replace with your actual API key
+const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your actual voice ID
 const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
 
 // ***************************************************************************************************************************************************
