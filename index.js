@@ -1,5 +1,6 @@
 /** @format */
-// localStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -11,7 +12,7 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ElevenLabs Configuration
 const ELEVENLABS_API_KEY =
-  "sk_e9995c8fc23b1f8a0a788bd09a3c9fed43a3d929978778e7"; // Replace with your actual API key
+  "sk_1f222c84de3a1fe79b5d1c7c0e230e1ce98c1c763fa07b42"; // Replace with your actual API key
 const ELEVENLABS_VOICE_ID = "5Q0t7uMcjvnagumLfvZi"; // Replace with your actual voice ID
 const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
 
@@ -66,6 +67,7 @@ async function safePlayAudio(audio, retry = 0) {
       return false;
     }
 
+    // Try to play the audio
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       await playPromise;
@@ -74,6 +76,19 @@ async function safePlayAudio(audio, retry = 0) {
     return true;
   } catch (error) {
     console.log(`Audio play attempt ${retry + 1} failed:`, error);
+
+    // Try to unmute and play again
+    if (error.name === "NotAllowedError") {
+      audio.muted = true;
+      try {
+        await audio.play();
+        audio.muted = false;
+        return true;
+      } catch (unmuteError) {
+        console.log("Failed to unmute audio:", unmuteError);
+      }
+    }
+
     if (retry < MAX_RETRIES) {
       // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -127,8 +142,6 @@ async function playElevenLabsAudio(text) {
     } else {
       console.log("Starting audio playback");
       isPlaying = true;
-
-      // Try to play with retries
       const success = await safePlayAudio(audio);
       if (!success) {
         console.log("Failed to play audio after retries, adding to queue");
@@ -313,8 +326,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
