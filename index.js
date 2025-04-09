@@ -1,5 +1,5 @@
 /** @format */
-// localStorage.clear();
+localStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -8,165 +8,6 @@ const supabaseAnonKey =
 
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
-
-// ElevenLabs Configuration
-const ELEVENLABS_API_KEY =
-  "sk_09a3f745c965e473ddf6ec867b9cfe268aad70a5a15c56ff"; // Replace with your actual API key
-const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your actual voice ID
-const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
-
-// ***************************************************************************************************************************************************
-
-// ***************************************************************** ELEVENLABS AUDIO QUEUE MANAGEMENT *****************************************************************
-let audioQueue = [];
-let isPlaying = false;
-let retryCount = 0;
-const MAX_RETRIES = 3;
-const AUDIO_DELAY = 300; // Delay between audio plays in milliseconds
-
-// Function to convert text to speech using ElevenLabs
-async function textToSpeech(text) {
-  try {
-    const response = await fetch(
-      `${ELEVENLABS_BASE_URL}/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "audio/mpeg",
-          "Content-Type": "application/json",
-          "xi-api-key": ELEVENLABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: "eleven_monolingual_v1",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    return audioUrl;
-  } catch (error) {
-    return null;
-  }
-}
-// Function to safely play audio with retries
-async function safePlayAudio(audio, retry = 0) {
-  try {
-    if (retry >= MAX_RETRIES) {
-      console.log("Max retries reached, giving up on audio playback");
-      return false;
-    }
-
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      await playPromise;
-      return true;
-    }
-    return true;
-  } catch (error) {
-    console.log(`Audio play attempt ${retry + 1} failed:`, error);
-    if (retry < MAX_RETRIES) {
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return safePlayAudio(audio, retry + 1);
-    }
-    return false;
-  }
-}
-
-// Function to play audio from ElevenLabs
-async function playElevenLabsAudio(text) {
-  try {
-    console.log("Starting text-to-speech for:", text);
-    // const audioUrl = await textToSpeech(text);
-    const audioUrl = "";
-    if (!audioUrl) {
-      console.error("Failed to get audio URL");
-      return;
-    }
-
-    console.log("Audio URL created:", audioUrl);
-
-    const audio = new Audio();
-    audio.src = audioUrl;
-
-    // Add event listeners for debugging
-    audio.addEventListener("loadeddata", () => {
-      console.log("Audio loaded successfully");
-    });
-
-    audio.addEventListener("error", (e) => {
-      console.error("Audio error:", e);
-    });
-
-    audio.addEventListener("canplaythrough", () => {
-      console.log("Audio can play through");
-    });
-
-    audio.onended = () => {
-      console.log("Audio playback ended");
-      URL.revokeObjectURL(audioUrl);
-      isPlaying = false;
-      // Add delay before playing next audio
-      setTimeout(() => {
-        playNextInQueue();
-      }, AUDIO_DELAY);
-    };
-
-    if (isPlaying) {
-      console.log("Audio is already playing, adding to queue");
-      audioQueue.push(audio);
-    } else {
-      console.log("Starting audio playback");
-      isPlaying = true;
-
-      // Try to play with retries
-      const success = await safePlayAudio(audio);
-      if (!success) {
-        console.log("Failed to play audio after retries, adding to queue");
-        audioQueue.push(audio);
-        isPlaying = false;
-      }
-    }
-  } catch (error) {
-    console.error("Error in playAudio:", error);
-    isPlaying = false;
-    playNextInQueue();
-  }
-}
-
-// Function to play next audio in queue
-async function playNextInQueue() {
-  if (audioQueue.length > 0) {
-    console.log("Playing next audio in queue");
-    const nextAudio = audioQueue.shift();
-    isPlaying = true;
-
-    const success = await safePlayAudio(nextAudio);
-    if (!success) {
-      console.log("Failed to play queued audio, putting back in queue");
-      audioQueue.unshift(nextAudio);
-      isPlaying = false;
-    }
-  } else {
-    console.log("No more audio in queue");
-  }
-}
-
-// Function to clear audio queue
-function clearAudioQueue() {
-  audioQueue = [];
-  isPlaying = false;
-}
 
 // ***************************************************************************************************************************************************
 
@@ -248,6 +89,25 @@ const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
 
+// ********************************************************************************* SVG ICONS *********************************************************************************
+function getMuteIcon() {
+  return `
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.61689 2.44586L2.44189 3.62086L6.07523 7.25419L5.83356 7.5042H2.50023V12.5042H5.83356L10.0002 16.6709V11.1792L13.4836 14.6625C12.9419 15.0709 12.3336 15.3959 11.6669 15.5875V17.3042C12.7836 17.0542 13.8086 16.5375 14.6752 15.8459L16.3836 17.5542L17.5586 16.3792L3.61689 2.44586ZM8.33356 12.6459L6.52523 10.8375H4.16689V9.17086H6.52523L7.25856 8.43753L8.33356 9.51253V12.6459ZM15.8336 10.0042C15.8336 10.6875 15.7086 11.3459 15.4919 11.9542L16.7669 13.2292C17.2336 12.2542 17.5002 11.1625 17.5002 10.0042C17.5002 6.43753 15.0086 3.4542 11.6669 2.69586V4.41253C14.0752 5.1292 15.8336 7.36253 15.8336 10.0042ZM10.0002 3.33753L8.43356 4.9042L10.0002 6.47086V3.33753ZM13.7502 10.0042C13.7502 8.5292 12.9002 7.26253 11.6669 6.64586V8.13753L13.7336 10.2042C13.7419 10.1375 13.7502 10.0709 13.7502 10.0042Z" fill="#414141"/>
+</svg>
+  `;
+}
+
+// SVG for unmute icon
+function getUnmuteIcon() {
+  return `
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 7.49998V12.5H5.83333L10 16.6667V3.33332L5.83333 7.49998H2.5ZM8.33333 7.35832V12.6417L6.525 10.8333H4.16667V9.16665H6.525L8.33333 7.35832ZM13.75 9.99998C13.75 8.52498 12.9 7.25832 11.6667 6.64165V13.35C12.9 12.7417 13.75 11.475 13.75 9.99998ZM11.6667 2.69165V4.40832C14.075 5.12498 15.8333 7.35832 15.8333 9.99998C15.8333 12.6417 14.075 14.875 11.6667 15.5917V17.3083C15.0083 16.55 17.5 13.5667 17.5 9.99998C17.5 6.43332 15.0083 3.44998 11.6667 2.69165Z" fill="#414141"/>
+</svg>
+  `;
+}
+// ************************************************************************************************************************************************************************
+
 (function () {
   // Set our main variables
   let scene,
@@ -269,6 +129,30 @@ const audio = new Audio(
   let leadId = null;
   let leadData = null;
   const leadIdLocal = localStorage.getItem("leadId");
+
+  let isMuted = true;
+
+  function enableAudioOnUserInteraction() {
+    const unmute = () => {
+      if (!isMuted) return; // Already unmuted
+
+      isMuted = false;
+      console.log("User interacted, audio enabled");
+
+      // Remove the event listeners after first interaction
+      window.removeEventListener("click", unmute);
+      window.removeEventListener("keydown", unmute);
+      window.removeEventListener("touchstart", unmute);
+    };
+
+    // Add interaction event listeners
+    window.addEventListener("click", unmute);
+    window.addEventListener("keydown", unmute);
+    window.addEventListener("touchstart", unmute);
+  }
+
+  // Call this early in your app/script
+  enableAudioOnUserInteraction();
 
   const getLeadsData = async () => {
     // const leadId = "1743157089204-1gqwxib4tv4";
@@ -314,8 +198,8 @@ const audio = new Audio(
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -1161,6 +1045,29 @@ const audio = new Audio(
       return;
     }
 
+    // Play notification sound with delay
+    setTimeout(() => {
+      const notificationSound = new Audio("/notification.mp3");
+      notificationSound.volume = 0.5;
+      notificationSound.play().catch((error) => {
+        console.error("Error playing notification sound:", error);
+      });
+    }, 100);
+
+    // Play text-to-speech if text is available and it's not the welcome message
+    if (config.text) {
+      console.log("Preparing to play text-to-speech for:", config.text);
+      setTimeout(() => {
+        // Play audio if interactionAudio is provided
+        if (config.interactionAudio && !isMuted) {
+          const audio = new Audio(config.interactionAudio);
+          audio.play().catch((error) => {
+            console.error("Error playing audio:", error);
+          });
+        }
+      }, 500);
+    }
+
     if (type === "tooltip") {
       showTooltip(
         config.id,
@@ -1214,19 +1121,6 @@ const audio = new Audio(
         }
       );
     }
-
-    // Play notification sound with delay
-    setTimeout(() => {
-      playNotificationSound();
-    }, 100);
-
-    // Play text-to-speech if text is available and it's not the welcome message
-    if (config.text) {
-      console.log("Preparing to play text-to-speech for:", config.text);
-      setTimeout(() => {
-        playElevenLabsAudio(config.text);
-      }, 500);
-    }
   }
 
   // ============================================= TOOLTIP FUNCTIONS =============================================
@@ -1266,7 +1160,9 @@ const audio = new Audio(
     tooltip.style.position = "relative";
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = "16px 20px";
+    tooltip.style.padding = "14px 18px";
+    tooltip.style.paddingRight = "34px";
+
     tooltip.style.borderRadius = "17px";
     tooltip.style.fontSize = "14px";
     tooltip.style.color = "#0D1934";
@@ -1279,11 +1175,50 @@ const audio = new Audio(
     tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.3)";
     tooltip.style.margin = "8px 0";
 
+    const controlsContainer = document.createElement("div");
+    controlsContainer.style.position = "absolute";
+    controlsContainer.style.top = "27px";
+    controlsContainer.style.right = "13px";
+    controlsContainer.style.left = "auto";
+    controlsContainer.style.display = "flex";
+
+    // Add audio toggle button
+    const audioToggleBtn = document.createElement("button");
+    audioToggleBtn.style.background = "white";
+    audioToggleBtn.style.padding = "4px";
+    audioToggleBtn.style.border = "0";
+    audioToggleBtn.style.width = "16px";
+    audioToggleBtn.style.height = "16px";
+    audioToggleBtn.style.borderRadius = "50%";
+    audioToggleBtn.style.display = "flex";
+    audioToggleBtn.style.justifyContent = "center";
+    audioToggleBtn.style.alignItems = "center";
+    audioToggleBtn.style.zIndex = "99";
+    audioToggleBtn.style.cursor = "pointer";
+
+    const audioIcon = document.createElement("span");
+    audioIcon.innerHTML = isMuted ? getMuteIcon() : getUnmuteIcon(); // Start with mute icon
+    audioToggleBtn.appendChild(audioIcon);
+    console.log(isMuted, "isMuted in tooltip");
+
+    audioToggleBtn.addEventListener("click", () => {
+      isMuted = !isMuted;
+      audioIcon.innerHTML = isMuted ? getMuteIcon() : getUnmuteIcon();
+      if (!isMuted) {
+        // Play a silent audio to enable interaction
+        const audio = new Audio();
+        audio.play().catch((error) => {
+          console.error("Error playing audio:", error);
+        });
+      }
+    });
+
+    controlsContainer.appendChild(audioToggleBtn);
+
     function closeUI() {
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
       currentlyAnimating = false;
-      clearAudioQueue();
       animationCB();
       timeoutDisappear = null;
     }
@@ -1330,8 +1265,10 @@ const audio = new Audio(
         }
         closeUI();
       });
-      tooltipContainer.appendChild(closeBtn);
+      controlsContainer.appendChild(closeBtn);
     }
+
+    tooltipContainer.appendChild(controlsContainer);
 
     if (timerCountdown) {
       const timer = document.createElement("div");
@@ -2198,6 +2135,7 @@ const audio = new Audio(
           newVisitorInteraction?.message ||
           "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
         time: 15,
+        interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
         animation: "wave",
         cta: [
@@ -2235,6 +2173,7 @@ const audio = new Audio(
           time: 8,
           hasClose: false,
           animation: "wave",
+          interactionAudio: returningVisitorInteraction?.audio_url || "",
           cta: [
             {
               text: "Ask me anything!",
@@ -2399,6 +2338,7 @@ const audio = new Audio(
         time: 8,
         hasClose: false,
         animation: "no_no",
+        interactionAudio: avoidBounceInteraction?.audio_url || "",
       });
       updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
@@ -2559,6 +2499,7 @@ const audio = new Audio(
         time: 8,
         hasClose: false,
         animation: "casual_talk_2",
+        interactionAudio: normalExitIntentInteraction?.audio_url || "",
         cta: [
           {
             text: "Ask me anything!",
@@ -2761,6 +2702,7 @@ const audio = new Audio(
         time: 8,
         hasClose: false,
         animation: "casual_talk_2",
+        interactionAudio: confusedInteraction?.audio_url || "",
         cta: [
           {
             text: "Ask me anything!",
@@ -2889,6 +2831,7 @@ const audio = new Audio(
         time: 8,
         hasClose: false,
         animation: "wait_up",
+        interactionAudio: idleInteraction?.audio_url || "",
         cta: [
           {
             text: "Ask me anything!",
