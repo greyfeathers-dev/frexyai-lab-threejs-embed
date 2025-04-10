@@ -1,15 +1,35 @@
 /** @format */
 // localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
 
+// Initialize Supabase client
+const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+const leadIdLocal = localStorage.getItem("leadId");
+
+// Add ElevenLabs configuration
+const ELEVENLABS_API_KEY =
+  "sk_09a3f745c965e473ddf6ec867b9cfe268aad70a5a15c56ff"; // Replace with your actual API key
+const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
+const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
+
 const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
+
+const MODEL_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+
+const TOOLTIP_BG = "#fff";
+const TOOLTIP_COLOR = "#0D1934";
+const audio = new Audio(
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
+);
 
 const BASE_MODEL = {
   model_url:
@@ -80,15 +100,6 @@ const ANIMATION_LIST = [
   },
 ];
 
-const MODEL_TEXTURE =
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
-
-const TOOLTIP_BG = "#fff";
-const TOOLTIP_COLOR = "#0D1934";
-const audio = new Audio(
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
-);
-
 // ********************************************************************************* SVG ICONS *********************************************************************************
 function getMuteIcon() {
   return `
@@ -108,6 +119,82 @@ function getUnmuteIcon() {
 }
 // ************************************************************************************************************************************************************************
 
+// ***************************************************************AUDIO API CALLS************************************************************************************
+
+// Function to convert text to speech using ElevenLabs
+async function convertTextToSpeech(text) {
+  console.log(text, "text in convert text to speech");
+  try {
+    const response = await fetch(
+      `${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": ELEVENLABS_API_KEY,
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    return audioBlob;
+  } catch (error) {
+    console.error("Error converting text to speech:", error);
+    return null;
+  }
+}
+
+// Function to upload audio to Supabase storage
+async function uploadAudioToStorage(audioBlob, interactionName) {
+  try {
+    const timestamp = Date.now();
+    const sanitizedInteractionName = interactionName.replace(/\s+/g, "_");
+    const filename = `leads/${leadIdLocal}/${sanitizedInteractionName}_${timestamp}.mp3`;
+
+    console.log(
+      leadIdLocal,
+      filename,
+      "leadId from local storage in interactions"
+    );
+
+    const { data, error } = await supabase.storage
+      .from("interactions")
+      .upload(filename, audioBlob, {
+        contentType: "audio/mpeg",
+        upsert: true,
+      });
+
+    if (error) {
+      console.log(error, "error in uploading audio to storage in interactions");
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("interactions")
+      .getPublicUrl(filename);
+    console.log(publicUrlData, "public url data in interactions");
+
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error("Error uploading audio to storage:", error);
+    return null;
+  }
+}
+
+// ************************************************************************************************************************************************************************
 (function () {
   // Set our main variables
   let scene,
@@ -128,7 +215,6 @@ function getUnmuteIcon() {
   let firstPageVisited = null;
   let leadId = null;
   let leadData = null;
-  const leadIdLocal = localStorage.getItem("leadId");
 
   let isMuted = true;
 
@@ -153,6 +239,8 @@ function getUnmuteIcon() {
 
   // Call this early in your app/script
   enableAudioOnUserInteraction();
+
+  // ***************************************************************LEADS API CALLS************************************************************************************
 
   const getLeadsData = async () => {
     // const leadId = "1743157089204-1gqwxib4tv4";
@@ -193,6 +281,57 @@ function getUnmuteIcon() {
     }
   };
   getLeadsData();
+
+  const UpdateLeadsData = async (name, audioBlob, message) => {
+    try {
+      // Upload audio to storage using interaction name
+      const audioUrl = await uploadAudioToStorage(audioBlob, name);
+      console.log(audioUrl, "audio url in update leads data");
+      if (!audioUrl) {
+        throw new Error("Failed to upload audio");
+      }
+
+      // Check if the record already exists
+      const existingData = await fetchExistingInteractionData(name);
+
+      let method = "POST";
+      let url = `${supabaseUrl}/rest/v1/leads_interactions_audio`;
+
+      if (existingData) {
+        // If record exists, update it
+        method = "PATCH";
+        url += `?id=eq.${leadIdLocal}&interaction_name=eq.${name}`;
+      }
+
+      // Update or insert the leads_interactions_audio table
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: leadIdLocal,
+          audio_url: audioUrl,
+          interaction_name: name,
+          message: message,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log("Audio uploaded and data updated successfully");
+      return audioUrl;
+    } catch (error) {
+      console.error("Error in UpdateLeadsData:", error);
+      return null;
+    }
+  };
+
+  // ************************************************************************************************************************************************************************
 
   init();
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -2090,13 +2229,40 @@ function getUnmuteIcon() {
     }
   }
 
+  // Function to fetch existing interaction data from the table
+  async function fetchExistingInteractionData(interactionName) {
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/leads_interactions_audio?id=eq.${leadIdLocal}&interaction_name=eq.${interactionName}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data, "data in fetch existing interaction data");
+      return data[0];
+    } catch (error) {
+      console.error("Error fetching existing interaction data:", error);
+      return null;
+    }
+  }
+
   //*************************************************WELCOME NEW VISITOR AND RETURNING VISITOR MESSAGE*****************************************************
 
   // Helper function to replace placeholders in messages with lead data
   function replaceMessagePlaceholders(message, leadData) {
     if (!message || !leadData) {
       console.log("Message or leadData is missing:", { message, leadData });
-      return message;
     }
 
     console.log("Replacing placeholders in message:", message);
@@ -2109,19 +2275,16 @@ function getUnmuteIcon() {
       switch (trimmedKey) {
         case "firstName":
           return leadData?.name || "there";
-        case "company":
-          return leadData?.company || "";
-        case "job":
-          return leadData?.jobTitle || "";
-        case "source":
-          return leadData?.source || "";
+        case "companyName":
+          return leadData?.company || "GreyFeathers";
         default:
           return match;
       }
     });
   }
 
-  function showNewVisitorMessage() {
+  // Modify the showNewVisitorMessage function to use text-to-speech
+  async function showNewVisitorMessage() {
     console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
@@ -2130,12 +2293,49 @@ function getUnmuteIcon() {
         (i) => i.key === "Welcome New Visitor"
       );
       console.log("New visitor interaction:", newVisitorInteraction);
+      const message = replaceMessagePlaceholders(
+        newVisitorInteraction?.message,
+        leadData
+      );
+      console.log("Message new visitors:", message);
+
+      const hasPlaceholders =
+        newVisitorInteraction?.message?.includes("{firstName}") ||
+        newVisitorInteraction?.message?.includes("{companyName}");
+
+      let audioUrl = null;
+
+      // Fetch existing message and audio URL from the table
+      const existingData = await fetchExistingInteractionData(
+        "Welcome New Visitor"
+      );
+      const existingMessage = existingData?.message;
+      const existingAudioUrl = existingData?.audio_url;
+
+      if (
+        hasPlaceholders &&
+        existingMessage === newVisitorInteraction?.message
+      ) {
+        console.log(existingAudioUrl, "existing audio url in new visitor");
+        // Use existing audio if the message matches
+        audioUrl = existingAudioUrl;
+      } else {
+        // Generate new audio if the message differs
+        const audioBlob = await convertTextToSpeech(message);
+        if (audioBlob) {
+          audioUrl = await UpdateLeadsData(
+            "Welcome New Visitor",
+            audioBlob,
+            newVisitorInteraction?.message
+          );
+          console.log(audioUrl, "audio url in new visitor");
+        }
+      }
+
       showUIAnimation({
-        text:
-          newVisitorInteraction?.message ||
-          "Hey! I'm Frexy, your personal AI assistant 😃. I'm here to help, guide, or even entertain.",
+        text: message,
         time: 15,
-        interactionAudio: newVisitorInteraction?.audio_url || "",
+        interactionAudio: audioUrl || newVisitorInteraction?.audio_url || "",
         hasClose: false,
         animation: "wave",
         cta: [
