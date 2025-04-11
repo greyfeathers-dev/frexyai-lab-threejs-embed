@@ -2317,111 +2317,116 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     });
   }
 
-  // Modify the showNewVisitorMessage function to use text-to-speech
+  // Add this function before the interaction handlers
+
+  // Common function to handle interaction messages and audio
+  async function handleInteractionMessage(interactionKey, config = {}) {
+    const interaction = INTERACTION_DATA.find((i) => i.key === interactionKey);
+    if (!interaction) return null;
+
+    // Get the message with replaced placeholders
+    const message = replaceMessagePlaceholders(interaction?.message, leadData);
+    console.log(`Message for ${interactionKey}:`, message);
+
+    const hasPlaceholders =
+      interaction?.message?.includes("{firstName}") ||
+      interaction?.message?.includes("{companyName}");
+
+    let audioUrl = null;
+
+    // Fetch existing message and audio URL from the table
+    const existingData = await fetchExistingInteractionData(interactionKey);
+    const existingMessage = existingData?.message;
+    const existingAudioUrl = existingData?.audio_url;
+
+    if (hasPlaceholders && existingMessage === interaction?.message) {
+      // Use existing audio if the message matches
+      audioUrl = existingAudioUrl;
+      console.log(`Using existing audio for ${interactionKey}:`, audioUrl);
+    } else if (hasPlaceholders) {
+      // Generate new audio if the message differs or doesn't exist
+      const audioBlob = await convertTextToSpeech(message);
+      if (audioBlob) {
+        audioUrl = await UpdateLeadsData(
+          interactionKey,
+          audioBlob,
+          interaction?.message
+        );
+        console.log(`Generated new audio for ${interactionKey}:`, audioUrl);
+      }
+    }
+
+    // Return the UI animation configuration
+    return {
+      text: message,
+      time: config.time || 8,
+      interactionAudio: audioUrl || interaction?.audio_url || "",
+      hasClose: config.hasClose !== undefined ? config.hasClose : false,
+      animation: config.animation || "casual_talk_2",
+      cta: config.cta || [
+        {
+          text: "Ask me anything!",
+          bg: "#007AFF",
+          color: "#fff",
+          format: "chat",
+        },
+      ],
+    };
+  }
+
+  // Update showNewVisitorMessage to use the common function
   async function showNewVisitorMessage() {
     console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
+
     if (hasVisitedBefore !== "true") {
-      const newVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome New Visitor"
-      );
-      console.log("New visitor interaction:", newVisitorInteraction);
-      const message = replaceMessagePlaceholders(
-        newVisitorInteraction?.message,
-        leadData
-      );
-      console.log("Message new visitors:", message);
-
-      const hasPlaceholders =
-        newVisitorInteraction?.message?.includes("{firstName}") ||
-        newVisitorInteraction?.message?.includes("{companyName}");
-
-      let audioUrl = null;
-
-      // Fetch existing message and audio URL from the table
-      const existingData = await fetchExistingInteractionData(
-        "Welcome New Visitor"
-      );
-      const existingMessage = existingData?.message;
-      const existingAudioUrl = existingData?.audio_url;
-
-      if (
-        hasPlaceholders &&
-        existingMessage === newVisitorInteraction?.message
-      ) {
-        console.log(existingAudioUrl, "existing audio url in new visitor");
-        // Use existing audio if the message matches
-        audioUrl = existingAudioUrl;
-      } else {
-        // Generate new audio if the message differs
-        const audioBlob = await convertTextToSpeech(message);
-        if (audioBlob) {
-          audioUrl = await UpdateLeadsData(
-            "Welcome New Visitor",
-            audioBlob,
-            newVisitorInteraction?.message
-          );
-          console.log(audioUrl, "audio url in new visitor");
+      const animationConfig = await handleInteractionMessage(
+        "Welcome New Visitor",
+        {
+          time: 15,
+          animation: "wave",
         }
-      }
+      );
 
-      showUIAnimation({
-        text: message,
-        time: 15,
-        interactionAudio: audioUrl || newVisitorInteraction?.audio_url || "",
-        hasClose: false,
-        animation: "wave",
-        cta: [
-          {
-            text: "Ask me Anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(newVisitorInteraction.id);
-      localStorage.setItem("hasWelcomeVisitor", "true");
+      if (animationConfig) {
+        showUIAnimation(animationConfig);
+        const newVisitorInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Welcome New Visitor"
+        );
+        updateInteractionImpression(newVisitorInteraction.id);
+        localStorage.setItem("hasWelcomeVisitor", "true");
+      }
     }
   }
 
+  // Update showReturningVisitorMessage to use the common function
   function showReturningVisitorMessage() {
     console.log("Showing returning visitor message");
     let hasReturningVisitedBefore = localStorage.getItem("hasReturningVisitor");
     const hasShownReturningMessage = sessionStorage.getItem(
       "hasShownReturningMessage"
     );
+
     if (hasReturningVisitedBefore === "true" && !hasShownReturningMessage) {
-      const returningVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome Returning Visitor"
-      );
-      const message = replaceMessagePlaceholders(
-        returningVisitorInteraction?.message,
-        leadData
-      );
+      setTimeout(async () => {
+        const animationConfig = await handleInteractionMessage(
+          "Welcome Returning Visitor",
+          {
+            time: 8,
+            animation: "wave",
+          }
+        );
 
-      setTimeout(() => {
-        showUIAnimation({
-          text: message,
-          time: 8,
-          hasClose: false,
-          animation: "wave",
-          interactionAudio: returningVisitorInteraction?.audio_url || "",
-          cta: [
-            {
-              text: "Ask me anything!",
-              bg: "#007AFF",
-              color: "#fff",
-              format: "chat",
-            },
-          ],
-        });
-
-        updateInteractionImpression(returningVisitorInteraction.id);
+        if (animationConfig) {
+          showUIAnimation(animationConfig);
+          const returningVisitorInteraction = INTERACTION_DATA.find(
+            (i) => i.key === "Welcome Returning Visitor"
+          );
+          updateInteractionImpression(returningVisitorInteraction.id);
+        }
+        sessionStorage.setItem("hasShownReturningMessage", "true");
       }, 2000);
-      // Set the flag only after the message is shown
-      sessionStorage.setItem("hasShownReturningMessage", "true");
     } else {
       localStorage.setItem("hasReturningVisitor", "true");
     }
@@ -2560,34 +2565,35 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
     }
 
-    triggerInteraction() {
+    async triggerInteraction() {
       this.hasInteracted = true;
-      const avoidBounceInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Avoid Bounce"
-      );
-      showUIAnimation({
-        text:
-          avoidBounceInteraction?.message ||
-          "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
+
+      // First animation
+      const noNoConfig = await handleInteractionMessage("Avoid Bounce", {
         time: 8,
-        hasClose: false,
         animation: "no_no",
-        interactionAudio: avoidBounceInteraction?.audio_url || "",
       });
-      updateInteractionImpression(avoidBounceInteraction.id);
+
+      if (noNoConfig) {
+        showUIAnimation(noNoConfig);
+        const avoidBounceInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Avoid Bounce"
+        );
+        updateInteractionImpression(avoidBounceInteraction.id);
+      }
+
       document.removeEventListener("mousemove", this.handleMouseMovement);
 
-      // Follow-up interactions after 8 seconds (after no_no animation)
+      // Follow-up animations
       setTimeout(() => {
         showUIAnimation({
           animation: "dance_like_anto",
-          time: 0, // Reduced dance time to 6 seconds
+          time: 0,
           hasClose: false,
         });
 
-        // Show casual talk 2 seconds after dance ends (total 8 + 6 + 2 = 16s)
         setTimeout(() => {
-          showUIAnimation({
+          const casualTalkConfig = {
             text: "Liked my dance? Let me help you with something!",
             time: 15,
             hasClose: false,
@@ -2600,14 +2606,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                 format: "chat",
               },
             ],
-          });
+          };
+          showUIAnimation(casualTalkConfig);
 
-          // Switch back to idle after 15 seconds
           setTimeout(() => {
             playModifierAnimation(idle, 1, idle, 1.5);
           }, 15000);
-        }, 6000); // Show casual talk 2s after 6s dance ends
-      }, 8000); // Start dance after 8s no_no animation
+        }, 6000);
+      }, 8000);
     }
   }
 
@@ -2721,29 +2727,25 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
     }
 
-    normalExitIntentTriggerInteraction() {
+    async normalExitIntentTriggerInteraction() {
       normalExitIntentMarkInteractionTriggered();
-      const normalExitIntentInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Normal Exit Intent"
+
+      const animationConfig = await handleInteractionMessage(
+        "Normal Exit Intent",
+        {
+          time: 8,
+          animation: "casual_talk_2",
+        }
       );
-      showUIAnimation({
-        text:
-          normalExitIntentInteraction?.message ||
-          "Leaving already? If you ever need help, I'm always here!",
-        time: 8,
-        hasClose: false,
-        animation: "casual_talk_2",
-        interactionAudio: normalExitIntentInteraction?.audio_url || "",
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(normalExitIntentInteraction.id);
+
+      if (animationConfig) {
+        showUIAnimation(animationConfig);
+        const normalExitIntentInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Normal Exit Intent"
+        );
+        updateInteractionImpression(normalExitIntentInteraction.id);
+      }
+
       document.removeEventListener(
         "mousemove",
         this.normalExitIntentHandleMouseMovement
@@ -2924,29 +2926,22 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
     }
 
-    triggerInteraction() {
+    async triggerInteraction() {
       markConfusedInteractionTriggered();
-      const confusedInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Confused?"
-      );
-      showUIAnimation({
-        text:
-          confusedInteraction?.message ||
-          "Looks like you're exploring 🤔….need a hand finding something?",
+
+      const animationConfig = await handleInteractionMessage("Confused?", {
         time: 8,
-        hasClose: false,
         animation: "casual_talk_2",
-        interactionAudio: confusedInteraction?.audio_url || "",
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
       });
-      updateInteractionImpression(confusedInteraction.id);
+
+      if (animationConfig) {
+        showUIAnimation(animationConfig);
+        const confusedInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Confused?"
+        );
+        updateInteractionImpression(confusedInteraction.id);
+      }
+
       document.removeEventListener("scroll", this.handleScroll);
     }
   }
@@ -3045,7 +3040,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
     }
 
-    showMessage() {
+    async showMessage() {
       const currentCount = this.getTriggerCount();
       if (currentCount >= 1) {
         console.log("Skipping message - already reached trigger limit");
@@ -3055,27 +3050,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       this.isShowingMessage = true;
       this.lastTriggerTime = Date.now();
 
-      const idleInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Idle on Page"
-      );
-      showUIAnimation({
-        text:
-          idleInteraction?.message ||
-          "Still there? Let me know if you need any help!",
+      const animationConfig = await handleInteractionMessage("Idle on Page", {
         time: 8,
-        hasClose: false,
         animation: "wait_up",
-        interactionAudio: idleInteraction?.audio_url || "",
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
       });
-      updateInteractionImpression(idleInteraction.id);
+
+      if (animationConfig) {
+        showUIAnimation(animationConfig);
+        const idleInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Idle on Page"
+        );
+        updateInteractionImpression(idleInteraction.id);
+      }
     }
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
