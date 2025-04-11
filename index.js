@@ -2327,49 +2327,49 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         (i) => i.key === "Welcome New Visitor"
       );
       console.log("New visitor interaction:", newVisitorInteraction);
-      const message = replaceMessagePlaceholders(
-        newVisitorInteraction?.message,
-        leadData
-      );
-      console.log("Message new visitors:", message);
+      // const message = replaceMessagePlaceholders(
+      //   newVisitorInteraction?.message,
+      //   leadData
+      // );
+      // console.log("Message new visitors:", message);
 
-      const hasPlaceholders =
-        newVisitorInteraction?.message?.includes("{firstName}") ||
-        newVisitorInteraction?.message?.includes("{companyName}");
+      // const hasPlaceholders =
+      //   newVisitorInteraction?.message?.includes("{firstName}") ||
+      //   newVisitorInteraction?.message?.includes("{companyName}");
 
-      let audioUrl = null;
+      // let audioUrl = null;
 
-      // Fetch existing message and audio URL from the table
-      const existingData = await fetchExistingInteractionData(
-        "Welcome New Visitor"
-      );
-      const existingMessage = existingData?.message;
-      const existingAudioUrl = existingData?.audio_url;
+      // // Fetch existing message and audio URL from the table
+      // const existingData = await fetchExistingInteractionData(
+      //   "Welcome New Visitor"
+      // );
+      // const existingMessage = existingData?.message;
+      // const existingAudioUrl = existingData?.audio_url;
 
-      if (
-        hasPlaceholders &&
-        existingMessage === newVisitorInteraction?.message
-      ) {
-        console.log(existingAudioUrl, "existing audio url in new visitor");
-        // Use existing audio if the message matches
-        audioUrl = existingAudioUrl;
-      } else {
-        // Generate new audio if the message differs
-        const audioBlob = await convertTextToSpeech(message);
-        if (audioBlob) {
-          audioUrl = await UpdateLeadsData(
-            "Welcome New Visitor",
-            audioBlob,
-            newVisitorInteraction?.message
-          );
-          console.log(audioUrl, "audio url in new visitor");
-        }
-      }
+      // if (
+      //   hasPlaceholders &&
+      //   existingMessage === newVisitorInteraction?.message
+      // ) {
+      //   console.log(existingAudioUrl, "existing audio url in new visitor");
+      //   // Use existing audio if the message matches
+      //   audioUrl = existingAudioUrl;
+      // } else {
+      //   // Generate new audio if the message differs
+      //   const audioBlob = await convertTextToSpeech(message);
+      //   if (audioBlob) {
+      //     audioUrl = await UpdateLeadsData(
+      //       "Welcome New Visitor",
+      //       audioBlob,
+      //       newVisitorInteraction?.message
+      //     );
+      //     console.log(audioUrl, "audio url in new visitor");
+      //   }
+      // }
 
       showUIAnimation({
-        text: message,
+        text: newVisitorInteraction?.message,
         time: 15,
-        interactionAudio: audioUrl || newVisitorInteraction?.audio_url || "",
+        interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
         animation: "wave",
         cta: [
