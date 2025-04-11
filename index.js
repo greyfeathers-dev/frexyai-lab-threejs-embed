@@ -8,7 +8,41 @@ const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
 
 // Initialize Supabase client
-const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+let supabase = null;
+
+// Function to initialize Supabase client
+function initializeSupabase() {
+  if (typeof window.supabase !== "undefined") {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+    return true;
+  }
+  return false;
+}
+
+// Try to initialize immediately
+if (!initializeSupabase()) {
+  // If initialization fails, wait for the script to load
+  window.addEventListener("load", function () {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    function tryInitialize() {
+      if (initializeSupabase()) {
+        console.log("Supabase client initialized successfully");
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(tryInitialize, 500);
+      } else {
+        console.error(
+          "Failed to initialize Supabase client after multiple attempts"
+        );
+      }
+    }
+
+    tryInitialize();
+  });
+}
+
 const leadIdLocal = localStorage.getItem("leadId");
 
 // Add ElevenLabs configuration
@@ -337,8 +371,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+  // const user_id = localStorage.getItem("merchantId");
+  const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
