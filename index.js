@@ -64,6 +64,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -371,8 +373,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
-  const user_id = localStorage.getItem("merchantId");
-  // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
@@ -2495,12 +2495,22 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       this.handleMouseMovement = this.handleMouseMovement.bind(this);
       this.lastY = null;
       this.mouseMovingUp = false;
+      this.mousePath = [];
+      this.maxPathLength = 30; // Store last 10 mouse positions
       this.setupEventListeners();
     }
 
     setupEventListeners() {
       console.log("Setting up event listeners");
-      document.addEventListener("mousemove", this.handleMouseMovement);
+      document.addEventListener("mousemove", (e) => {
+        // Track mouse path
+        this.mousePath.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+        if (this.mousePath.length > this.maxPathLength) {
+          this.mousePath.shift(); // Remove oldest position
+        }
+        this.handleMouseMovement(e);
+      });
+
       document.addEventListener("scroll", () => {
         const currentScrollPercentage = getScrollPercentage();
 
@@ -2536,21 +2546,28 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       this.lastY = currentY;
 
       // Update mouseMovingUp flag based on movement direction
-      // Consider movement "upward" if moving up by at least 1 pixel
       this.mouseMovingUp = verticalMovement < 0;
 
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 10; // Increased threshold to 50px from top
-      const isMovingUpward = this.mouseMovingUp;
+      const isNearTop = event.clientY < 30;
+
+      // Check if any point in the mouse path is near the top
+      const isNearTopInPath = this.mousePath.some((point) => point.y < 30);
+
+      // Check if the movement is upward by comparing first and last points in path
+      const isMovingUpward =
+        this.mousePath.length >= 2 &&
+        this.mousePath[this.mousePath.length - 1].y < this.mousePath[0].y;
+
       const isFirstVisit = this.isFirstVisit;
       const hasNotVisitedInternalPages = !hasVisitedInternalPages();
 
       if (
         isWithin30Seconds &&
         isMovingUpward &&
-        isNearTop &&
+        (isNearTop || isNearTopInPath) &&
         !this.hasScrolledPast90 &&
         isFirstVisit &&
         hasNotVisitedInternalPages
@@ -2666,6 +2683,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         this.normalExitIntentHandleMouseMovement.bind(this);
       this.normalExitIntentSetupEventListeners();
       normalExitIntentMarkPageVisit(); // Mark initial page visit
+      this.lastMousePosition = { x: 0, y: 0 };
+      this.lastMouseMoveTime = Date.now();
+      this.mousePath = [];
+      this.maxPathLength = 10; // Store last 10 mouse positions
     }
 
     normalExitIntentSetupEventListeners() {
@@ -2673,9 +2694,17 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Detect mouse movement toward the top
       document.addEventListener("mousemove", (e) => {
+        const currentTime = Date.now();
         const currentY = e.clientY;
         this.normalExitIntentMouseMovingUp = currentY < normalExitIntentLastY;
         normalExitIntentLastY = currentY;
+
+        // Track mouse path
+        this.mousePath.push({ x: e.clientX, y: e.clientY, time: currentTime });
+        if (this.mousePath.length > this.maxPathLength) {
+          this.mousePath.shift(); // Remove oldest position
+        }
+
         this.normalExitIntentHandleMouseMovement(e);
       });
 
@@ -2707,14 +2736,31 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     normalExitIntentHandleMouseMovement(event) {
       if (normalExitIntentHasInteractedBefore()) return;
 
-      const isNearTop = event.clientY < 10; // Reduced threshold to 10px from top
-      const isMovingUpward = this.normalExitIntentMouseMovingUp;
+      // Check if any point in the mouse path is near the top or corners
+      const isNearTopOrCorners = this.mousePath.some((point) => {
+        const isNearTop = point.y < 30;
+        const isNearTopLeftCorner = point.x < 30 && point.y < 30;
+        const isNearTopRightCorner =
+          point.x > window.innerWidth - 30 && point.y < 30;
+        return isNearTop || isNearTopLeftCorner || isNearTopRightCorner;
+      });
+
+      // Check if the movement is upward by comparing first and last points in path
+      const isMovingUpward =
+        this.mousePath.length >= 2 &&
+        this.mousePath[this.mousePath.length - 1].y < this.mousePath[0].y;
+      console.log(
+        isMovingUpward,
+        isNearTopOrCorners,
+        "mouse path",
+        this.mousePath
+      );
 
       if (
         normalExitIntentHasSpentEnoughTime() &&
         (normalExitIntentHasVisitedMultiplePages() ||
           this.normalExitIntentHighestScrollPercentage >= 90) &&
-        isNearTop &&
+        isNearTopOrCorners &&
         isMovingUpward
       ) {
         this.normalExitIntentTriggerInteraction();
