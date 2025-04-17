@@ -1,6 +1,6 @@
 /** @format */
-// localStorage.clear();
-// sessionStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -57,23 +57,37 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 // ***************************************************************************************************************************************************
 
 const MODEL_TEXTURE =
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
+
+// const MODEL_TEXTURE =
+//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-  animation: "idle",
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
+  animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
+// const BASE_MODEL = {
+//   model_url:
+//     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
+//   animation: "idle",
+// };
+
 const ANIMATION_LIST = [
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
+    animation: "relaxed_grip",
+  },
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%201.glb",
@@ -239,6 +253,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     model, // Our character
     neck, // Reference to the neck bone in the skeleton
     waist, // Reference to the waist bone in the skeleton
+    jaw, // Add jaw reference
+    upperJaw, // Add upper jaw reference
     possibleAnims, // Animations found in our file
     mixer, // THREE.js animations mixer
     idle, // Idle, the default state our character returns to
@@ -511,11 +527,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     loader.load(
       MODEL_PATH,
       function (gltf) {
-        // A lot is going to happen here
         model = gltf.scene;
         let fileAnimations = gltf.animations;
 
-        // First of all, we're going to use the model's traverse method to find all the meshs, and enabled the ability to cast and receive shadows. This is done like this. Again, this should go above scene.add(model):
         model.traverse((o) => {
           if (o.isMesh) {
             o.castShadow = true;
@@ -530,66 +544,84 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           }
           // Add detailed bone logging
           if (o.isBone) {
+            console.log("Found bone:", o.name);
             if (o.name === "CC_Base_Head") {
               neck = o;
+              console.log("Found neck bone:", neck);
+            }
+            if (o.name === "spine_01x") {
+              waist = o;
+              console.log("Found waist bone:", waist);
+            }
+            if (o.name === "CC_Base_JawRoot") {
+              jaw = o;
+              console.log("Found jaw bone:", jaw);
+              console.log("Initial jaw quaternion:", jaw.quaternion);
+              console.log("Jaw parent hierarchy:", getParentHierarchy(jaw));
+            }
+            if (o.name === "CC_Base_UpperJaw") {
+              upperJaw = o;
+              console.log("Found upper jaw bone:", upperJaw);
+              console.log("Initial upper jaw quaternion:", upperJaw.quaternion);
+              console.log(
+                "Upper jaw parent hierarchy:",
+                getParentHierarchy(upperJaw)
+              );
             }
           }
-          if (o.isBone && o.name === "spine_01x") {
-            waist = o;
+        });
+
+        // Add helper function to get parent hierarchy
+        function getParentHierarchy(bone) {
+          const hierarchy = [];
+          let current = bone;
+          while (current.parent) {
+            hierarchy.unshift(current.parent.name || "unnamed");
+            current = current.parent;
           }
-        });
+          return hierarchy;
+        }
 
-        model.scale.set(17, 17, 17); // Increased scale from 14.5 to 16.5
-        model.position.y = -12; // Adjusted Y position from -11 to -13 to maintain proper ground alignment
+        model.scale.set(12, 12, 12);
+        model.position.y = -12;
         scene.add(model);
-        mixer = new THREE.AnimationMixer(model);
-        let clips = fileAnimations.filter((val) => val.name !== "idle ");
-        possibleAnims = clips.map((val) => {
-          let clip = THREE.AnimationClip.findByName(clips, val.name);
-          let clonedAnim = clip.clone();
-          clonedAnim.tracks = clonedAnim.tracks
-            .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"));
-          clip = mixer.clipAction(clonedAnim);
-          return {
-            name: val.name,
-            clip,
-          };
-        });
 
-        let idleAnim = THREE.AnimationClip.findByName(
-          fileAnimations,
-          BASE_MODEL.animation
-        );
-        idleAnim.tracks.splice(48, 3);
-        if (idleAnim) {
-          let clonedIdleAnim = idleAnim.clone();
-          clonedIdleAnim.tracks = clonedIdleAnim.tracks
-            .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"))
-            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out neck bone animations
-          idle = mixer.clipAction(clonedIdleAnim);
-          idle.setLoop(THREE.LoopRepeat, Infinity);
+        // Initialize animation mixer
+        mixer = new THREE.AnimationMixer(model);
+
+        // Handle idle animation
+        if (fileAnimations && fileAnimations.length > 0) {
+          let idleAnim = fileAnimations[0]; // Use first animation as idle
+          idleAnim.name = "idle"; // Set the name to idle
+
+          const idleAction = mixer.clipAction(idleAnim);
+          idleAction.setLoop(THREE.LoopRepeat, Infinity);
+          idle = idleAction;
           idle.play();
         }
 
-        // Add click event listener for the model
-        const canvas = renderer.domElement;
-        canvas.addEventListener("click", onModelClick);
+        // Remove loader after successful model load
+        const loader = document.getElementById("loader");
+        if (loader) {
+          loader.remove();
+        }
 
-        fallbackLoader.remove();
+        // Load additional animations after model is ready
         loadAdditionalAnimations(gltf);
-        appendInput();
-        triggerConfig();
-        trackButtonEvents();
-        addActivity({
-          type: "pageVisit",
-          source: getSource(),
-        });
+
+        // Run diagnostic functions
+        inspectModelBones();
+        checkAnimations();
+
+        // Start jaw animation after model is loaded
+        animateJaw(3);
+
+        // Add diagnostic call
+        diagnoseModelIssues();
       },
-      undefined, // We don't need this function
+      undefined,
       function (error) {
-        console.error(error);
+        console.error("Error loading model:", error);
       }
     );
 
@@ -744,36 +776,49 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           // Add new animations to the existing GLTF animations
           newGLTF.animations.forEach((anim) => {
-            // Set the animation name to match the expected name
+            console.log("Loading animation:", animationItem.animation); // Debug animation loading
             anim.name = animationItem.animation;
           });
 
           gltf.animations.push(...newGLTF.animations);
 
           // Update possible animations list
-          const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
+          const newAnim = newGLTF.animations[0];
           if (newAnim) {
             const clonedAnim = newAnim.clone();
+            // Only filter scale and position tracks, keep all bone animations
             clonedAnim.tracks = clonedAnim.tracks
               .filter((track) => !track.name.includes("scale"))
               .filter((track) => !track.name.includes("position"));
 
             const action = mixer.clipAction(clonedAnim);
+            action.setLoop(THREE.LoopRepeat);
 
-            possibleAnims.push({
+            possibleAnims?.push({
               name: animationItem.animation,
               clip: action,
             });
+
+            console.log("Added animation:", animationItem.animation); // Debug animation addition
           }
         },
         undefined,
         function (error) {
           console.error(
-            `Error loading GLTF for ${animationItem.animation}:`,
+            `Error loading animation for ${animationItem.animation}:`,
             error
           );
         }
       );
+    });
+
+    // Initialize UI elements after animations are loaded
+    appendInput();
+    triggerConfig();
+    trackButtonEvents();
+    addActivity({
+      type: "pageVisit",
+      source: getSource(),
     });
   }
 
@@ -1194,32 +1239,56 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= UI ANIMATION FUNCTIONS =============================================
 
   function showUIAnimation(config) {
-    console.log("showing ui animation", config);
-    if (currentlyAnimating) return;
+    console.log("showUIAnimation called with config:", config);
+    console.log("Current state:", {
+      currentlyAnimating,
+      isInteractionActive,
+      hasText: Boolean(config.text),
+      animationType: config.animation,
+    });
+
+    if (currentlyAnimating) {
+      console.log("Animation already in progress, returning");
+      return;
+    }
+
     resetHead();
     isInteractionActive = true;
+
+    // Start jaw animation if we have text to display
+    if (config.text) {
+      console.log("Starting UI animation with jaw movement");
+      // animateJaw(config.time || 10);
+    }
+
     let animationIdx = -1;
     if (config.animation) {
       animationIdx = possibleAnims?.findIndex(
         (animation) => animation.name === config.animation
       );
+      console.log(
+        "Animation index found:",
+        animationIdx,
+        "for animation:",
+        config.animation
+      );
     }
+
     const type = config.imageUrl ? "overlay" : "tooltip";
+    console.log("UI type:", type);
+
     hideInput();
+
     if (animationIdx >= 0) {
+      console.log("Playing animation:", possibleAnims[animationIdx].name);
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
     }
+
     incrementImpression(config.id);
 
-    // Return early if no text is available
-    if (!config.text) {
-      showInput();
-      isInteractionActive = false;
-      return;
-    }
-
-    // Play notification sound with delay
+    // Play notification sound
     setTimeout(() => {
+      console.log("Playing notification sound");
       const notificationSound = new Audio("/notification.mp3");
       notificationSound.volume = 0.5;
       notificationSound.play().catch((error) => {
@@ -1227,21 +1296,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
     }, 100);
 
-    // Play text-to-speech if text is available and it's not the welcome message
-    if (config.text) {
-      console.log("Preparing to play text-to-speech for:", config.text);
-      setTimeout(() => {
-        // Play audio if interactionAudio is provided
-        if (config.interactionAudio && !isMuted) {
-          const audio = new Audio(config.interactionAudio);
-          audio.play().catch((error) => {
-            console.error("Error playing audio:", error);
-          });
-        }
-      }, 500);
-    }
-
     if (type === "tooltip") {
+      console.log("Showing tooltip with text:", config.text);
       showTooltip(
         config.id,
         config.format,
@@ -1255,9 +1311,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         config.onClickClose,
         config.timerCountdown,
         () => {
-          if (config.onEnd)
+          console.log("Tooltip callback triggered");
+          if (config.onEnd) {
+            console.log("Showing next animation");
             showUIAnimation(CONFIG.filter((c) => c.id === config.onEnd)[0]);
-          else {
+          } else {
+            console.log("Resetting UI state");
             showInput();
             isInteractionActive = false;
           }
@@ -2368,7 +2427,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       showUIAnimation({
         text: newVisitorInteraction?.message,
-        time: 15,
+        time: 5,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
         animation: "wave",
@@ -3125,4 +3184,482 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
   //*************************************************END OF INTERACTION HANDLER*****************************************************
+  // Simplified jaw movement function
+  function animateJaw(duration = 3) {
+    if (!model) {
+      console.warn("Model not loaded yet!");
+      return;
+    }
+
+    // Find the jaw bone and its parent
+    let jawBone = null;
+    let facialBone = null;
+    let teethMesh = null;
+
+    model.traverse((object) => {
+      if (object.isBone) {
+        if (object.name === "CC_Base_JawRoot") {
+          jawBone = object;
+        } else if (object.name === "CC_Base_FacialBone") {
+          facialBone = object;
+        }
+      } else if (object.isSkinnedMesh && object.name === "CC_Base_Teeth") {
+        teethMesh = object;
+      }
+    });
+
+    if (!jawBone || !facialBone) {
+      console.warn("Required bones not found!");
+      return;
+    }
+
+    if (!teethMesh) {
+      console.warn("Teeth mesh not found!");
+      return;
+    }
+
+    // Store initial transforms
+    const initialPosition = jawBone.position.clone();
+    const initialRotation = jawBone.rotation.clone();
+    const initialQuaternion = jawBone.quaternion.clone();
+    const initialMatrix = jawBone.matrix.clone();
+    const initialMatrixWorld = jawBone.matrixWorld.clone();
+
+    // Create a pivot point at the jaw's natural rotation point
+    const pivotPoint = new THREE.Vector3(0, 0, 0);
+    const pivotHelper = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+    pivotHelper.position.copy(pivotPoint);
+    jawBone.add(pivotHelper);
+
+    // Add axis helpers
+    const jawHelper = new THREE.AxesHelper(0.5);
+    const facialHelper = new THREE.AxesHelper(0.5);
+    jawBone.add(jawHelper);
+    facialBone.add(facialHelper);
+
+    // Add a bounding box helper for the teeth mesh
+    const teethHelper = new THREE.BoxHelper(teethMesh, 0x00ff00);
+    model.add(teethHelper);
+
+    console.log("\n=== Initial Jaw State ===");
+    console.log("Jaw Position:", initialPosition.toArray());
+    console.log("Jaw Rotation:", initialRotation.toArray());
+    console.log("Jaw Matrix:", initialMatrix.elements);
+    console.log("Jaw World Matrix:", initialMatrixWorld.elements);
+    console.log("Teeth Mesh Position:", teethMesh.position.toArray());
+    console.log("Teeth Mesh Rotation:", teethMesh.rotation.toArray());
+
+    let startTime = null;
+    const maxRotation = Math.PI / 6; // 30 degrees
+
+    function updateJaw() {
+      if (!startTime) startTime = Date.now();
+      const elapsed = (Date.now() - startTime) / 1000;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Calculate open amount using smooth easing
+      const openAmount = Math.sin(progress * Math.PI) * maxRotation;
+
+      // Create rotation matrix in local space
+      const rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationX(openAmount);
+
+      // Apply rotation around pivot point
+      jawBone.matrix.multiply(rotationMatrix);
+      jawBone.matrix.decompose(
+        jawBone.position,
+        jawBone.quaternion,
+        jawBone.scale
+      );
+
+      // Force update matrices
+      jawBone.updateMatrixWorld(true);
+
+      // Update the teeth mesh specifically
+      teethMesh.updateMatrix();
+      teethMesh.updateMatrixWorld(true);
+      if (teethMesh.skeleton) {
+        teethMesh.skeleton.update();
+      }
+
+      // Log current state
+      console.log("\n=== Jaw Animation State ===");
+      console.log("Bone Name:", jawBone.name);
+      console.log("Parent Name:", jawBone.parent.name);
+      console.log("Open Amount:", openAmount);
+      console.log("Angle (degrees):", (openAmount * 180) / Math.PI);
+      console.log("Jaw Position:", jawBone.position.toArray());
+      console.log("Jaw Rotation:", jawBone.rotation.toArray());
+      console.log("Jaw Matrix:", jawBone.matrix.elements);
+      console.log("Jaw World Matrix:", jawBone.matrixWorld.elements);
+      console.log("Teeth Position:", teethMesh.position.toArray());
+      console.log("Teeth Rotation:", teethMesh.rotation.toArray());
+
+      if (progress < 1) {
+        requestAnimationFrame(updateJaw);
+      } else {
+        // Reset to initial state
+        jawBone.position.copy(initialPosition);
+        jawBone.rotation.copy(initialRotation);
+        jawBone.quaternion.copy(initialQuaternion);
+        jawBone.matrix.copy(initialMatrix);
+        jawBone.matrixWorld.copy(initialMatrixWorld);
+
+        teethMesh.updateMatrix();
+        teethMesh.updateMatrixWorld(true);
+        if (teethMesh.skeleton) {
+          teethMesh.skeleton.update();
+        }
+      }
+    }
+
+    updateJaw();
+  }
+
+  // animateJaw(10);
+
+  function inspectModelBones() {
+    console.log("Inspecting model bones:");
+    let bones = [];
+
+    model.traverse((object) => {
+      if (object.isBone) {
+        bones.push({
+          name: object.name,
+          parent: object.parent ? object.parent.name : "none",
+          children: object.children.length,
+          position: object.position.toArray(),
+          rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+          quaternion: [
+            object.quaternion.x,
+            object.quaternion.y,
+            object.quaternion.z,
+            object.quaternion.w,
+          ],
+        });
+      }
+    });
+
+    console.table(bones);
+
+    // Check skinned meshes
+    let skinnedMeshes = [];
+    model.traverse((object) => {
+      if (object.isSkinnedMesh) {
+        skinnedMeshes.push({
+          name: object.name,
+          bones: object.skeleton ? object.skeleton.bones.length : 0,
+          hasSkeleton: !!object.skeleton,
+        });
+      }
+    });
+
+    console.log("Skinned meshes:", skinnedMeshes);
+  }
+
+  function checkAnimations() {
+    console.log("Checking model animations:");
+
+    if (model.animations) {
+      console.log(
+        `Found ${model.animations.length} animations:`,
+        model.animations.map((a) => a.name)
+      );
+    } else {
+      console.log("No animations found on model");
+    }
+
+    // Check for animation mixer
+    if (model.mixer) {
+      console.log("Model has animation mixer");
+    }
+  }
+
+  function diagnoseModelIssues() {
+    if (!model) {
+      console.warn("Model not loaded yet!");
+      return;
+    }
+
+    console.log("=== Starting Model Diagnosis ===");
+
+    // 1. Check Bone Hierarchy
+    console.log("\n1. Bone Hierarchy Analysis:");
+    let bones = [];
+    model.traverse((object) => {
+      if (object.isBone) {
+        const parentName = object.parent ? object.parent.name : "none";
+        const children = object.children.map((child) => child.name);
+        bones.push({
+          name: object.name,
+          parent: parentName,
+          children: children,
+          position: object.position.toArray(),
+          rotation: object.rotation.toArray(),
+          quaternion: object.quaternion.toArray(),
+          matrix: object.matrix.elements,
+          matrixWorld: object.matrixWorld.elements,
+        });
+      }
+    });
+    console.table(bones);
+
+    // 2. Check Skinned Meshes
+    console.log("\n2. Skinned Mesh Analysis:");
+    let skinnedMeshes = [];
+    model.traverse((object) => {
+      if (object.isSkinnedMesh) {
+        const boneNames = object.skeleton.bones.map((bone) => bone.name);
+        skinnedMeshes.push({
+          name: object.name,
+          boneCount: object.skeleton.bones.length,
+          bones: boneNames,
+          influences: object.geometry.attributes.skinWeight
+            ? object.geometry.attributes.skinWeight.array.length / 4
+            : 0,
+        });
+      }
+    });
+    console.table(skinnedMeshes);
+
+    // 3. Check Animations
+    console.log("\n3. Animation Analysis:");
+    if (model.animations && model.animations.length > 0) {
+      model.animations.forEach((anim) => {
+        console.log(`Animation: ${anim.name}`);
+        console.log(
+          "Tracks:",
+          anim.tracks.map((track) => ({
+            name: track.name,
+            type: track.ValueTypeName,
+            keyframes: track.times.length,
+          }))
+        );
+      });
+    } else {
+      console.log("No animations found");
+    }
+
+    // 4. Check Jaw Bone Specifically
+    console.log("\n4. Jaw Bone Analysis:");
+    let jawBone = null;
+    model.traverse((object) => {
+      if (object.isBone && object.name === "CC_Base_JawRoot") {
+        jawBone = object;
+      }
+    });
+
+    if (jawBone) {
+      console.log("Jaw bone found:", {
+        name: jawBone.name,
+        parent: jawBone.parent ? jawBone.parent.name : "none",
+        position: jawBone.position.toArray(),
+        rotation: jawBone.rotation.toArray(),
+        quaternion: jawBone.quaternion.toArray(),
+        matrix: jawBone.matrix.elements,
+        matrixWorld: jawBone.matrixWorld.elements,
+      });
+
+      // Check if jaw bone is connected to any skinned meshes
+      const connectedMeshes = [];
+      model.traverse((object) => {
+        if (object.isSkinnedMesh && object.skeleton.bones.includes(jawBone)) {
+          connectedMeshes.push(object.name);
+        }
+      });
+      console.log("Connected meshes:", connectedMeshes);
+    } else {
+      console.log("Jaw bone not found!");
+    }
+
+    // 5. Check Bone Constraints
+    console.log("\n5. Bone Constraint Analysis:");
+    model.traverse((object) => {
+      if (object.isBone) {
+        const constraints = [];
+        if (
+          object.rotation.x === 0 &&
+          object.rotation.y === 0 &&
+          object.rotation.z === 0
+        ) {
+          constraints.push("rotation_locked");
+        }
+        if (
+          object.position.x === 0 &&
+          object.position.y === 0 &&
+          object.position.z === 0
+        ) {
+          constraints.push("position_locked");
+        }
+        if (constraints.length > 0) {
+          console.log(`${object.name} has constraints:`, constraints);
+        }
+      }
+    });
+
+    console.log("\n=== Model Diagnosis Complete ===");
+  }
+
+  // Call this after model is loaded
+  loader.load(
+    MODEL_PATH,
+    function (gltf) {
+      model = gltf.scene;
+      let fileAnimations = gltf.animations;
+
+      model.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+          o.material = stacy_mtl.clone();
+
+          // Enhance material colors
+          if (o.material instanceof THREE.MeshStandardMaterial) {
+            o.material.color.multiplyScalar(2);
+            o.material.needsUpdate = true;
+          }
+        }
+        // Add detailed bone logging
+        if (o.isBone) {
+          console.log("Found bone:", o.name);
+          if (o.name === "CC_Base_Head") {
+            neck = o;
+            console.log("Found neck bone:", neck);
+          }
+          if (o.name === "spine_01x") {
+            waist = o;
+            console.log("Found waist bone:", waist);
+          }
+          if (o.name === "CC_Base_JawRoot") {
+            jaw = o;
+            console.log("Found jaw bone:", jaw);
+            console.log("Initial jaw quaternion:", jaw.quaternion);
+            console.log("Jaw parent hierarchy:", getParentHierarchy(jaw));
+          }
+          if (o.name === "CC_Base_UpperJaw") {
+            upperJaw = o;
+            console.log("Found upper jaw bone:", upperJaw);
+            console.log("Initial upper jaw quaternion:", upperJaw.quaternion);
+            console.log(
+              "Upper jaw parent hierarchy:",
+              getParentHierarchy(upperJaw)
+            );
+          }
+        }
+      });
+
+      // Add helper function to get parent hierarchy
+      function getParentHierarchy(bone) {
+        const hierarchy = [];
+        let current = bone;
+        while (current.parent) {
+          hierarchy.unshift(current.parent.name || "unnamed");
+          current = current.parent;
+        }
+        return hierarchy;
+      }
+
+      model.scale.set(12, 12, 12);
+      model.position.y = -12;
+      scene.add(model);
+
+      // Initialize animation mixer
+      mixer = new THREE.AnimationMixer(model);
+
+      // Handle idle animation
+      if (fileAnimations && fileAnimations.length > 0) {
+        let idleAnim = fileAnimations[0]; // Use first animation as idle
+        idleAnim.name = "idle"; // Set the name to idle
+
+        const idleAction = mixer.clipAction(idleAnim);
+        idleAction.setLoop(THREE.LoopRepeat, Infinity);
+        idle = idleAction;
+        idle.play();
+      }
+
+      // Remove loader after successful model load
+      const loader = document.getElementById("loader");
+      if (loader) {
+        loader.remove();
+      }
+
+      // Load additional animations after model is ready
+      loadAdditionalAnimations(gltf);
+
+      // Run diagnostic functions
+      inspectModelBones();
+      checkAnimations();
+
+      // Start jaw animation after model is loaded
+      animateJaw(3);
+
+      // Add diagnostic call
+      // diagnoseModelIssues();
+    },
+    undefined,
+    function (error) {
+      console.error("Error loading model:", error);
+    }
+  );
 })(); // Don't add anything below this line
+
+function analyzeSkinWeights(mesh, boneName) {
+  if (!mesh.isSkinnedMesh) return null;
+
+  const skinWeights = [];
+  const geometry = mesh.geometry;
+  const skinIndex = geometry.attributes.skinIndex;
+  const skinWeight = geometry.attributes.skinWeight;
+
+  // Get bone index
+  const boneIndex = mesh.skeleton.bones.findIndex(
+    (bone) => bone.name === boneName
+  );
+  if (boneIndex === -1) return null;
+
+  // Analyze weights for this bone
+  for (let i = 0; i < skinIndex.count; i++) {
+    const indices = [
+      skinIndex.getX(i),
+      skinIndex.getY(i),
+      skinIndex.getZ(i),
+      skinIndex.getW(i),
+    ];
+    const weights = [
+      skinWeight.getX(i),
+      skinWeight.getY(i),
+      skinWeight.getZ(i),
+      skinWeight.getW(i),
+    ];
+
+    // Check if this vertex is influenced by our bone
+    const boneWeightIndex = indices.indexOf(boneIndex);
+    if (boneWeightIndex !== -1) {
+      skinWeights.push({
+        vertexIndex: i,
+        weight: weights[boneWeightIndex],
+        position: geometry.attributes.position
+          ? new THREE.Vector3().fromBufferAttribute(
+              geometry.attributes.position,
+              i
+            )
+          : null,
+      });
+    }
+  }
+
+  return {
+    meshName: mesh.name,
+    boneName: boneName,
+    totalVertices: skinIndex.count,
+    influencedVertices: skinWeights.length,
+    maxWeight: Math.max(...skinWeights.map((w) => w.weight)),
+    minWeight: Math.min(...skinWeights.map((w) => w.weight)),
+    averageWeight:
+      skinWeights.reduce((sum, w) => sum + w.weight, 0) / skinWeights.length,
+    weights: skinWeights,
+  };
+}
