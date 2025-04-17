@@ -2029,6 +2029,17 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       z: jawRoot.position.z,
     };
 
+    // Calculate frequency based on duration
+    const durationInSeconds = durationMs / 1000;
+    // Use a non-linear scaling to ensure good movement for both short and long durations
+    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
+    console.log(
+      "Calculated frequency:",
+      frequency,
+      "durationInSeconds",
+      durationInSeconds
+    );
+
     function updateJaw() {
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
@@ -2040,10 +2051,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         return;
       }
 
-      // Calculate position using sine wave for smooth up and down motion
+      // Calculate position using sine wave with dynamic frequency
       const progress = currentTime / durationMs;
       const posX =
-        minAngle + (maxAngle - minAngle) * Math.sin(progress * Math.PI * 10);
+        minAngle +
+        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
 
       // Only modify the x position
       jawRoot.position.x = posX;
@@ -2053,7 +2065,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       requestAnimationFrame(updateJaw);
     }
 
-    // Start the animation
+    // Start the animation immediately
     updateJaw();
   }
 
