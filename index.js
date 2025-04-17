@@ -57,27 +57,36 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 // ***************************************************************************************************************************************************
 
 const MODEL_TEXTURE =
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
+
+// const MODEL_TEXTURE =
+//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-  animation: "idle",
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
+  animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
+
+// const BASE_MODEL = {
+//   model_url:
+//     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
+//   animation: "idle",
+// };
 
 const ANIMATION_LIST = [
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%201.glb",
-    animation: "casual_talk_1",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
+    animation: "relaxed_grip",
   },
   {
     model_url:
@@ -239,6 +248,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     model, // Our character
     neck, // Reference to the neck bone in the skeleton
     waist, // Reference to the waist bone in the skeleton
+    jawRoot, // Reference to the jaw root bone in the skeleton
     possibleAnims, // Animations found in our file
     mixer, // THREE.js animations mixer
     idle, // Idle, the default state our character returns to
@@ -532,6 +542,15 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           if (o.isBone) {
             if (o.name === "CC_Base_Head") {
               neck = o;
+              console.log("Found neck bone:", neck);
+            }
+            if (o.name === "CC_Base_JawRoot") {
+              jawRoot = o;
+              console.log("Found jaw root bone:", jawRoot);
+              // Set initial jaw position to open
+              // keepJawOpen();
+              // Start jaw speaking animation
+              animateJawSpeaking();
             }
           }
           if (o.isBone && o.name === "spine_01x") {
@@ -539,7 +558,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           }
         });
 
-        model.scale.set(17, 17, 17); // Increased scale from 14.5 to 16.5
+        model.scale.set(12, 12, 12); // Increased scale from 14.5 to 16.5
         model.position.y = -12; // Adjusted Y position from -11 to -13 to maintain proper ground alignment
         scene.add(model);
         mixer = new THREE.AnimationMixer(model);
@@ -1970,6 +1989,44 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Start the update loop
       updateHeadPosition();
     }
+  }
+
+  // Function to keep jaw in open position
+  function keepJawOpen() {
+    if (jawRoot) {
+      // Set jaw rotation to open position (adjust the angle as needed)
+      const openAngle = THREE.Math.degToRad(0); // 15 degrees rotation for open mouth
+      console.log("jawRoot open", openAngle, jawRoot.rotation.x);
+      // jawRoot.position.x = openAngle;
+    }
+  }
+
+  // Function to animate jaw movement
+  function animateJawSpeaking() {
+    if (!jawRoot) return;
+
+    const startTime = Date.now();
+    const duration = 10000; // 10 seconds
+    const minAngle = THREE.Math.degToRad(10);
+    const maxAngle = THREE.Math.degToRad(60);
+
+    function updateJaw() {
+      const currentTime = Date.now() - startTime;
+      if (currentTime >= duration) return; // Stop after 10 seconds
+
+      // Calculate angle using sine wave for smooth up and down motion
+      const progress = currentTime / duration;
+      const angle =
+        minAngle + (maxAngle - minAngle) * Math.sin(progress * Math.PI * 17); // 4 cycles in 10 seconds
+
+      jawRoot.position.x = angle;
+
+      // Continue animation
+      requestAnimationFrame(updateJaw);
+    }
+
+    // Start the animation
+    updateJaw();
   }
 
   // ============================================= MOUSE DEGREES FUNCTIONS =============================================
