@@ -1228,15 +1228,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
     incrementImpression(config.id);
     console.log("config.audioDuration", config.audioDuration);
-    // Start jaw animation if audio duration is provided
-    if (config.audioDuration > 0) {
-      console.log(
-        "Starting jaw animation with duration:",
-        config.audioDuration
-      );
+
+    // Play text-to-speech if text is available and it's not the welcome message
+    if (config.text) {
+      console.log("Preparing to play text-to-speech for:", config.text);
       setTimeout(() => {
-        animateJawSpeaking(config.audioDuration);
-      }, 100); // Small delay to sync with audio
+        // Play audio if interactionAudio is provided
+        if (config.interactionAudio && !isMuted) {
+          const audio = new Audio(config.interactionAudio);
+          // Add event listener for when audio starts playing
+          audio.addEventListener("play", () => {
+            console.log("Audio started playing, triggering jaw animation");
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
+          });
+          audio.play().catch((error) => {
+            console.error("Error playing audio:", error);
+          });
+        }
+      }, 500);
     }
 
     // Return early if no text is available
@@ -1254,20 +1265,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         console.error("Error playing notification sound:", error);
       });
     }, 100);
-
-    // Play text-to-speech if text is available and it's not the welcome message
-    if (config.text) {
-      console.log("Preparing to play text-to-speech for:", config.text);
-      setTimeout(() => {
-        // Play audio if interactionAudio is provided
-        if (config.interactionAudio && !isMuted) {
-          const audio = new Audio(config.interactionAudio);
-          audio.play().catch((error) => {
-            console.error("Error playing audio:", error);
-          });
-        }
-      }, 500);
-    }
 
     if (type === "tooltip") {
       showTooltip(
@@ -2029,6 +2026,17 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       z: jawRoot.position.z,
     };
 
+    // Calculate frequency based on duration
+    const durationInSeconds = durationMs / 1000;
+    // Use a non-linear scaling to ensure good movement for both short and long durations
+    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
+    console.log(
+      "Calculated frequency:",
+      frequency,
+      "durationInSeconds",
+      durationInSeconds
+    );
+
     function updateJaw() {
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
@@ -2040,10 +2048,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         return;
       }
 
-      // Calculate position using sine wave for smooth up and down motion
+      // Calculate position using sine wave with dynamic frequency
       const progress = currentTime / durationMs;
       const posX =
-        minAngle + (maxAngle - minAngle) * Math.sin(progress * Math.PI * 10);
+        minAngle +
+        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
 
       // Only modify the x position
       jawRoot.position.x = posX;
@@ -2053,7 +2062,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       requestAnimationFrame(updateJaw);
     }
 
-    // Start the animation
+    // Start the animation immediately
     updateJaw();
   }
 
