@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -468,7 +468,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.position = "fixed";
     canvas.style.bottom = "-40px";
     canvas.style.right = isMobile ? "-76px" : "-45px";
-    canvas.style.height = isMobile ? "260px" : "300px";
+    canvas.style.height = isMobile ? "260px" : "310px";
     canvas.style.width = isMobile ? "260px" : "280px";
     // canvas.style.backgroundColor = "red";
 
@@ -575,7 +575,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
             .filter((track) => !track.name.includes("scale"))
             .filter((track) => !track.name.includes("position"))
-            .filter((track) => !track.name.includes("CC_Base_JawRoot")); // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out jaw bone animations
 
           const idleAction = mixer.clipAction(clonedIdleAnim);
           idleAction.setLoop(THREE.LoopRepeat, Infinity);
@@ -598,11 +599,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           type: "pageVisit",
           source: getSource(),
         });
-
-        // Start jaw animation after a short delay to ensure model is fully loaded
-        // setTimeout(() => {
-        //   animateJawSpeaking();
-        // }, 1000);
       },
       undefined,
       function (error) {
@@ -1228,16 +1224,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
     incrementImpression(config.id);
     console.log("config.audioDuration", config.audioDuration);
-    // Start jaw animation if audio duration is provided
-    if (config.audioDuration > 0) {
-      console.log(
-        "Starting jaw animation with duration:",
-        config.audioDuration
-      );
-      setTimeout(() => {
-        animateJawSpeaking(config.audioDuration);
-      }, 100); // Small delay to sync with audio
-    }
 
     // Return early if no text is available
     if (!config.text) {
@@ -1262,6 +1248,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         // Play audio if interactionAudio is provided
         if (config.interactionAudio && !isMuted) {
           const audio = new Audio(config.interactionAudio);
+
+          // Add event listeners for audio
+          audio.addEventListener("play", () => {
+            console.log("Audio started playing, starting jaw animation");
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
+          });
           audio.play().catch((error) => {
             console.error("Error playing audio:", error);
           });
@@ -1964,7 +1958,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     let w = { x: window.innerWidth, y: window.innerHeight };
     const xRef = w.x / 2;
     const yRef = w.y / 2;
-
+    console.log("neck data:", neck);
     if (neck) {
       // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
