@@ -57,7 +57,10 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 // ***************************************************************************************************************************************************
 
 const MODEL_TEXTURE =
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
+
+// const MODEL_TEXTURE =
+//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
@@ -69,15 +72,22 @@ const user_id = localStorage.getItem("merchantId");
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-  animation: "idle",
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
+
+  animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
+
+// const BASE_MODEL = {
+//   model_url:
+//     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
+//   animation: "idle",
+// };
 
 const ANIMATION_LIST = [
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%201.glb",
-    animation: "casual_talk_1",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
+    animation: "relaxed_grip",
   },
   {
     model_url:
@@ -239,6 +249,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     model, // Our character
     neck, // Reference to the neck bone in the skeleton
     waist, // Reference to the waist bone in the skeleton
+    jawRoot, // Reference to the jaw root bone in the skeleton
     possibleAnims, // Animations found in our file
     mixer, // THREE.js animations mixer
     idle, // Idle, the default state our character returns to
@@ -457,8 +468,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.position = "fixed";
     canvas.style.bottom = "-40px";
     canvas.style.right = isMobile ? "-76px" : "-45px";
-    canvas.style.height = isMobile ? "260px" : "280px";
+    canvas.style.height = isMobile ? "260px" : "310px";
     canvas.style.width = isMobile ? "260px" : "280px";
+    // canvas.style.backgroundColor = "red";
 
     scene = new THREE.Scene();
     scene.background = null;
@@ -511,11 +523,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     loader.load(
       MODEL_PATH,
       function (gltf) {
-        // A lot is going to happen here
         model = gltf.scene;
         let fileAnimations = gltf.animations;
 
-        // First of all, we're going to use the model's traverse method to find all the meshs, and enabled the ability to cast and receive shadows. This is done like this. Again, this should go above scene.add(model):
         model.traverse((o) => {
           if (o.isMesh) {
             o.castShadow = true;
@@ -530,54 +540,57 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           }
           // Add detailed bone logging
           if (o.isBone) {
+            console.log("Found bone:", o.name);
             if (o.name === "CC_Base_Head") {
               neck = o;
+              console.log("Found neck bone:", neck);
+            }
+            if (o.name === "spine_01x") {
+              waist = o;
+              console.log("Found waist bone:", waist);
+            }
+            if (o.name === "CC_Base_JawRoot") {
+              jawRoot = o;
+              console.log("Found jaw bone:", jawRoot);
             }
           }
-          if (o.isBone && o.name === "spine_01x") {
-            waist = o;
-          }
         });
 
-        model.scale.set(17, 17, 17); // Increased scale from 14.5 to 16.5
-        model.position.y = -12; // Adjusted Y position from -11 to -13 to maintain proper ground alignment
+        // Add helper function to get parent hierarchy
+
+        model.scale.set(12, 12, 12);
+        model.position.y = -12;
         scene.add(model);
-        mixer = new THREE.AnimationMixer(model);
-        let clips = fileAnimations.filter((val) => val.name !== "idle ");
-        possibleAnims = clips.map((val) => {
-          let clip = THREE.AnimationClip.findByName(clips, val.name);
-          let clonedAnim = clip.clone();
-          clonedAnim.tracks = clonedAnim.tracks
-            .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"));
-          clip = mixer.clipAction(clonedAnim);
-          return {
-            name: val.name,
-            clip,
-          };
-        });
 
-        let idleAnim = THREE.AnimationClip.findByName(
-          fileAnimations,
-          BASE_MODEL.animation
-        );
-        idleAnim.tracks.splice(48, 3);
-        if (idleAnim) {
+        // Initialize animation mixer
+        mixer = new THREE.AnimationMixer(model);
+
+        // Handle idle animation
+        if (fileAnimations && fileAnimations.length > 0) {
+          let idleAnim = fileAnimations[0]; // Use first animation as idle
+          idleAnim.name = "idle"; // Set the name to idle
+
+          // Clone the animation and filter out jaw bone tracks
           let clonedIdleAnim = idleAnim.clone();
           clonedIdleAnim.tracks = clonedIdleAnim.tracks
             .filter((track) => !track.name.includes("scale"))
             .filter((track) => !track.name.includes("position"))
-            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out neck bone animations
-          idle = mixer.clipAction(clonedIdleAnim);
-          idle.setLoop(THREE.LoopRepeat, Infinity);
+            .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out jaw bone animations
+
+          const idleAction = mixer.clipAction(clonedIdleAnim);
+          idleAction.setLoop(THREE.LoopRepeat, Infinity);
+          idle = idleAction;
           idle.play();
         }
 
-        // Add click event listener for the model
-        const canvas = renderer.domElement;
-        canvas.addEventListener("click", onModelClick);
+        // Remove loader after successful model load
+        const loader = document.getElementById("loader");
+        if (loader) {
+          loader.remove();
+        }
 
-        fallbackLoader.remove();
+        // Load additional animations after model is ready
         loadAdditionalAnimations(gltf);
         appendInput();
         triggerConfig();
@@ -587,9 +600,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           source: getSource(),
         });
       },
-      undefined, // We don't need this function
+      undefined,
       function (error) {
-        console.error(error);
+        console.error("Error loading model:", error);
       }
     );
 
@@ -744,23 +757,23 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           // Add new animations to the existing GLTF animations
           newGLTF.animations.forEach((anim) => {
-            // Set the animation name to match the expected name
-            anim.name = animationItem.animation;
-          });
+            // Clone the animation and filter out jaw bone tracks
+            let clonedAnim = anim.clone();
+            clonedAnim.tracks = clonedAnim.tracks
+              .filter((track) => !track.name.includes("scale"))
+              .filter((track) => !track.name.includes("position"))
+              .filter((track) => !track.name.includes("CC_Base_JawRoot")); // Filter out jaw bone animations
 
-          gltf.animations.push(...newGLTF.animations);
+            // Set the animation name to match the expected name
+            clonedAnim.name = animationItem.animation;
+            gltf.animations.push(clonedAnim);
+          });
 
           // Update possible animations list
           const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
           if (newAnim) {
-            const clonedAnim = newAnim.clone();
-            clonedAnim.tracks = clonedAnim.tracks
-              .filter((track) => !track.name.includes("scale"))
-              .filter((track) => !track.name.includes("position"));
-
-            const action = mixer.clipAction(clonedAnim);
-
-            possibleAnims.push({
+            const action = mixer.clipAction(newAnim);
+            possibleAnims?.push({
               name: animationItem.animation,
               clip: action,
             });
@@ -1210,6 +1223,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
     }
     incrementImpression(config.id);
+    console.log("config.audioDuration", config.audioDuration);
 
     // Return early if no text is available
     if (!config.text) {
@@ -1234,6 +1248,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         // Play audio if interactionAudio is provided
         if (config.interactionAudio && !isMuted) {
           const audio = new Audio(config.interactionAudio);
+
+          // Add event listeners for audio
+          audio.addEventListener("play", () => {
+            console.log("Audio started playing, starting jaw animation");
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
+          });
           audio.play().catch((error) => {
             console.error("Error playing audio:", error);
           });
@@ -1936,7 +1958,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     let w = { x: window.innerWidth, y: window.innerHeight };
     const xRef = w.x / 2;
     const yRef = w.y / 2;
-
+    console.log("neck data:", neck);
     if (neck) {
       // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
@@ -1970,6 +1992,75 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Start the update loop
       updateHeadPosition();
     }
+  }
+
+  // Function to keep jaw in open position
+  function keepJawOpen() {
+    if (jawRoot) {
+      // Set jaw rotation to open position (adjust the angle as needed)
+      // const openAngle = THREE.Math.degToRad(50); // 15 degrees rotation for open mouth
+      console.log("jawRoot open", jawRoot.rotation);
+      // jawRoot.position.x = openAngle;
+    }
+  }
+
+  // Function to animate jaw movement
+  function animateJawSpeaking(duration = 3) {
+    if (!jawRoot) return;
+
+    // Convert duration from seconds to milliseconds and ensure it's a valid number
+    const durationMs = Math.max(1000, Math.floor(Number(duration) * 1000));
+    console.log("animateJawSpeaking duration (ms):", durationMs);
+
+    const startTime = Date.now();
+    const minAngle = -0.8; // Based on initial position.x
+    const maxAngle = 0.4; // Range for movement
+
+    // Store initial position values
+    const initialPosition = {
+      x: jawRoot.position.x,
+      y: jawRoot.position.y,
+      z: jawRoot.position.z,
+    };
+
+    // Calculate frequency based on duration
+    const durationInSeconds = durationMs / 1000;
+    // Use a non-linear scaling to ensure good movement for both short and long durations
+    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
+    console.log(
+      "Calculated frequency:",
+      frequency,
+      "durationInSeconds",
+      durationInSeconds
+    );
+
+    function updateJaw() {
+      const currentTime = Date.now() - startTime;
+      if (currentTime >= durationMs) {
+        // Reset all position values to initial state
+        jawRoot.position.x = initialPosition.x;
+        jawRoot.position.y = initialPosition.y;
+        jawRoot.position.z = initialPosition.z;
+        console.log("Jaw reset to initial position:", jawRoot.position);
+        return;
+      }
+
+      // Calculate position using sine wave with dynamic frequency
+      const progress = currentTime / durationMs;
+      const posX =
+        minAngle +
+        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
+
+      // Only modify the x position
+      jawRoot.position.x = posX;
+      console.log("jawRoot.position.x", jawRoot.position.x);
+
+      // Continue animation
+      requestAnimationFrame(updateJaw);
+    }
+
+    // Start the animation immediately
+    updateJaw();
   }
 
   // ============================================= MOUSE DEGREES FUNCTIONS =============================================
@@ -2372,6 +2463,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
         animation: "wave",
+        audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
             text: "Ask me Anything!",
@@ -2408,6 +2500,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           hasClose: false,
           animation: "wave",
           interactionAudio: returningVisitorInteraction?.audio_url || "",
+          audioDuration: newVisitorInteraction?.audio_duration || 0,
           cta: [
             {
               text: "Ask me anything!",
@@ -2590,6 +2683,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         hasClose: false,
         animation: "no_no",
         interactionAudio: avoidBounceInteraction?.audio_url || "",
+        audioDuration: avoidBounceInteraction?.audio_duration || 0,
       });
       updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
@@ -2780,6 +2874,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         hasClose: false,
         animation: "casual_talk_2",
         interactionAudio: normalExitIntentInteraction?.audio_url || "",
+        audioDuration: normalExitIntentInteraction?.audio_duration || 0,
         cta: [
           {
             text: "Ask me anything!",
@@ -2983,6 +3078,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         hasClose: false,
         animation: "casual_talk_2",
         interactionAudio: confusedInteraction?.audio_url || "",
+        audioDuration: confusedInteraction?.audio_duration || 0,
         cta: [
           {
             text: "Ask me anything!",
@@ -3112,6 +3208,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         hasClose: false,
         animation: "wait_up",
         interactionAudio: idleInteraction?.audio_url || "",
+        audioDuration: idleInteraction?.audio_duration || 0,
         cta: [
           {
             text: "Ask me anything!",
