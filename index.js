@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -1234,6 +1234,35 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
     incrementImpression(config.id);
     console.log("config.audioDuration", config.audioDuration);
+    // Start jaw animation if audio duration is provided
+    if (config.text) {
+      console.log("Preparing to play text-to-speech for:", config.text);
+      setTimeout(() => {
+        // Play audio if interactionAudio is provided
+        if (config.interactionAudio && !isMuted) {
+          const audio = new Audio(config.interactionAudio);
+
+          // Add event listeners for audio
+          audio.addEventListener("play", () => {
+            console.log("Audio started playing, starting jaw animation");
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
+          });
+
+          // Ensure audio is loaded before playing
+          audio.addEventListener("canplaythrough", () => {
+            console.log("Audio loaded, starting playback");
+            audio.play().catch((error) => {
+              console.error("Error playing audio:", error);
+            });
+          });
+
+          // Load the audio
+          audio.load();
+        }
+      }, 500);
+    }
 
     // Return early if no text is available
     if (!config.text) {
