@@ -1256,9 +1256,17 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
               animateJawSpeaking(config.audioDuration);
             }
           });
-          audio.play().catch((error) => {
-            console.error("Error playing audio:", error);
+
+          // Ensure audio is loaded before playing
+          audio.addEventListener("canplaythrough", () => {
+            console.log("Audio loaded, starting playback");
+            audio.play().catch((error) => {
+              console.error("Error playing audio:", error);
+            });
           });
+
+          // Load the audio
+          audio.load();
         }
       }, 500);
     }
