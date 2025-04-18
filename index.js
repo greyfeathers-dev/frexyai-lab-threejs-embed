@@ -91,7 +91,7 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Dance%20Like%20Anto.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/boy_dance%20.glb",
     animation: "dance_like_anto",
   },
   {
@@ -488,6 +488,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     renderer.toneMappingExposure = 0.3;
     document.body.appendChild(renderer.domElement);
 
+    // Add click event listener for model interaction
+    renderer.domElement.addEventListener("click", onModelClick);
+
     camera = new THREE.PerspectiveCamera(
       50,
       window.innerWidth / window.innerHeight,
@@ -614,7 +617,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     // Add click handler function
     function onModelClick(event) {
-      if (currentlyAnimating) return;
+      console.log("Model clicked");
+      if (currentlyAnimating) {
+        console.log("Already animating, skipping");
+        return;
+      }
 
       // Check if Click-to-Dance interaction is enabled
       const clickToDanceInteraction = INTERACTION_DATA.find(
@@ -634,8 +641,15 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
+      console.log("Click coordinates:", { x, y });
+
       // Update the picking ray with the camera and mouse position
       raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+      // Configure raycaster for better intersection detection
+      raycaster.firstHitOnly = false; // Check all intersections
+      raycaster.params.Line.threshold = 0.1; // Increase threshold for better detection
+      raycaster.params.Points.threshold = 0.1; // Increase threshold for better detection
 
       // Ensure model's world matrix is updated
       model.updateMatrixWorld(true);
@@ -644,15 +658,21 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const meshes = [];
       model.traverse((child) => {
         if (child.isMesh) {
+          // Enable raycasting for all meshes
+          child.raycast = THREE.Mesh.prototype.raycast;
           meshes.push(child);
         }
       });
 
+      console.log("Number of meshes found:", meshes.length);
+
       // Calculate objects intersecting the picking ray using the collected meshes
       const intersects = raycaster.intersectObjects(meshes, true);
+      console.log("Intersections found:", intersects.length);
 
       // Make intersection detection more lenient - if click is close enough to model
       if (intersects.length > 0 || isClickNearModel(x, y)) {
+        console.log("Click detected on or near model");
         currentlyAnimating = true;
 
         // Find dance animation
@@ -660,28 +680,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           (anim) => anim.name === "dance_like_anto"
         );
 
+        console.log("Dance animation found:", danceAnim ? "yes" : "no");
+
         if (danceAnim) {
+          console.log("Playing dance animation");
           playModifierAnimation(idle, 0.5, danceAnim, 0.5);
 
           // Reset currentlyAnimating after animation duration
           const animationDuration = danceAnim.clip._clip.duration * 1000; // Convert to milliseconds
           setTimeout(() => {
             currentlyAnimating = false;
+            console.log("Animation finished");
           }, animationDuration);
         } else {
-          // Fallback to celebration animation
-          const celebrationAnim = possibleAnims.find(
-            (anim) => anim.name === "celebration"
-          );
-          if (celebrationAnim) {
-            playModifierAnimation(idle, 0.5, celebrationAnim, 0.5);
-            setTimeout(() => {
-              currentlyAnimating = false;
-            }, celebrationAnim.clip._clip.duration * 1000);
-          } else {
-            currentlyAnimating = false;
-          }
+          console.log("No dance animation found in possibleAnims");
+          currentlyAnimating = false;
         }
+      } else {
+        console.log("Click not detected on or near model");
       }
     }
 
@@ -777,10 +793,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
           if (newAnim) {
             const action = mixer.clipAction(newAnim);
-            possibleAnims?.push({
+            if (!possibleAnims) {
+              possibleAnims = [];
+            }
+            possibleAnims.push({
               name: animationItem.animation,
               clip: action,
             });
+            console.log(`Loaded animation: ${animationItem.animation}`);
           }
         },
         undefined,
