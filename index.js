@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
