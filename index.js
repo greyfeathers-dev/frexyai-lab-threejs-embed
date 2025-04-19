@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -92,7 +92,7 @@ const ANIMATION_LIST = [
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/boy_dance%20.glb",
-    animation: "dance_like_anto",
+    animation: "dance",
   },
   {
     model_url:
@@ -479,10 +479,25 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.addEventListener("click", (event) => {
       // Get the dance animation from possibleAnims
       const danceAnimation = possibleAnims.find(
-        (anim) => anim.name === "dance_like_anto"
+        (anim) => anim.name === "dance"
       );
       if (danceAnimation && !currentlyAnimating) {
-        playModifierAnimation(idle, 1, danceAnimation, 1.5);
+        // Reset and play the dance animation
+        danceAnimation.clip.reset();
+        danceAnimation.clip.setLoop(THREE.LoopOnce);
+        danceAnimation.clip.clampWhenFinished = true;
+        danceAnimation.clip.play();
+
+        // Crossfade from idle to dance
+        idle.crossFadeTo(danceAnimation.clip, 0.5, true);
+
+        // After dance completes, crossfade back to idle
+        setTimeout(() => {
+          idle.reset();
+          idle.setLoop(THREE.LoopRepeat, Infinity);
+          idle.play();
+          danceAnimation.clip.crossFadeTo(idle, 0.5, true);
+        }, danceAnimation.clip._clip.duration * 1000);
       }
     });
 
@@ -642,8 +657,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
-    dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
+    dirLight.shadow.bias = -0.0001; // Reduced bias for better contact shadows
+    dirLight.shadow.normalBias = 0.01; // Increased normal bias for better edges
     scene.add(dirLight);
 
     // Add fill light
@@ -2624,34 +2639,53 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Follow-up interactions after 8 seconds (after no_no animation)
       setTimeout(() => {
-        showUIAnimation({
-          animation: "dance_like_anto",
-          time: 0, // Reduced dance time to 6 seconds
-          hasClose: false,
-        });
+        // Get the dance animation
+        const danceAnimation = possibleAnims.find(
+          (anim) => anim.name === "dance"
+        );
 
-        // Show casual talk 2 seconds after dance ends (total 8 + 6 + 2 = 16s)
-        setTimeout(() => {
-          showUIAnimation({
-            text: "Liked my dance? Let me help you with something!",
-            time: 15,
-            hasClose: false,
-            animation: "casual_talk_2",
-            cta: [
-              {
-                text: "Ask me anything!",
-                bg: "#007AFF",
-                color: "#fff",
-                format: "chat",
-              },
-            ],
-          });
+        if (danceAnimation) {
+          // Reset and play the dance animation
+          danceAnimation.clip.reset();
+          danceAnimation.clip.setLoop(THREE.LoopOnce);
+          danceAnimation.clip.clampWhenFinished = true;
+          danceAnimation.clip.play();
 
-          // Switch back to idle after 15 seconds
+          // Crossfade from idle to dance
+          idle.crossFadeTo(danceAnimation.clip, 0.5, true);
+
+          // Wait for the full dance animation duration before showing the next interaction
           setTimeout(() => {
-            playModifierAnimation(idle, 1, idle, 1.5);
-          }, 15000);
-        }, 6000); // Show casual talk 2s after 6s dance ends
+            // Reset and play idle animation
+            idle.reset();
+            idle.setLoop(THREE.LoopRepeat, Infinity);
+            idle.play();
+            danceAnimation.clip.crossFadeTo(idle, 0.5, true);
+
+            // Show casual talk after dance completes
+            setTimeout(() => {
+              showUIAnimation({
+                text: "Liked my dance? Let me help you with something!",
+                time: 15,
+                hasClose: false,
+                animation: "casual_talk_2",
+                cta: [
+                  {
+                    text: "Ask me anything!",
+                    bg: "#007AFF",
+                    color: "#fff",
+                    format: "chat",
+                  },
+                ],
+              });
+
+              // Switch back to idle after 15 seconds
+              setTimeout(() => {
+                playModifierAnimation(idle, 1, idle, 1.5);
+              }, 15000);
+            }, 500); // Small delay after dance ends before showing message
+          }, danceAnimation.clip._clip.duration * 1000); // Use actual animation duration
+        }
       }, 8000); // Start dance after 8s no_no animation
     }
   }
