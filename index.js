@@ -1,6 +1,6 @@
 /** @format */
-// localStorage.clear();
-// sessionStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -96,52 +96,52 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Relaxed%20Grip.glb",
-    animation: "relaxed_grip",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking.glb",
+    animation: "casual_talk",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%202.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/Casual_Talking_1.glb",
+    animation: "casual_talk_1",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_2.glb",
     animation: "casual_talk_2",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/victory_vibes.glb",
     animation: "celebration",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/disappointed.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/dissapointed.glb",
     animation: "disappointed",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/no_no.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/no_no.glb",
     animation: "no_no",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/offer.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/offer_promotion.glb",
     animation: "offer",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/thumbs_up.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/thumbs_up.glb",
     animation: "thumbs_up",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/two_hand_wave.glb",
-    animation: "two_hand_wave",
-  },
-  {
-    model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/waving.glb",
     animation: "wave",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Wait%20Up.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/wait_up.glb",
     animation: "wait_up",
   },
 ];
@@ -473,8 +473,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.right = isMobile ? "-76px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "330px";
     canvas.style.width = isMobile ? "260px" : "280px";
-    canvas.style.zIndex = "9999999999";
-    // canvas.style.backgroundColor = "red";
+    canvas.style.zIndex = "10";
+
+    // Add click event listener for model interaction
+    canvas.addEventListener("click", (event) => {
+      // Get the dance animation from possibleAnims
+      const danceAnimation = possibleAnims.find(
+        (anim) => anim.name === "dance_like_anto"
+      );
+      if (danceAnimation && !currentlyAnimating) {
+        playModifierAnimation(idle, 1, danceAnimation, 1.5);
+      }
+    });
 
     scene = new THREE.Scene();
     scene.background = null;
@@ -493,7 +503,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(renderer.domElement);
 
     // Add click event listener for model interaction
-    renderer.domElement.addEventListener("click", onModelClick);
 
     camera = new THREE.PerspectiveCamera(
       50,
@@ -615,94 +624,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     //====================================================Model Click Event Listener====================================================
 
-    // Add click handler function
-    function onModelClick(event) {
-      if (currentlyAnimating) {
-        return;
-      }
-
-      // Check if Click-to-Dance interaction is enabled
-      const clickToDanceInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Click-to-Dance"
-      );
-
-      if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
-        console.log("Click-to-Dance interaction is not enabled");
-        return;
-      }
-
-      // Get the canvas element and its bounds
-      const canvas = renderer.domElement;
-      const rect = canvas.getBoundingClientRect();
-
-      // Calculate mouse position in normalized device coordinates (-1 to +1)
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Update the picking ray with the camera and mouse position
-      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
-
-      // Configure raycaster for better intersection detection
-      raycaster.firstHitOnly = false; // Check all intersections
-      raycaster.params.Line.threshold = 0.1; // Increase threshold for better detection
-      raycaster.params.Points.threshold = 0.1; // Increase threshold for better detection
-
-      // Ensure model's world matrix is updated
-      model.updateMatrixWorld(true);
-
-      // Get all meshes from the model for intersection testing
-      const meshes = [];
-      model.traverse((child) => {
-        if (child.isMesh) {
-          // Enable raycasting for all meshes
-          child.raycast = THREE.Mesh.prototype.raycast;
-          meshes.push(child);
-        }
-      });
-
-      // Calculate objects intersecting the picking ray using the collected meshes
-      const intersects = raycaster.intersectObjects(meshes, true);
-
-      // Make intersection detection more lenient - if click is close enough to model
-      if (intersects.length > 0 || isClickNearModel(x, y)) {
-        currentlyAnimating = true;
-
-        // Find dance animation
-        const danceAnim = possibleAnims.find(
-          (anim) => anim.name === "dance_like_anto"
-        );
-
-        if (danceAnim) {
-          playModifierAnimation(idle, 0.5, danceAnim, 0.5);
-
-          // Reset currentlyAnimating after animation duration
-          const animationDuration = danceAnim.clip._clip.duration * 1000; // Convert to milliseconds
-          setTimeout(() => {
-            currentlyAnimating = false;
-          }, animationDuration);
-        } else {
-          currentlyAnimating = false;
-        }
-      } else {
-      }
-    }
-
-    // Helper function to check if click is near the model
-    function isClickNearModel(x, y) {
-      // Convert model position to screen coordinates
-      const modelPos = new THREE.Vector3(0, -11, 0);
-      modelPos.project(camera);
-
-      // Calculate distance between click and model center
-      const dx = x - modelPos.x;
-      const dy = y - modelPos.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Consider click "near" if within this threshold
-      const isNear = distance < 1.5; // Increased threshold for better detection
-      return isNear;
-    }
-
     //====================================================End of Model Click Event Listener====================================================
 
     // Enhanced lighting setup
@@ -764,25 +685,22 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           // Add new animations to the existing GLTF animations
           newGLTF.animations.forEach((anim) => {
-            // Clone the animation and filter out jaw bone tracks
-            let clonedAnim = anim.clone();
-            clonedAnim.tracks = clonedAnim.tracks
-              .filter((track) => !track.name.includes("scale"))
-              .filter((track) => !track.name.includes("position"))
-              .filter((track) => !track.name.includes("CC_Base_JawRoot")); // Filter out jaw bone animations
-
             // Set the animation name to match the expected name
-            clonedAnim.name = animationItem.animation;
-            gltf.animations.push(clonedAnim);
+            anim.name = animationItem.animation;
           });
+
+          gltf.animations.push(...newGLTF.animations);
 
           // Update possible animations list
           const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
           if (newAnim) {
-            const action = mixer.clipAction(newAnim);
-            if (!possibleAnims) {
-              possibleAnims = [];
-            }
+            const clonedAnim = newAnim.clone();
+            clonedAnim.tracks = clonedAnim.tracks
+              .filter((track) => !track.name.includes("scale"))
+              .filter((track) => !track.name.includes("position"));
+
+            const action = mixer.clipAction(clonedAnim);
+
             possibleAnims.push({
               name: animationItem.animation,
               clip: action,
@@ -1233,8 +1151,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
     }
     incrementImpression(config.id);
-    console.log("config.audioDuration", config.audioDuration);
-
     // Return early if no text is available
     if (!config.text) {
       showInput();
