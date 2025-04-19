@@ -473,7 +473,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.right = isMobile ? "-76px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "330px";
     canvas.style.width = isMobile ? "260px" : "280px";
-    canvas.style.zIndex = "9999999999";
+    canvas.style.zIndex = "10";
     // canvas.style.backgroundColor = "red";
 
     scene = new THREE.Scene();
@@ -1233,37 +1233,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
     }
     incrementImpression(config.id);
-    console.log("config.audioDuration", config.audioDuration);
-    // Start jaw animation if audio duration is provided
-    if (config.text) {
-      console.log("Preparing to play text-to-speech for:", config.text);
-      setTimeout(() => {
-        // Play audio if interactionAudio is provided
-        if (config.interactionAudio && !isMuted) {
-          const audio = new Audio(config.interactionAudio);
-
-          // Add event listeners for audio
-          audio.addEventListener("play", () => {
-            console.log("Audio started playing, starting jaw animation");
-            if (config.audioDuration > 0) {
-              animateJawSpeaking(config.audioDuration);
-            }
-          });
-
-          // Ensure audio is loaded before playing
-          audio.addEventListener("canplaythrough", () => {
-            console.log("Audio loaded, starting playback");
-            audio.play().catch((error) => {
-              console.error("Error playing audio:", error);
-            });
-          });
-
-          // Load the audio
-          audio.load();
-        }
-      }, 500);
-    }
-
     // Return early if no text is available
     if (!config.text) {
       showInput();
