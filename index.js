@@ -473,7 +473,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.right = isMobile ? "-76px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "330px";
     canvas.style.width = isMobile ? "260px" : "280px";
-    canvas.style.zIndex = "9999999999";
+    canvas.style.zIndex = "10";
     // canvas.style.backgroundColor = "red";
 
     scene = new THREE.Scene();
@@ -730,7 +730,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
+    dirLight.shadow.bias = -0.0001; // Adjusted bias for better shadow quality
     dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
     scene.add(dirLight);
 
@@ -1225,6 +1225,111 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ============================================= UI ANIMATION FUNCTIONS =============================================
 
+  // Global variable to store current frequency data
+  let currentFrequencyData = {
+    average: 0,
+    max: 0,
+    min: 0,
+    normalized: 0,
+  };
+
+  // Global audio context
+  let audioContext = null;
+  let audioSource = null;
+  let audioAnalyser = null;
+
+  // Function to analyze audio frequency
+  async function analyzeAudioFrequency(audioUrl) {
+    try {
+      // Create audio context if it doesn't exist
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioAnalyser = audioContext.createAnalyser();
+        audioAnalyser.fftSize = 2048;
+        audioAnalyser.smoothingTimeConstant = 0.8;
+      }
+
+      // Fetch the audio file
+      const response = await fetch(audioUrl);
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Decode the audio data
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      // Stop any existing source
+      if (audioSource) {
+        audioSource.stop();
+      }
+
+      // Create new source
+      audioSource = audioContext.createBufferSource();
+      audioSource.buffer = audioBuffer;
+
+      // Connect nodes
+      audioSource.connect(audioAnalyser);
+      audioAnalyser.connect(audioContext.destination);
+
+      // Create arrays for frequency analysis
+      const bufferLength = audioAnalyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      // Function to get frequency data
+      function getFrequencyData() {
+        audioAnalyser.getByteFrequencyData(dataArray);
+
+        // Calculate average, max, and min frequencies
+        let sum = 0;
+        let max = 0;
+        let min = 255;
+
+        // Focus on lower frequencies (0-1000Hz) which are more relevant for speech
+        const speechRange = Math.floor(bufferLength * 0.1);
+
+        for (let i = 0; i < speechRange; i++) {
+          const value = dataArray[i];
+          sum += value;
+          max = Math.max(max, value);
+          min = Math.min(min, value);
+        }
+
+        const average = sum / speechRange;
+        const normalized = average / 255;
+
+        currentFrequencyData = {
+          average: average,
+          max: max,
+          min: min,
+          normalized: normalized,
+        };
+
+        return currentFrequencyData;
+      }
+
+      // Start playing and analyzing
+      audioSource.start(0);
+
+      // Analyze more frequently for smoother response
+      const interval = setInterval(() => {
+        getFrequencyData();
+      }, 50);
+
+      // Clear interval when audio ends
+      setTimeout(() => {
+        clearInterval(interval);
+        audioSource.stop();
+        // Reset frequency data
+        currentFrequencyData = {
+          average: 0,
+          max: 0,
+          min: 0,
+          normalized: 0,
+        };
+      }, audioBuffer.duration * 1000);
+    } catch (error) {
+      console.error("Error analyzing audio frequency:", error);
+    }
+  }
+
   function showUIAnimation(config) {
     console.log("showing ui animation", config);
     if (currentlyAnimating) return;
@@ -1251,41 +1356,21 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return;
     }
 
-    // Play notification sound with delay
-    setTimeout(() => {
-      const notificationSound = new Audio("/notification.mp3");
-      notificationSound.volume = 0.5;
-      notificationSound.play().catch((error) => {
-        console.error("Error playing notification sound:", error);
-      });
-    }, 100);
-
     // Play text-to-speech if text is available and it's not the welcome message
     if (config.text) {
       console.log("Preparing to play text-to-speech for:", config.text);
       setTimeout(() => {
         // Play audio if interactionAudio is provided
         if (config.interactionAudio && !isMuted) {
-          const audio = new Audio(config.interactionAudio);
-
-          // Add event listeners for audio
-          audio.addEventListener("play", () => {
-            console.log("Audio started playing, starting jaw animation");
-            if (config.audioDuration > 0) {
-              animateJawSpeaking(config.audioDuration);
-            }
-          });
-
-          // Ensure audio is loaded before playing
-          audio.addEventListener("canplaythrough", () => {
-            console.log("Audio loaded, starting playback");
-            audio.play().catch((error) => {
-              console.error("Error playing audio:", error);
+          // Analyze audio frequency and play audio
+          if (config.interactionAudio) {
+            analyzeAudioFrequency(config.interactionAudio).then(() => {
+              // Start jaw animation when audio starts
+              if (config.audioDuration > 0) {
+                animateJawSpeaking(config.audioDuration);
+              }
             });
-          });
-
-          // Load the audio
-          audio.load();
+          }
         }
       }, 500);
     }
@@ -1426,13 +1511,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     audioToggleBtn.addEventListener("click", () => {
       isMuted = !isMuted;
       audioIcon.innerHTML = isMuted ? getMuteIcon() : getUnmuteIcon();
-      if (!isMuted) {
-        // Play a silent audio to enable interaction
-        const audio = new Audio();
-        audio.play().catch((error) => {
-          console.error("Error playing audio:", error);
-        });
-      }
+      // Remove the silent audio play since it's not needed
     });
 
     controlsContainer.appendChild(audioToggleBtn);
@@ -1605,6 +1684,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
+    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
+
     tooltipContainer.style.fontSize = isMobile ? "14px" : "16px";
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
     tooltipContainer.style.fontFamily = "sans-serif";
@@ -2031,17 +2112,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
 
-  // Function to animate jaw movement
+  // Function to animate jaw movement based on frequency
   function animateJawSpeaking(duration = 3) {
-    if (!jawRoot) return;
-
-    // Convert duration from seconds to milliseconds and ensure it's a valid number
-    const durationMs = Math.max(1000, Math.floor(Number(duration) * 1000));
-    console.log("animateJawSpeaking duration (ms):", durationMs);
-
+    const durationMs = duration * 1000;
     const startTime = Date.now();
-    const minAngle = -0.8; // Based on initial position.x
-    const maxAngle = 0.4; // Range for movement
 
     // Store initial position values
     const initialPosition = {
@@ -2050,43 +2124,103 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       z: jawRoot.position.z,
     };
 
-    // Calculate frequency based on duration
-    const durationInSeconds = durationMs / 1000;
-    // Use a non-linear scaling to ensure good movement for both short and long durations
-    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
-    console.log(
-      "Calculated frequency:",
-      frequency,
-      "durationInSeconds",
-      durationInSeconds
-    );
+    // Enhanced jaw movement parameters
+    const baseMinAngle = -0.8; // Y-axis movement (up/down)
+    const baseMaxAngle = 0.6;
+    const frequencySensitivity = 2.0;
+    const movementSpeed = 0.8;
+    const minMovement = 0.3;
+    const randomFactor = 0.1;
+
+    // New parameters for X and Z axis movement
+    const xAxisRange = 0.2; // Side-to-side movement range
+    const zAxisRange = 0.45; // Forward/backward movement range
+    const xAxisPhase = Math.PI / 4; // Phase offset for X movement
+    const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
+    const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
+
+    // Calculate cycles per second based on audio duration
+    const cyclesPerSecond = 2.5;
+    const totalCycles = cyclesPerSecond * (durationMs / 1000);
+
+    // Store previous frequency for smooth transitions
+    let previousFrequency = 0;
+    const smoothingFactor = 0.2;
 
     function updateJaw() {
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
-        // Reset all position values to initial state
+        // Reset to initial position
         jawRoot.position.x = initialPosition.x;
         jawRoot.position.y = initialPosition.y;
         jawRoot.position.z = initialPosition.z;
-        console.log("Jaw reset to initial position:", jawRoot.position);
         return;
       }
 
-      // Calculate position using sine wave with dynamic frequency
+      // Calculate progress through the audio
       const progress = currentTime / durationMs;
-      const posX =
-        minAngle +
-        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
 
-      // Only modify the x position
-      jawRoot.position.x = posX;
-      console.log("jawRoot.position.x", jawRoot.position.x);
+      // Get current frequency data with smoothing
+      const { normalized } = currentFrequencyData;
+      previousFrequency =
+        previousFrequency * (1 - smoothingFactor) +
+        normalized * smoothingFactor;
 
-      // Continue animation
+      // Enhanced frequency-based movement calculation
+      const frequencyFactor = 1 - previousFrequency * frequencySensitivity;
+      const dynamicRange = Math.max(minMovement, frequencyFactor);
+
+      // Calculate base jaw position with proper cycling
+      const range = baseMaxAngle - baseMinAngle;
+      const cycleProgress =
+        ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
+
+      // Calculate Y-axis movement (up/down)
+      const basePosition =
+        baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
+      const frequencyAdjustment = range * 0.5 * dynamicRange;
+      const randomVariation = (Math.random() - 0.5) * randomFactor;
+      const finalYPosition =
+        basePosition + frequencyAdjustment + randomVariation;
+
+      // Calculate X-axis movement (side-to-side)
+      const xCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      const xMovement =
+        Math.sin(xCycleProgress * Math.PI * 2 + xAxisPhase) *
+        xAxisRange *
+        dynamicRange;
+      const xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      const finalXPosition = xMovement + xRandomVariation;
+
+      // Calculate Z-axis movement (forward/backward)
+      const zCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      const zMovement =
+        Math.sin(zCycleProgress * Math.PI * 2 + zAxisPhase) *
+        zAxisRange *
+        dynamicRange;
+      const zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      const finalZPosition = zMovement + zRandomVariation;
+
+      // Apply all positions with smooth transitions
+      jawRoot.position.x = initialPosition.x + finalXPosition;
+      jawRoot.position.y = initialPosition.y + finalYPosition;
+      jawRoot.position.z = initialPosition.z + finalZPosition;
+
+      // Log movement data for debugging
+      console.log("Jaw Movement:", {
+        x: finalXPosition,
+        y: finalYPosition,
+        z: finalZPosition,
+        frequencyFactor,
+        cycleProgress,
+        normalized: previousFrequency,
+      });
+
       requestAnimationFrame(updateJaw);
     }
 
-    // Start the animation immediately
     updateJaw();
   }
 
@@ -2876,12 +3010,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const isMovingUpward =
         this.mousePath.length >= 2 &&
         this.mousePath[this.mousePath.length - 1].y < this.mousePath[0].y;
-      console.log(
-        isMovingUpward,
-        isNearTopOrCorners,
-        "mouse path",
-        this.mousePath
-      );
 
       if (
         normalExitIntentHasSpentEnoughTime() &&
