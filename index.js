@@ -1,6 +1,6 @@
 /** @format */
-// localStorage.clear();
-// sessionStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -1225,6 +1225,101 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ============================================= UI ANIMATION FUNCTIONS =============================================
 
+  // Global variable to store current frequency data
+  let currentFrequencyData = {
+    average: 0,
+    max: 0,
+    min: 0,
+    normalized: 0, // Add normalized value for easier control
+  };
+
+  // Function to analyze audio frequency
+  async function analyzeAudioFrequency(audioUrl) {
+    try {
+      // Create audio context
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8; // Add smoothing for more stable values
+
+      // Fetch the audio file
+      const response = await fetch(audioUrl);
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Decode the audio data
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      // Connect nodes
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+
+      // Create arrays for frequency analysis
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      // Start playing and analyzing
+      source.start(0);
+
+      // Function to get frequency data
+      function getFrequencyData() {
+        analyser.getByteFrequencyData(dataArray);
+
+        // Calculate average, max, and min frequencies
+        let sum = 0;
+        let max = 0;
+        let min = 255;
+
+        // Focus on lower frequencies (0-1000Hz) which are more relevant for speech
+        const speechRange = Math.floor(bufferLength * 0.1); // First 10% of frequencies
+
+        for (let i = 0; i < speechRange; i++) {
+          const value = dataArray[i];
+          sum += value;
+          max = Math.max(max, value);
+          min = Math.min(min, value);
+        }
+
+        const average = sum / speechRange;
+
+        // Normalize the frequency value (0-1 range)
+        const normalized = average / 255;
+
+        currentFrequencyData = {
+          average: average,
+          max: max,
+          min: min,
+          normalized: normalized,
+        };
+
+        return currentFrequencyData;
+      }
+
+      // Analyze more frequently for smoother response
+      const interval = setInterval(() => {
+        getFrequencyData();
+      }, 50); // Reduced from 100ms to 50ms for more responsive updates
+
+      // Clear interval when audio ends
+      setTimeout(() => {
+        clearInterval(interval);
+        source.stop();
+        audioContext.close();
+        // Reset frequency data
+        currentFrequencyData = {
+          average: 0,
+          max: 0,
+          min: 0,
+          normalized: 0,
+        };
+      }, audioBuffer.duration * 1000);
+    } catch (error) {
+      console.error("Error analyzing audio frequency:", error);
+    }
+  }
+
   function showUIAnimation(config) {
     console.log("showing ui animation", config);
     if (currentlyAnimating) return;
@@ -1266,6 +1361,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       setTimeout(() => {
         // Play audio if interactionAudio is provided
         if (config.interactionAudio && !isMuted) {
+          // Analyze audio frequency before playing
+          if (config.interactionAudio) {
+            analyzeAudioFrequency(config.interactionAudio);
+          }
+
           const audio = new Audio(config.interactionAudio);
 
           // Add event listeners for audio
@@ -2031,17 +2131,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
 
-  // Function to animate jaw movement
+  // Function to animate jaw movement based on frequency
   function animateJawSpeaking(duration = 3) {
-    if (!jawRoot) return;
-
-    // Convert duration from seconds to milliseconds and ensure it's a valid number
-    const durationMs = Math.max(1000, Math.floor(Number(duration) * 1000));
-    console.log("animateJawSpeaking duration (ms):", durationMs);
-
+    const durationMs = duration * 1000;
     const startTime = Date.now();
-    const minAngle = -0.8; // Based on initial position.x
-    const maxAngle = 0.4; // Range for movement
 
     // Store initial position values
     const initialPosition = {
@@ -2050,43 +2143,74 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       z: jawRoot.position.z,
     };
 
-    // Calculate frequency based on duration
-    const durationInSeconds = durationMs / 1000;
-    // Use a non-linear scaling to ensure good movement for both short and long durations
-    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
-    console.log(
-      "Calculated frequency:",
-      frequency,
-      "durationInSeconds",
-      durationInSeconds
-    );
+    // Enhanced jaw movement parameters
+    const baseMinAngle = -1.0; // Increased from -0.8 for more opening
+    const baseMaxAngle = 0.6; // Increased from 0.4 for more closing
+    const frequencySensitivity = 2.0; // Increased from 1.2 for more frequency impact
+    const movementSpeed = 0.9; // Added for faster movement
+    const minMovement = 0.3; // Minimum movement threshold
+    const randomFactor = 0.1; // Small random variation for natural movement
+
+    // Calculate cycles per second based on audio duration
+    const cyclesPerSecond = 2.5;
+    const totalCycles = cyclesPerSecond * (durationMs / 1000);
+
+    // Store previous frequency for smooth transitions
+    let previousFrequency = 0;
+    const smoothingFactor = 0.2; // For smooth frequency transitions
 
     function updateJaw() {
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
-        // Reset all position values to initial state
+        // Reset to initial position
         jawRoot.position.x = initialPosition.x;
         jawRoot.position.y = initialPosition.y;
         jawRoot.position.z = initialPosition.z;
-        console.log("Jaw reset to initial position:", jawRoot.position);
         return;
       }
 
-      // Calculate position using sine wave with dynamic frequency
+      // Calculate progress through the audio
       const progress = currentTime / durationMs;
-      const posX =
-        minAngle +
-        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
 
-      // Only modify the x position
-      jawRoot.position.x = posX;
-      console.log("jawRoot.position.x", jawRoot.position.x);
+      // Get current frequency data with smoothing
+      const { normalized } = currentFrequencyData;
+      previousFrequency =
+        previousFrequency * (1 - smoothingFactor) +
+        normalized * smoothingFactor;
 
-      // Continue animation
+      // Enhanced frequency-based movement calculation
+      const frequencyFactor = 1 - previousFrequency * frequencySensitivity;
+      const dynamicRange = Math.max(minMovement, frequencyFactor);
+
+      // Calculate base jaw position with proper cycling
+      const range = baseMaxAngle - baseMinAngle;
+      const cycleProgress =
+        ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
+      const basePosition =
+        baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
+
+      // Apply frequency-based adjustment with enhanced movement
+      const frequencyAdjustment = range * 0.5 * dynamicRange;
+      const randomVariation = (Math.random() - 0.5) * randomFactor;
+
+      // Calculate final position with all factors
+      const finalPosition =
+        basePosition + frequencyAdjustment + randomVariation;
+
+      // Apply the position with smooth transitions
+      jawRoot.position.y = initialPosition.y + finalPosition;
+
+      // Log movement data for debugging
+      console.log("Jaw Movement:", {
+        finalPosition,
+        frequencyFactor,
+        cycleProgress,
+        normalized: previousFrequency,
+      });
+
       requestAnimationFrame(updateJaw);
     }
 
-    // Start the animation immediately
     updateJaw();
   }
 
@@ -2489,7 +2613,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "wave",
+        animation: "",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
@@ -2876,12 +3000,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const isMovingUpward =
         this.mousePath.length >= 2 &&
         this.mousePath[this.mousePath.length - 1].y < this.mousePath[0].y;
-      console.log(
-        isMovingUpward,
-        isNearTopOrCorners,
-        "mouse path",
-        this.mousePath
-      );
 
       if (
         normalExitIntentHasSpentEnoughTime() &&
