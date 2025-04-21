@@ -92,56 +92,56 @@ const ANIMATION_LIST = [
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/boy_dance%20.glb",
-    animation: "dance_like_anto",
+    animation: "dance",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Relaxed%20Grip.glb",
-    animation: "relaxed_grip",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking.glb",
+    animation: "casual_talk",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Casual%20Talk%202.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/Casual_Talking_1.glb",
+    animation: "casual_talk_1",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_2.glb",
     animation: "casual_talk_2",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/celebration.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/victory_vibes.glb",
     animation: "celebration",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/disappointed.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/dissapointed.glb",
     animation: "disappointed",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/no_no.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/no_no.glb",
     animation: "no_no",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/offer.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/offer_promotion.glb",
     animation: "offer",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/thumbs_up.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/thumbs_up.glb",
     animation: "thumbs_up",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/two_hand_wave.glb",
-    animation: "two_hand_wave",
-  },
-  {
-    model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/wave.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/waving.glb",
     animation: "wave",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Anto/Wait%20Up.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/wait_up.glb",
     animation: "wait_up",
   },
 ];
@@ -668,9 +668,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         currentlyAnimating = true;
 
         // Find dance animation
-        const danceAnim = possibleAnims.find(
-          (anim) => anim.name === "dance_like_anto"
-        );
+        const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
 
         if (danceAnim) {
           playModifierAnimation(idle, 0.5, danceAnim, 0.5);
@@ -2708,13 +2706,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Follow-up interactions after 8 seconds (after no_no animation)
       setTimeout(() => {
+        // Find dance animation and get its duration
+        const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
+        const danceDuration = danceAnim
+          ? danceAnim.clip._clip.duration * 1000
+          : 6000;
+
         showUIAnimation({
-          animation: "dance_like_anto",
-          time: 0, // Reduced dance time to 6 seconds
+          animation: "dance",
+          time: 0,
           hasClose: false,
         });
 
-        // Show casual talk 2 seconds after dance ends (total 8 + 6 + 2 = 16s)
+        // Show casual talk 2 seconds after dance ends
         setTimeout(() => {
           showUIAnimation({
             text: "Liked my dance? Let me help you with something!",
@@ -2735,7 +2739,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           setTimeout(() => {
             playModifierAnimation(idle, 1, idle, 1.5);
           }, 15000);
-        }, 6000); // Show casual talk 2s after 6s dance ends
+        }, danceDuration + 2000); // Show casual talk 2s after dance animation ends
       }, 8000); // Start dance after 8s no_no animation
     }
   }
