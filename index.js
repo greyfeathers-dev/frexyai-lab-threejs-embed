@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -473,7 +473,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     canvas.style.right = isMobile ? "-76px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "330px";
     canvas.style.width = isMobile ? "260px" : "280px";
-    canvas.style.zIndex = "9999999999";
+    canvas.style.zIndex = "10";
     // canvas.style.backgroundColor = "red";
 
     scene = new THREE.Scene();
@@ -730,7 +730,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
+    dirLight.shadow.bias = -0.0001; // Adjusted bias for better shadow quality
     dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
     scene.add(dirLight);
 
@@ -1230,18 +1230,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     average: 0,
     max: 0,
     min: 0,
-    normalized: 0, // Add normalized value for easier control
+    normalized: 0,
   };
+
+  // Global audio context
+  let audioContext = null;
+  let audioSource = null;
+  let audioAnalyser = null;
 
   // Function to analyze audio frequency
   async function analyzeAudioFrequency(audioUrl) {
     try {
-      // Create audio context
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.8; // Add smoothing for more stable values
+      // Create audio context if it doesn't exist
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioAnalyser = audioContext.createAnalyser();
+        audioAnalyser.fftSize = 2048;
+        audioAnalyser.smoothingTimeConstant = 0.8;
+      }
 
       // Fetch the audio file
       const response = await fetch(audioUrl);
@@ -1249,23 +1255,27 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Decode the audio data
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
+
+      // Stop any existing source
+      if (audioSource) {
+        audioSource.stop();
+      }
+
+      // Create new source
+      audioSource = audioContext.createBufferSource();
+      audioSource.buffer = audioBuffer;
 
       // Connect nodes
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
+      audioSource.connect(audioAnalyser);
+      audioAnalyser.connect(audioContext.destination);
 
       // Create arrays for frequency analysis
-      const bufferLength = analyser.frequencyBinCount;
+      const bufferLength = audioAnalyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
-
-      // Start playing and analyzing
-      source.start(0);
 
       // Function to get frequency data
       function getFrequencyData() {
-        analyser.getByteFrequencyData(dataArray);
+        audioAnalyser.getByteFrequencyData(dataArray);
 
         // Calculate average, max, and min frequencies
         let sum = 0;
@@ -1273,7 +1283,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         let min = 255;
 
         // Focus on lower frequencies (0-1000Hz) which are more relevant for speech
-        const speechRange = Math.floor(bufferLength * 0.1); // First 10% of frequencies
+        const speechRange = Math.floor(bufferLength * 0.1);
 
         for (let i = 0; i < speechRange; i++) {
           const value = dataArray[i];
@@ -1283,8 +1293,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         }
 
         const average = sum / speechRange;
-
-        // Normalize the frequency value (0-1 range)
         const normalized = average / 255;
 
         currentFrequencyData = {
@@ -1297,16 +1305,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         return currentFrequencyData;
       }
 
+      // Start playing and analyzing
+      audioSource.start(0);
+
       // Analyze more frequently for smoother response
       const interval = setInterval(() => {
         getFrequencyData();
-      }, 50); // Reduced from 100ms to 50ms for more responsive updates
+      }, 50);
 
       // Clear interval when audio ends
       setTimeout(() => {
         clearInterval(interval);
-        source.stop();
-        audioContext.close();
+        audioSource.stop();
         // Reset frequency data
         currentFrequencyData = {
           average: 0,
@@ -1346,46 +1356,21 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return;
     }
 
-    // Play notification sound with delay
-    setTimeout(() => {
-      const notificationSound = new Audio("/notification.mp3");
-      notificationSound.volume = 0.5;
-      notificationSound.play().catch((error) => {
-        console.error("Error playing notification sound:", error);
-      });
-    }, 100);
-
     // Play text-to-speech if text is available and it's not the welcome message
     if (config.text) {
       console.log("Preparing to play text-to-speech for:", config.text);
       setTimeout(() => {
         // Play audio if interactionAudio is provided
         if (config.interactionAudio && !isMuted) {
-          // Analyze audio frequency before playing
+          // Analyze audio frequency and play audio
           if (config.interactionAudio) {
-            analyzeAudioFrequency(config.interactionAudio);
-          }
-
-          const audio = new Audio(config.interactionAudio);
-
-          // Add event listeners for audio
-          audio.addEventListener("play", () => {
-            console.log("Audio started playing, starting jaw animation");
-            if (config.audioDuration > 0) {
-              animateJawSpeaking(config.audioDuration);
-            }
-          });
-
-          // Ensure audio is loaded before playing
-          audio.addEventListener("canplaythrough", () => {
-            console.log("Audio loaded, starting playback");
-            audio.play().catch((error) => {
-              console.error("Error playing audio:", error);
+            analyzeAudioFrequency(config.interactionAudio).then(() => {
+              // Start jaw animation when audio starts
+              if (config.audioDuration > 0) {
+                animateJawSpeaking(config.audioDuration);
+              }
             });
-          });
-
-          // Load the audio
-          audio.load();
+          }
         }
       }, 500);
     }
@@ -1526,13 +1511,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     audioToggleBtn.addEventListener("click", () => {
       isMuted = !isMuted;
       audioIcon.innerHTML = isMuted ? getMuteIcon() : getUnmuteIcon();
-      if (!isMuted) {
-        // Play a silent audio to enable interaction
-        const audio = new Audio();
-        audio.play().catch((error) => {
-          console.error("Error playing audio:", error);
-        });
-      }
+      // Remove the silent audio play since it's not needed
     });
 
     controlsContainer.appendChild(audioToggleBtn);
@@ -1705,6 +1684,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
+    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
+
     tooltipContainer.style.fontSize = isMobile ? "14px" : "16px";
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
     tooltipContainer.style.fontFamily = "sans-serif";
@@ -2144,12 +2125,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Enhanced jaw movement parameters
-    const baseMinAngle = -1.0; // Increased from -0.8 for more opening
-    const baseMaxAngle = 0.6; // Increased from 0.4 for more closing
-    const frequencySensitivity = 2.0; // Increased from 1.2 for more frequency impact
-    const movementSpeed = 0.9; // Added for faster movement
-    const minMovement = 0.3; // Minimum movement threshold
-    const randomFactor = 0.1; // Small random variation for natural movement
+    const baseMinAngle = -0.8; // Y-axis movement (up/down)
+    const baseMaxAngle = 0.6;
+    const frequencySensitivity = 2.0;
+    const movementSpeed = 0.8;
+    const minMovement = 0.3;
+    const randomFactor = 0.1;
+
+    // New parameters for X and Z axis movement
+    const xAxisRange = 0.2; // Side-to-side movement range
+    const zAxisRange = 0.45; // Forward/backward movement range
+    const xAxisPhase = Math.PI / 4; // Phase offset for X movement
+    const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
+    const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
 
     // Calculate cycles per second based on audio duration
     const cyclesPerSecond = 2.5;
@@ -2157,7 +2145,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     // Store previous frequency for smooth transitions
     let previousFrequency = 0;
-    const smoothingFactor = 0.2; // For smooth frequency transitions
+    const smoothingFactor = 0.2;
 
     function updateJaw() {
       const currentTime = Date.now() - startTime;
@@ -2186,23 +2174,45 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const range = baseMaxAngle - baseMinAngle;
       const cycleProgress =
         ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
+
+      // Calculate Y-axis movement (up/down)
       const basePosition =
         baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
-
-      // Apply frequency-based adjustment with enhanced movement
       const frequencyAdjustment = range * 0.5 * dynamicRange;
       const randomVariation = (Math.random() - 0.5) * randomFactor;
-
-      // Calculate final position with all factors
-      const finalPosition =
+      const finalYPosition =
         basePosition + frequencyAdjustment + randomVariation;
 
-      // Apply the position with smooth transitions
-      jawRoot.position.y = initialPosition.y + finalPosition;
+      // Calculate X-axis movement (side-to-side)
+      const xCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      const xMovement =
+        Math.sin(xCycleProgress * Math.PI * 2 + xAxisPhase) *
+        xAxisRange *
+        dynamicRange;
+      const xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      const finalXPosition = xMovement + xRandomVariation;
+
+      // Calculate Z-axis movement (forward/backward)
+      const zCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      const zMovement =
+        Math.sin(zCycleProgress * Math.PI * 2 + zAxisPhase) *
+        zAxisRange *
+        dynamicRange;
+      const zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      const finalZPosition = zMovement + zRandomVariation;
+
+      // Apply all positions with smooth transitions
+      jawRoot.position.x = initialPosition.x + finalXPosition;
+      jawRoot.position.y = initialPosition.y + finalYPosition;
+      jawRoot.position.z = initialPosition.z + finalZPosition;
 
       // Log movement data for debugging
       console.log("Jaw Movement:", {
-        finalPosition,
+        x: finalXPosition,
+        y: finalYPosition,
+        z: finalZPosition,
         frequencyFactor,
         cycleProgress,
         normalized: previousFrequency,
@@ -2613,7 +2623,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "",
+        animation: "wave",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
