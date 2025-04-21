@@ -730,7 +730,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.0001; // Adjusted bias for better shadow quality
+    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
     dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
     scene.add(dirLight);
 
