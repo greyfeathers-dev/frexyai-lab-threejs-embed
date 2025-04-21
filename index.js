@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -535,8 +535,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
         model.traverse((o) => {
           if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
+            // Check if this mesh is part of the jaw
+            const isJawMesh =
+              o.name.includes("CC_Base_JawRoot") ||
+              o.parent?.name?.includes("CC_Base_JawRoot");
+
+            if (!isJawMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+            } else {
+              o.castShadow = false;
+              o.receiveShadow = false;
+            }
+
             o.material = stacy_mtl.clone();
 
             // Enhance material colors
@@ -719,7 +730,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = d * -1;
-    dirLight.shadow.bias = -0.0005; // Adjusted bias for better shadow quality
+    dirLight.shadow.bias = -0.0001; // Adjusted bias for better shadow quality
     dirLight.shadow.normalBias = 0.01; // Added normal bias for better shadow edges
     scene.add(dirLight);
 
