@@ -725,7 +725,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     scene.add(hemiLight);
 
     let dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    dirLight.position.set(-9, 12, 16);
+    dirLight.position.set(-9, 12, 22);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize = new THREE.Vector2(2048, 2048);
     dirLight.shadow.camera.near = 0.1;
@@ -1308,6 +1308,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           min: min,
           normalized: normalized,
         };
+
+        // Log raw frequency data array
+        console.log("Raw Frequency Data:", dataArray);
+
+        // Log processed frequency data
+        console.log("Processed Frequency Data:", currentFrequencyData);
 
         return currentFrequencyData;
       }
@@ -2132,19 +2138,25 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Enhanced jaw movement parameters
-    const baseMinAngle = -0.8; // Y-axis movement (up/down)
+    const baseMinAngle = -1.0; // Y-axis movement (up/down)
     const baseMaxAngle = 0.6;
     const frequencySensitivity = 2.0;
-    const movementSpeed = 0.8;
-    const minMovement = 0.3;
+    const movementSpeed = 0.9;
+    const minMovement = 0.4;
     const randomFactor = 0.1;
 
     // New parameters for X and Z axis movement
     const xAxisRange = 0.2; // Side-to-side movement range
-    const zAxisRange = 0.45; // Forward/backward movement range
+    const zAxisRange = 0.25; // Forward/backward movement range
     const xAxisPhase = Math.PI / 4; // Phase offset for X movement
     const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
     const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
+
+    // Silence detection parameters
+    const silenceThreshold = 0.48; // Threshold below which we consider it silent
+    const silenceDurationThreshold = 100; // Minimum duration of silence in ms
+    let silenceStartTime = null;
+    let isSilent = false;
 
     // Calculate cycles per second based on audio duration
     const cyclesPerSecond = 2.5;
@@ -2173,6 +2185,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         previousFrequency * (1 - smoothingFactor) +
         normalized * smoothingFactor;
 
+      // Silence detection
+      if (previousFrequency < silenceThreshold) {
+        if (!silenceStartTime) {
+          silenceStartTime = Date.now();
+        } else if (Date.now() - silenceStartTime > silenceDurationThreshold) {
+          isSilent = true;
+        }
+      } else {
+        silenceStartTime = null;
+        isSilent = false;
+      }
+
       // Enhanced frequency-based movement calculation
       const frequencyFactor = 1 - previousFrequency * frequencySensitivity;
       const dynamicRange = Math.max(minMovement, frequencyFactor);
@@ -2183,31 +2207,53 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
 
       // Calculate Y-axis movement (up/down)
-      const basePosition =
+      let basePosition =
         baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
-      const frequencyAdjustment = range * 0.5 * dynamicRange;
-      const randomVariation = (Math.random() - 0.5) * randomFactor;
+      let frequencyAdjustment = range * 0.5 * dynamicRange;
+      let randomVariation = (Math.random() - 0.5) * randomFactor;
+
+      // If silent, minimize jaw movement
+      if (isSilent) {
+        basePosition = baseMinAngle * 0.2; // Keep jaw slightly open during silence
+        frequencyAdjustment *= 0.1; // Drastically reduce movement
+        randomVariation *= 0.1; // Reduce random variation
+      }
+
       const finalYPosition =
         basePosition + frequencyAdjustment + randomVariation;
 
       // Calculate X-axis movement (side-to-side)
       const xCycleProgress =
         ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
-      const xMovement =
+      let xMovement =
         Math.sin(xCycleProgress * Math.PI * 2 + xAxisPhase) *
         xAxisRange *
         dynamicRange;
-      const xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      let xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+
+      // If silent, minimize side movement
+      if (isSilent) {
+        xMovement *= 0.1;
+        xRandomVariation *= 0.1;
+      }
+
       const finalXPosition = xMovement + xRandomVariation;
 
       // Calculate Z-axis movement (forward/backward)
       const zCycleProgress =
         ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
-      const zMovement =
+      let zMovement =
         Math.sin(zCycleProgress * Math.PI * 2 + zAxisPhase) *
         zAxisRange *
         dynamicRange;
-      const zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+      let zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+
+      // If silent, minimize forward/backward movement
+      if (isSilent) {
+        zMovement *= 0.1;
+        zRandomVariation *= 0.1;
+      }
+
       const finalZPosition = zMovement + zRandomVariation;
 
       // Apply all positions with smooth transitions
@@ -2223,6 +2269,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         frequencyFactor,
         cycleProgress,
         normalized: previousFrequency,
+        isSilent,
       });
 
       requestAnimationFrame(updateJaw);
@@ -2655,7 +2702,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "wave",
+        animation: "",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
