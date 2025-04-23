@@ -559,7 +559,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           // Add detailed bone logging
           if (o.isBone) {
             console.log("Found bone:", o.name);
-            if (o.name === "CC_Base_Head") {
+            // if (o.name === "CC_Base_Head") {
+            //   neck = o;
+            //   console.log("Found neck bone:", neck);
+            // }
+            if (o.name === "neckbone") {
               neck = o;
               console.log("Found neck bone:", neck);
             }
@@ -594,7 +598,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             .filter((track) => !track.name.includes("scale"))
             .filter((track) => !track.name.includes("position"))
             .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
-            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("neckbone"));
 
           const idleAction = mixer.clipAction(clonedIdleAnim);
           idleAction.setLoop(THREE.LoopRepeat, Infinity);
@@ -778,7 +783,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             clonedAnim.tracks = clonedAnim.tracks
               .filter((track) => !track.name.includes("scale"))
               .filter((track) => !track.name.includes("position"))
-              .filter((track) => !track.name.includes("CC_Base_JawRoot")); // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("neckbone"));
 
             // Set the animation name to match the expected name
             clonedAnim.name = animationItem.animation;
@@ -2070,7 +2077,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (neck) {
       // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
-      const targetX = THREE.Math.degToRad(-15); // Negative value tilts head upward
+      const targetX = THREE.Math.degToRad(37); // Negative value tilts head upward
 
       // Create a function to update the head position
       function updateHeadPosition() {
@@ -2231,24 +2238,23 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       dy = 0;
     let w = { x: window.innerWidth, y: window.innerHeight };
 
-    // Get the model's position on screen (bottom-right corner)
-    const modelX = w.x - 340; // 280px + 60px offset from right
-    const modelY = w.y - 40; // Accounting for bottom offset
+    // Use your model's exact center position as reference
+    const centerDX = -15.93;
+    const centerDY = 8.28;
 
-    // Calculate the model's head center point
-    // Adjusted to be more centered in the canvas
-    const modelCenterX = modelX + 140; // Center of canvas width
-    const modelCenterY = modelY + 100; // Adjusted higher for better head position
+    // Get the model's position on screen
+    const modelX = w.x / 2;
+    const modelY = w.y / 2;
 
     // Calculate vector from model's center to mouse position
-    const deltaX = x - modelCenterX;
-    const deltaY = y - modelCenterY;
+    const deltaX = x - modelX;
+    const deltaY = y - modelY;
 
     // Calculate distance from mouse to model's center
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
     // Create a non-linear response curve for more natural movement
-    const maxDistance = 500; // Increased range for smoother rotation
+    const maxDistance = 600;
     const distanceFactor = Math.min(distance / maxDistance, 1);
 
     // Calculate normalized direction with adjusted sensitivity
@@ -2256,18 +2262,44 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const dirY = deltaY / (distance || 1);
 
     // Apply the non-linear curve and degree limit with adjusted sensitivity
-    const sensitivity = 0.8; // Reduced sensitivity for more natural movement
-    dx = dirX * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
-    dy = dirY * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity;
+    const sensitivity = 0.5;
 
-    // Adjust resting position to be more centered
-    dx = dx + 0; // Removed right turn bias
-    dy = dy + 0; // Removed downward tilt bias
+    dx =
+      dirX * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity +
+      centerDX;
 
-    // Clamp values to prevent extreme rotations
-    dx = Math.max(-degreeLimit, Math.min(degreeLimit, dx));
-    dy = Math.max(-degreeLimit, Math.min(degreeLimit, dy));
+    // Enhanced downward movement
+    if (y > modelY) {
+      // Looking down - increased multiplier from 1.5 to 2.0
+      dy =
+        dirY * degreeLimit * 2.5 * Math.pow(distanceFactor, 0.8) * sensitivity +
+        centerDY;
+    } else {
+      // Looking up - normal effect
+      dy =
+        dirY * degreeLimit * Math.pow(distanceFactor, 0.8) * sensitivity +
+        centerDY;
+    }
 
+    // Clamp values relative to the center position
+    const dxRange = 15;
+
+    // Increased downward range
+    const dyRangeUp = 10;
+    const dyRangeDown = 35; // Increased from 25 to 35 for more downward movement
+
+    dx = Math.max(centerDX - dxRange, Math.min(centerDX + dxRange, dx));
+
+    // Different clamping for up and down movement
+    if (y > modelY) {
+      // When looking down - allow more range
+      dy = Math.max(centerDY, Math.min(centerDY + dyRangeDown, dy));
+    } else {
+      // When looking up - keep the same
+      dy = Math.max(centerDY - dyRangeUp, Math.min(centerDY, dy));
+    }
+
+    console.log("dx dy:", dx, dy);
     return { x: dx, y: dy };
   }
 
