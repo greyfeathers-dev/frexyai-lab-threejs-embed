@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -559,7 +559,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           // Add detailed bone logging
           if (o.isBone) {
             console.log("Found bone:", o.name);
-            if (o.name === "CC_Base_Head") {
+            // if (o.name === "CC_Base_Head") {
+            //   neck = o;
+            //   console.log("Found neck bone:", neck);
+            // }
+            if (o.name === "neckbone") {
               neck = o;
               console.log("Found neck bone:", neck);
             }
@@ -594,7 +598,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             .filter((track) => !track.name.includes("scale"))
             .filter((track) => !track.name.includes("position"))
             .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
-            .filter((track) => !track.name.includes("CC_Base_Head")); // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
+            .filter((track) => !track.name.includes("neckbone"));
 
           const idleAction = mixer.clipAction(clonedIdleAnim);
           idleAction.setLoop(THREE.LoopRepeat, Infinity);
@@ -778,7 +783,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             clonedAnim.tracks = clonedAnim.tracks
               .filter((track) => !track.name.includes("scale"))
               .filter((track) => !track.name.includes("position"))
-              .filter((track) => !track.name.includes("CC_Base_JawRoot")); // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
+              .filter((track) => !track.name.includes("neckbone"));
 
             // Set the animation name to match the expected name
             clonedAnim.name = animationItem.animation;
