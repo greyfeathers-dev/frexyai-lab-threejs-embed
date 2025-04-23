@@ -470,8 +470,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(canvas);
     canvas.style.position = "fixed";
     canvas.style.bottom = "-40px";
-    canvas.style.right = isMobile ? "-76px" : "-38px";
-    canvas.style.height = isMobile ? "260px" : "330px";
+    canvas.style.right = isMobile ? "-76px" : "-18px";
+    canvas.style.height = isMobile ? "260px" : "400px";
     canvas.style.width = isMobile ? "260px" : "280px";
     canvas.style.zIndex = "10";
     // canvas.style.backgroundColor = "red";
@@ -580,7 +580,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
         // Add helper function to get parent hierarchy
 
-        model.scale.set(11, 11, 11);
+        model.scale.set(10, 10, 10);
         model.position.y = -12;
         scene.add(model);
 
@@ -1659,8 +1659,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     document.body.appendChild(tooltipContainer);
-    tooltipContainer.style.right = isMobile ? "90px" : "140px";
-    tooltipContainer.style.bottom = isMobile ? "40px" : "52px";
+    tooltipContainer.style.right = isMobile ? "90px" : "180px";
+    tooltipContainer.style.bottom = isMobile ? "40px" : "120px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -1938,7 +1938,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Positioning of the input box
     inputContainer.style.position = "fixed";
     inputContainer.style.bottom = isMobile ? "8px" : "30px";
-    inputContainer.style.right = isMobile ? "80px" : "145px";
+    inputContainer.style.right = isMobile ? "80px" : "165px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
