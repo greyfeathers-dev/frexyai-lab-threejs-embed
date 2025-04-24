@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -2155,8 +2155,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Silence detection parameters
     const silenceThreshold = 0.48; // Threshold below which we consider it silent
     const silenceDurationThreshold = 100; // Minimum duration of silence in ms
+    const minClosedDuration = 200; // Minimum time jaw stays closed in ms
     let silenceStartTime = null;
     let isSilent = false;
+    let closedStartTime = null;
 
     // Calculate cycles per second based on audio duration
     const cyclesPerSecond = 2.5;
@@ -2185,16 +2187,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         previousFrequency * (1 - smoothingFactor) +
         normalized * smoothingFactor;
 
-      // Silence detection
+      // Silence detection with minimum closed duration
       if (previousFrequency < silenceThreshold) {
         if (!silenceStartTime) {
           silenceStartTime = Date.now();
         } else if (Date.now() - silenceStartTime > silenceDurationThreshold) {
+          if (!closedStartTime) {
+            closedStartTime = Date.now();
+          }
           isSilent = true;
         }
       } else {
-        silenceStartTime = null;
-        isSilent = false;
+        // Only reset silence if we've been closed for minimum duration
+        if (
+          closedStartTime &&
+          Date.now() - closedStartTime >= minClosedDuration
+        ) {
+          silenceStartTime = null;
+          closedStartTime = null;
+          isSilent = false;
+        }
       }
 
       // Enhanced frequency-based movement calculation
