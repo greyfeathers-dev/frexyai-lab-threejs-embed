@@ -2116,179 +2116,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   }
 
   // Function to animate jaw movement based on frequency
-  // function animateJawSpeaking(duration = 3) {
-  //   const durationMs = duration * 1000;
-  //   const startTime = Date.now();
-
-  //   // Store initial position values
-  //   const initialPosition = {
-  //     x: jawRoot.position.x,
-  //     y: jawRoot.position.y,
-  //     z: jawRoot.position.z,
-  //   };
-
-  //   // Enhanced jaw movement parameters
-  //   const baseMinAngle = -1.0; // Y-axis movement (up/down)
-  //   const baseMaxAngle = 0.6;
-  //   const frequencySensitivity = 2.0;
-  //   const movementSpeed = 0.9;
-  //   const minMovement = 0.4;
-  //   const randomFactor = 0.1;
-
-  //   // New parameters for X and Z axis movement
-  //   const xAxisRange = 0.2; // Side-to-side movement range
-  //   const zAxisRange = 0.25; // Forward/backward movement range
-  //   const xAxisPhase = Math.PI / 4; // Phase offset for X movement
-  //   const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
-  //   const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
-
-  //   // Silence detection parameters
-  //   const silenceThreshold = 0.48; // Threshold below which we consider it silent
-  //   const silenceDurationThreshold = 100; // Minimum duration of silence in ms
-  //   const minClosedDuration = 200; // Minimum time jaw stays closed in ms
-  //   let silenceStartTime = null;
-  //   let isSilent = false;
-  //   let closedStartTime = null;
-
-  //   // Calculate cycles per second based on audio duration
-  //   const cyclesPerSecond = 2.5;
-  //   const totalCycles = cyclesPerSecond * (durationMs / 1000);
-
-  //   // Store previous frequency for smooth transitions
-  //   let previousFrequency = 0;
-  //   const smoothingFactor = 0.2;
-
-  //   function updateJaw() {
-  //     const currentTime = Date.now() - startTime;
-  //     if (currentTime >= durationMs) {
-  //       // Reset to initial position
-  //       jawRoot.position.x = initialPosition.x;
-  //       jawRoot.position.y = initialPosition.y;
-  //       jawRoot.position.z = initialPosition.z;
-  //       return;
-  //     }
-
-  //     // Calculate progress through the audio
-  //     const progress = currentTime / durationMs;
-
-  //     // Get current frequency data with smoothing
-  //     const { normalized } = currentFrequencyData;
-  //     previousFrequency =
-  //       previousFrequency * (1 - smoothingFactor) +
-  //       normalized * smoothingFactor;
-
-  //     // Silence detection with minimum closed duration
-  //     if (previousFrequency < silenceThreshold) {
-  //       if (!silenceStartTime) {
-  //         silenceStartTime = Date.now();
-  //       } else if (Date.now() - silenceStartTime > silenceDurationThreshold) {
-  //         if (!closedStartTime) {
-  //           closedStartTime = Date.now();
-  //         }
-  //         isSilent = true;
-  //       }
-  //     } else {
-  //       // Only reset silence if we've been closed for minimum duration
-  //       if (
-  //         closedStartTime &&
-  //         Date.now() - closedStartTime >= minClosedDuration
-  //       ) {
-  //         silenceStartTime = null;
-  //         closedStartTime = null;
-  //         isSilent = false;
-  //       }
-  //     }
-
-  //     // Enhanced frequency-based movement calculation
-  //     const frequencyFactor = 1 - previousFrequency * frequencySensitivity;
-  //     const dynamicRange = Math.max(minMovement, frequencyFactor);
-
-  //     // Calculate base jaw position with proper cycling
-  //     const range = baseMaxAngle - baseMinAngle;
-  //     const cycleProgress =
-  //       ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
-
-  //     // Calculate Y-axis movement (up/down)
-  //     let basePosition =
-  //       baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
-  //     let frequencyAdjustment = range * 0.5 * dynamicRange;
-  //     let randomVariation = (Math.random() - 0.5) * randomFactor;
-
-  //     // If silent, minimize jaw movement
-  //     if (isSilent) {
-  //       basePosition = baseMinAngle * 0.2; // Keep jaw slightly open during silence
-  //       frequencyAdjustment *= 0.1; // Drastically reduce movement
-  //       randomVariation *= 0.1; // Reduce random variation
-  //     }
-
-  //     const finalYPosition =
-  //       basePosition + frequencyAdjustment + randomVariation;
-
-  //     // Calculate X-axis movement (side-to-side)
-  //     const xCycleProgress =
-  //       ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
-  //     let xMovement =
-  //       Math.sin(xCycleProgress * Math.PI * 2 + xAxisPhase) *
-  //       xAxisRange *
-  //       dynamicRange;
-  //     let xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
-
-  //     // If silent, minimize side movement
-  //     if (isSilent) {
-  //       xMovement *= 0.1;
-  //       xRandomVariation *= 0.1;
-  //     }
-
-  //     const finalXPosition = xMovement + xRandomVariation;
-
-  //     // Calculate Z-axis movement (forward/backward)
-  //     const zCycleProgress =
-  //       ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
-  //     let zMovement =
-  //       Math.sin(zCycleProgress * Math.PI * 2 + zAxisPhase) *
-  //       zAxisRange *
-  //       dynamicRange;
-  //     let zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
-
-  //     // If silent, minimize forward/backward movement
-  //     if (isSilent) {
-  //       zMovement *= 0.1;
-  //       zRandomVariation *= 0.1;
-  //     }
-
-  //     const finalZPosition = zMovement + zRandomVariation;
-
-  //     // Apply all positions with smooth transitions
-  //     jawRoot.position.x = initialPosition.x + finalXPosition;
-  //     jawRoot.position.y = initialPosition.y + finalYPosition;
-  //     jawRoot.position.z = initialPosition.z + finalZPosition;
-
-  //     // Log movement data for debugging
-  //     console.log("Jaw Movement:", {
-  //       x: finalXPosition,
-  //       y: finalYPosition,
-  //       z: finalZPosition,
-  //       frequencyFactor,
-  //       cycleProgress,
-  //       normalized: previousFrequency,
-  //       isSilent,
-  //     });
-
-  //     requestAnimationFrame(updateJaw);
-  //   }
-
-  //   updateJaw();
-  // }
   function animateJawSpeaking(duration = 3) {
-    if (!jawRoot) return;
-
-    // Convert duration from seconds to milliseconds and ensure it's a valid number
-    const durationMs = Math.max(1000, Math.floor(Number(duration) * 1000));
-    console.log("animateJawSpeaking duration (ms):", durationMs);
-
+    const durationMs = duration * 1000;
     const startTime = Date.now();
-    const minAngle = -0.1; // Based on initial position.x
-    const maxAngle = 0.4; // Range for movement
 
     // Store initial position values
     const initialPosition = {
@@ -2297,45 +2127,159 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       z: jawRoot.position.z,
     };
 
-    // Calculate frequency based on duration
-    const durationInSeconds = durationMs / 1000;
-    // Use a non-linear scaling to ensure good movement for both short and long durations
-    const frequency = 5 * Math.pow(durationInSeconds, 0.8);
-    console.log(
-      "Calculated frequency:",
-      frequency,
-      "durationInSeconds",
-      durationInSeconds
-    );
+    // Enhanced jaw movement parameters
+    const baseMinAngle = -1.0; // Y-axis movement (up/down)
+    const baseMaxAngle = 0.6;
+    const frequencySensitivity = 2.0;
+    const movementSpeed = 0.9;
+    const minMovement = 0.4;
+    const randomFactor = 0.1;
+
+    // New parameters for X and Z axis movement
+    const xAxisRange = 0.2; // Side-to-side movement range
+    const zAxisRange = 0.25; // Forward/backward movement range
+    const xAxisPhase = Math.PI / 4; // Phase offset for X movement
+    const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
+    const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
+
+    // Silence detection parameters
+    const silenceThreshold = 0.48; // Threshold below which we consider it silent
+    const silenceDurationThreshold = 100; // Minimum duration of silence in ms
+    const minClosedDuration = 200; // Minimum time jaw stays closed in ms
+    let silenceStartTime = null;
+    let isSilent = false;
+    let closedStartTime = null;
+
+    // Calculate cycles per second based on audio duration
+    const cyclesPerSecond = 2.5;
+    const totalCycles = cyclesPerSecond * (durationMs / 1000);
+
+    // Store previous frequency for smooth transitions
+    let previousFrequency = 0;
+    const smoothingFactor = 0.2;
 
     function updateJaw() {
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
-        // Reset all position values to initial state
+        // Reset to initial position
         jawRoot.position.x = initialPosition.x;
         jawRoot.position.y = initialPosition.y;
         jawRoot.position.z = initialPosition.z;
-        console.log("Jaw reset to initial position:", jawRoot.position);
         return;
       }
 
-      // Calculate position using sine wave with dynamic frequency
+      // Calculate progress through the audio
       const progress = currentTime / durationMs;
-      const posX =
-        minAngle +
-        (maxAngle - minAngle) * Math.sin(progress * Math.PI * frequency);
 
-      // Only modify the x position
-      jawRoot.position.y = posX;
-      console.log("jawRoot.position.x", jawRoot.position.x);
+      // Get current frequency data with smoothing
+      const { normalized } = currentFrequencyData;
+      previousFrequency =
+        previousFrequency * (1 - smoothingFactor) +
+        normalized * smoothingFactor;
 
-      // Continue animation
+      // Silence detection with minimum closed duration
+      if (previousFrequency < silenceThreshold) {
+        if (!silenceStartTime) {
+          silenceStartTime = Date.now();
+        } else if (Date.now() - silenceStartTime > silenceDurationThreshold) {
+          if (!closedStartTime) {
+            closedStartTime = Date.now();
+          }
+          isSilent = true;
+        }
+      } else {
+        // Only reset silence if we've been closed for minimum duration
+        if (
+          closedStartTime &&
+          Date.now() - closedStartTime >= minClosedDuration
+        ) {
+          silenceStartTime = null;
+          closedStartTime = null;
+          isSilent = false;
+        }
+      }
+
+      // Enhanced frequency-based movement calculation
+      const frequencyFactor = 1 - previousFrequency * frequencySensitivity;
+      const dynamicRange = Math.max(minMovement, frequencyFactor);
+
+      // Calculate base jaw position with proper cycling
+      const range = baseMaxAngle - baseMinAngle;
+      const cycleProgress =
+        ((currentTime * cyclesPerSecond * movementSpeed) / 1000) % 1;
+
+      // Calculate Y-axis movement (up/down)
+      let basePosition =
+        baseMinAngle + Math.sin(cycleProgress * Math.PI * 2) * range * 0.5;
+      let frequencyAdjustment = range * 0.5 * dynamicRange;
+      let randomVariation = (Math.random() - 0.5) * randomFactor;
+
+      // If silent, minimize jaw movement
+      if (isSilent) {
+        basePosition = baseMinAngle * 0.2; // Keep jaw slightly open during silence
+        frequencyAdjustment *= 0.1; // Drastically reduce movement
+        randomVariation *= 0.1; // Reduce random variation
+      }
+
+      const finalYPosition =
+        basePosition + frequencyAdjustment + randomVariation;
+
+      // Calculate X-axis movement (side-to-side)
+      const xCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      let xMovement =
+        Math.sin(xCycleProgress * Math.PI * 2 + xAxisPhase) *
+        xAxisRange *
+        dynamicRange;
+      let xRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+
+      // If silent, minimize side movement
+      if (isSilent) {
+        xMovement *= 0.1;
+        xRandomVariation *= 0.1;
+      }
+
+      const finalXPosition = xMovement + xRandomVariation;
+
+      // Calculate Z-axis movement (forward/backward)
+      const zCycleProgress =
+        ((currentTime * cyclesPerSecond * axisMovementSpeed) / 1000) % 1;
+      let zMovement =
+        Math.sin(zCycleProgress * Math.PI * 2 + zAxisPhase) *
+        zAxisRange *
+        dynamicRange;
+      let zRandomVariation = (Math.random() - 0.5) * randomFactor * 0.5;
+
+      // If silent, minimize forward/backward movement
+      if (isSilent) {
+        zMovement *= 0.1;
+        zRandomVariation *= 0.1;
+      }
+
+      const finalZPosition = zMovement + zRandomVariation;
+
+      // Apply all positions with smooth transitions
+      jawRoot.position.x = initialPosition.x + finalXPosition;
+      jawRoot.position.y = initialPosition.y + finalYPosition;
+      jawRoot.position.z = initialPosition.z + finalZPosition;
+
+      // Log movement data for debugging
+      console.log("Jaw Movement:", {
+        x: finalXPosition,
+        y: finalYPosition,
+        z: finalZPosition,
+        frequencyFactor,
+        cycleProgress,
+        normalized: previousFrequency,
+        isSilent,
+      });
+
       requestAnimationFrame(updateJaw);
     }
 
-    // Start the animation immediately
     updateJaw();
   }
+
   // ============================================= MOUSE DEGREES FUNCTIONS =============================================
 
   function getMouseDegrees(x, y, degreeLimit) {
