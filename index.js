@@ -2128,10 +2128,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Enhanced jaw movement parameters
-    const baseMinAngle = -1.0; // Y-axis movement (up/down)
+    const baseMinAngle = -0.7; // Y-axis movement (up/down)
     const baseMaxAngle = 0.6;
     const frequencySensitivity = 2.0;
-    const movementSpeed = 0.9;
+    const movementSpeed = 1.0;
     const minMovement = 0.4;
     const randomFactor = 0.1;
 
