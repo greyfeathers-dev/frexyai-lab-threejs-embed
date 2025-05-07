@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -1324,7 +1324,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Analyze more frequently for smoother response
       const interval = setInterval(() => {
         getFrequencyData();
-      }, 50);
+      }, 30);
 
       // Clear interval when audio ends
       setTimeout(() => {
@@ -2131,7 +2131,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const baseMinAngle = -0.7; // Y-axis movement (up/down)
     const baseMaxAngle = 0.6;
     const frequencySensitivity = 2.0;
-    const movementSpeed = 1.0;
+    const movementSpeed = 1.1;
     const minMovement = 0.4;
     const randomFactor = 0.1;
 
