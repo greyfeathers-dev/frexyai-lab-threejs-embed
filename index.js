@@ -2742,7 +2742,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           hasClose: false,
           animation: "wave",
           interactionAudio: returningVisitorInteraction?.audio_url || "",
-          audioDuration: newVisitorInteraction?.audio_duration || 0,
+          audioDuration: returningVisitorInteraction?.audio_duration || 0,
           cta: [
             {
               text: "Ask me anything!",
