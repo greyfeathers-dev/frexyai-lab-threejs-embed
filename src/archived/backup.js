@@ -559,6 +559,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           // Add detailed bone logging
           if (o.isBone) {
             console.log("Found bone:", o.name);
+            // if (o.name === "CC_Base_Head") {
+            //   neck = o;
+            //   console.log("Found neck bone:", neck);
+            // }
             if (o.name === "neckbone") {
               neck = o;
               console.log("Found neck bone:", neck);
@@ -618,85 +622,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           type: "pageVisit",
           source: getSource(),
         });
-
-        // Initialize head tracking after model is loaded
-        if (!isMobile) {
-          let timer = setTimeout(() => resetHead());
-
-          // Check if Head-Cursor Sync is enabled
-          const headCursorSync = INTERACTION_DATA.find(
-            (i) => i.key === "Head-Cursor Sync"
-          );
-
-          if (headCursorSync && headCursorSync.status) {
-            let timer = null;
-            let lastMouseMoveTime = Date.now();
-            let isResetting = false;
-            let isInitialized = false;
-
-            // Initialize head position
-            setTimeout(() => {
-              resetHead();
-              isInitialized = true;
-            }, 1000);
-
-            document.addEventListener("mousemove", function (e) {
-              if (!isInitialized) {
-                return;
-              }
-
-              // Skip if interaction is active or currently animating
-              if (currentlyAnimating || isInteractionActive) {
-                return;
-              }
-
-              // Update last mouse move time
-              const currentTime = Date.now();
-              const timeSinceLastMove = currentTime - lastMouseMoveTime;
-              lastMouseMoveTime = currentTime;
-
-              // Clear existing timer if any
-              if (timer) {
-                clearTimeout(timer);
-              }
-
-              var mousecoords = getMousePos(e);
-              // Add validation for neck reference
-              if (!neck) {
-                console.error("Neck reference is missing");
-                return;
-              }
-
-              if (neck && !currentlyAnimating) {
-                moveJoint(mousecoords, neck, 50);
-              }
-
-              // Only set new timer if we're not already resetting
-              if (!isResetting) {
-                timer = setTimeout(() => {
-                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-                  // Only reset if there's been no movement for at least 5 seconds
-                  if (timeSinceLastMove >= 5000) {
-                    isResetting = true;
-                    resetHead();
-                    // Add a small delay before allowing another reset
-                    setTimeout(() => {
-                      isResetting = false;
-                    }, 1000);
-                  }
-                }, 5000);
-              }
-            });
-
-            // Add visibility change handler to handle tab switching
-            document.addEventListener("visibilitychange", () => {
-              if (document.visibilityState === "visible") {
-                resetHead();
-                lastMouseMoveTime = Date.now();
-              }
-            });
-          }
-        }
       },
       undefined,
       function (error) {
@@ -718,6 +643,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       );
 
       if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
+        console.log("Click-to-Dance interaction is not enabled");
         return;
       }
 
@@ -1398,7 +1324,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Analyze more frequently for smoother response
       const interval = setInterval(() => {
         getFrequencyData();
-      }, 30);
+      }, 50);
 
       // Clear interval when audio ends
       setTimeout(() => {
@@ -2189,6 +2115,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
 
+  // Function to keep jaw in open position
+  function keepJawOpen() {
+    if (jawRoot) {
+      // Set jaw rotation to open position (adjust the angle as needed)
+      // const openAngle = THREE.Math.degToRad(50); // 15 degrees rotation for open mouth
+      console.log("jawRoot open", jawRoot.rotation);
+      // jawRoot.position.x = openAngle;
+    }
+  }
+
   // Function to animate jaw movement based on frequency
   function animateJawSpeaking(duration = 3) {
     const durationMs = duration * 1000;
@@ -2202,10 +2138,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Enhanced jaw movement parameters
-    const baseMinAngle = -0.7; // Y-axis movement (up/down)
+    const baseMinAngle = -1.0; // Y-axis movement (up/down)
     const baseMaxAngle = 0.6;
     const frequencySensitivity = 2.0;
-    const movementSpeed = 1.1;
+    const movementSpeed = 0.9;
     const minMovement = 0.4;
     const randomFactor = 0.1;
 
@@ -2431,7 +2367,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      console.log("Fetching interactions for user:", user_id);
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -2449,11 +2384,93 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       const interactions = await response.json();
-      console.log("Fetched interactions:", interactions);
-
       // Store the interactions in INTERACTION_DATA for use in other functions
       INTERACTION_DATA = interactions;
       initializeInteractions(interactions);
+
+      // Set up head-cursor sync after data is loaded
+      if (!isMobile) {
+        let timer = setTimeout(() => resetHead());
+
+        // Check if Head-Cursor Sync is enabled
+        const headCursorSync = INTERACTION_DATA.find(
+          (i) => i.key === "Head-Cursor Sync"
+        );
+
+        if (headCursorSync && headCursorSync.status) {
+          let timer = null;
+          let lastMouseMoveTime = Date.now();
+          let isResetting = false;
+          let isInitialized = false;
+          let isModelReady = false;
+
+          // Initialize head position after model is ready
+          const initializeHeadTracking = () => {
+            if (!isModelReady) {
+              isModelReady = true;
+              setTimeout(() => {
+                resetHead();
+                isInitialized = true;
+              }, 1000);
+            }
+          };
+
+          // Call this when model is loaded
+          if (model) {
+            initializeHeadTracking();
+          }
+
+          document.addEventListener("mousemove", function (e) {
+            if (!isInitialized || !isModelReady) {
+              return;
+            }
+
+            // Skip if interaction is active or currently animating
+            if (currentlyAnimating || isInteractionActive) {
+              return;
+            }
+
+            // Update last mouse move time
+            const currentTime = Date.now();
+            const timeSinceLastMove = currentTime - lastMouseMoveTime;
+            lastMouseMoveTime = currentTime;
+
+            // Clear existing timer if any
+            if (timer) {
+              clearTimeout(timer);
+            }
+
+            var mousecoords = getMousePos(e);
+            if (neck && !currentlyAnimating) {
+              moveJoint(mousecoords, neck, 50);
+            }
+
+            // Only set new timer if we're not already resetting
+            if (!isResetting) {
+              timer = setTimeout(() => {
+                const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                // Only reset if there's been no movement for at least 5 seconds
+                if (timeSinceLastMove >= 5000) {
+                  isResetting = true;
+                  resetHead();
+                  // Add a small delay before allowing another reset
+                  setTimeout(() => {
+                    isResetting = false;
+                  }, 1000);
+                }
+              }, 5000);
+            }
+          });
+
+          // Add visibility change handler to handle tab switching
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+              resetHead();
+              lastMouseMoveTime = Date.now();
+            }
+          });
+        }
+      }
 
       return interactions;
     } catch (error) {
@@ -2556,19 +2573,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
     }
 
-    // Initialize Click Assist if enabled
-    if (isEnabled("Click Assist")) {
-      console.log("Click Assist is enabled");
-      document.addEventListener("DOMContentLoaded", () => {
-        window.clickAssistHandler = new ClickAssistHandler();
-      });
-
-      window.addEventListener("load", () => {
-        if (!window.clickAssistHandler) {
-          window.clickAssistHandler = new ClickAssistHandler();
-        }
-      });
-    }
+    // Click-to-Dance is already handled by the model click event listener
+    // No additional initialization needed
   };
 
   // ***********************************************Function to update total_impression count*****************************************************
@@ -2746,7 +2752,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           hasClose: false,
           animation: "wave",
           interactionAudio: returningVisitorInteraction?.audio_url || "",
-          audioDuration: returningVisitorInteraction?.audio_duration || 0,
+          audioDuration: newVisitorInteraction?.audio_duration || 0,
           cta: [
             {
               text: "Ask me anything!",
@@ -3467,143 +3473,5 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       updateInteractionImpression(idleInteraction.id);
     }
   }
-
-  //*************************************************CLICK ASSIST*****************************************************
-  class ClickAssistHandler {
-    constructor() {
-      this.highIntentButtons = [
-        "Get Started",
-        "Create Free QR Code",
-        "Book a Demo",
-        "Sign Up",
-        "Start Free Trial",
-        "Request a Quote",
-        "Buy Now",
-        "Talk to Sales",
-        "Schedule a Call",
-        "Upgrade Now",
-        "Free Trial",
-        "Try for Free",
-        "Join Waitlist",
-      ];
-      this.hoverTimers = new Map();
-      this.triggeredButtons = new Set();
-      this.setupClickAssist();
-    }
-
-    setupClickAssist() {
-      // Initialize immediately and also on load to ensure it works after hydration
-      this.attachHoverListeners();
-      window.addEventListener("load", () => {
-        this.attachHoverListeners();
-      });
-    }
-
-    attachHoverListeners() {
-      // Check if already triggered in this session
-      if (sessionStorage.getItem("clickAssistTriggered") === "true") {
-        return;
-      }
-
-      // Find all buttons and links
-      const elements = document.querySelectorAll("button, a");
-      console.log(elements, "elements");
-
-      elements.forEach((element) => {
-        const text = element.textContent?.trim() || "";
-        const normalizedText = text.toLowerCase().replace(/\s+/g, "_");
-
-        // Check if element contains any high-intent text
-        if (
-          this.highIntentButtons.some((buttonText) => {
-            const normalizedButtonText = buttonText
-              .toLowerCase()
-              .replace(/\s+/g, "_");
-            return (
-              // Exact match
-              text.toLowerCase() === buttonText.toLowerCase() ||
-              // Normalized exact match (spaces replaced with underscores)
-              normalizedText === normalizedButtonText ||
-              // Partial match
-              text.toLowerCase().includes(buttonText.toLowerCase()) ||
-              // Normalized partial match
-              normalizedText.includes(normalizedButtonText) ||
-              // Match without spaces
-              text.toLowerCase().replace(/\s+/g, "") ===
-                buttonText.toLowerCase().replace(/\s+/g, "")
-            );
-          })
-        ) {
-          // Remove existing listeners to prevent duplicates
-          element.removeEventListener("mouseenter", this.handleMouseEnter);
-          element.removeEventListener("mouseleave", this.handleMouseLeave);
-          element.removeEventListener("click", this.handleClick);
-
-          // Mouse enter handler
-          element.addEventListener("mouseenter", () => {
-            if (
-              !this.triggeredButtons.has(element) &&
-              sessionStorage.getItem("clickAssistTriggered") !== "true"
-            ) {
-              const clickAssistInteraction = INTERACTION_DATA.find(
-                (i) => i.key === "Click Assist"
-              );
-              this.hoverTimers.set(
-                element,
-                setTimeout(() => {
-                  if (
-                    !this.triggeredButtons.has(element) &&
-                    sessionStorage.getItem("clickAssistTriggered") !== "true"
-                  ) {
-                    showUIAnimation({
-                      text:
-                        clickAssistInteraction?.message ||
-                        "Great choice! No need to hesitate, go for it!",
-                      time: 8,
-                      hasClose: false,
-                      animation: "thumbs_up",
-                      interactionAudio: clickAssistInteraction?.audio_url || "",
-                      audioDuration:
-                        clickAssistInteraction?.audio_duration || 0,
-                      cta: [
-                        {
-                          text: "Ask me anything!",
-                          bg: "#007AFF",
-                          color: "#fff",
-                          format: "chat",
-                        },
-                      ],
-                    });
-                    this.triggeredButtons.add(element);
-                    // Mark as triggered in session storage
-                    sessionStorage.setItem("clickAssistTriggered", "true");
-                  }
-                }, 4000)
-              );
-            }
-          });
-
-          // Mouse leave handler
-          element.addEventListener("mouseleave", () => {
-            const timer = this.hoverTimers.get(element);
-            if (timer) {
-              clearTimeout(timer);
-              this.hoverTimers.delete(element);
-            }
-          });
-
-          // Click handler
-          element.addEventListener("click", () => {
-            const timer = this.hoverTimers.get(element);
-            if (timer) {
-              clearTimeout(timer);
-              this.hoverTimers.delete(element);
-            }
-          });
-        }
-      });
-    }
-  }
-
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
