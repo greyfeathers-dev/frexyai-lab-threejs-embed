@@ -2556,8 +2556,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
     }
 
-    // Click-to-Dance is already handled by the model click event listener
-    // No additional initialization needed
+    // Initialize Click Assist if enabled
+    if (isEnabled("Click Assist")) {
+      console.log("Click Assist is enabled");
+      document.addEventListener("DOMContentLoaded", () => {
+        window.clickAssistHandler = new ClickAssistHandler();
+      });
+
+      window.addEventListener("load", () => {
+        if (!window.clickAssistHandler) {
+          window.clickAssistHandler = new ClickAssistHandler();
+        }
+      });
+    }
   };
 
   // ***********************************************Function to update total_impression count*****************************************************
@@ -3456,5 +3467,143 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       updateInteractionImpression(idleInteraction.id);
     }
   }
+
+  //*************************************************CLICK ASSIST*****************************************************
+  class ClickAssistHandler {
+    constructor() {
+      this.highIntentButtons = [
+        "Get Started",
+        "Create Free QR Code",
+        "Book a Demo",
+        "Sign Up",
+        "Start Free Trial",
+        "Request a Quote",
+        "Buy Now",
+        "Talk to Sales",
+        "Schedule a Call",
+        "Upgrade Now",
+        "Free Trial",
+        "Try for Free",
+        "Join Waitlist",
+      ];
+      this.hoverTimers = new Map();
+      this.triggeredButtons = new Set();
+      this.setupClickAssist();
+    }
+
+    setupClickAssist() {
+      // Initialize immediately and also on load to ensure it works after hydration
+      this.attachHoverListeners();
+      window.addEventListener("load", () => {
+        this.attachHoverListeners();
+      });
+    }
+
+    attachHoverListeners() {
+      // Check if already triggered in this session
+      if (sessionStorage.getItem("clickAssistTriggered") === "true") {
+        return;
+      }
+
+      // Find all buttons and links
+      const elements = document.querySelectorAll("button, a");
+      console.log(elements, "elements");
+
+      elements.forEach((element) => {
+        const text = element.textContent?.trim() || "";
+        const normalizedText = text.toLowerCase().replace(/\s+/g, "_");
+
+        // Check if element contains any high-intent text
+        if (
+          this.highIntentButtons.some((buttonText) => {
+            const normalizedButtonText = buttonText
+              .toLowerCase()
+              .replace(/\s+/g, "_");
+            return (
+              // Exact match
+              text.toLowerCase() === buttonText.toLowerCase() ||
+              // Normalized exact match (spaces replaced with underscores)
+              normalizedText === normalizedButtonText ||
+              // Partial match
+              text.toLowerCase().includes(buttonText.toLowerCase()) ||
+              // Normalized partial match
+              normalizedText.includes(normalizedButtonText) ||
+              // Match without spaces
+              text.toLowerCase().replace(/\s+/g, "") ===
+                buttonText.toLowerCase().replace(/\s+/g, "")
+            );
+          })
+        ) {
+          // Remove existing listeners to prevent duplicates
+          element.removeEventListener("mouseenter", this.handleMouseEnter);
+          element.removeEventListener("mouseleave", this.handleMouseLeave);
+          element.removeEventListener("click", this.handleClick);
+
+          // Mouse enter handler
+          element.addEventListener("mouseenter", () => {
+            if (
+              !this.triggeredButtons.has(element) &&
+              sessionStorage.getItem("clickAssistTriggered") !== "true"
+            ) {
+              const clickAssistInteraction = INTERACTION_DATA.find(
+                (i) => i.key === "Click Assist"
+              );
+              this.hoverTimers.set(
+                element,
+                setTimeout(() => {
+                  if (
+                    !this.triggeredButtons.has(element) &&
+                    sessionStorage.getItem("clickAssistTriggered") !== "true"
+                  ) {
+                    showUIAnimation({
+                      text:
+                        clickAssistInteraction?.message ||
+                        "Great choice! No need to hesitate, go for it!",
+                      time: 8,
+                      hasClose: false,
+                      animation: "thumbs_up",
+                      interactionAudio: clickAssistInteraction?.audio_url || "",
+                      audioDuration:
+                        clickAssistInteraction?.audio_duration || 0,
+                      cta: [
+                        {
+                          text: "Ask me anything!",
+                          bg: "#007AFF",
+                          color: "#fff",
+                          format: "chat",
+                        },
+                      ],
+                    });
+                    this.triggeredButtons.add(element);
+                    // Mark as triggered in session storage
+                    sessionStorage.setItem("clickAssistTriggered", "true");
+                  }
+                }, 4000)
+              );
+            }
+          });
+
+          // Mouse leave handler
+          element.addEventListener("mouseleave", () => {
+            const timer = this.hoverTimers.get(element);
+            if (timer) {
+              clearTimeout(timer);
+              this.hoverTimers.delete(element);
+            }
+          });
+
+          // Click handler
+          element.addEventListener("click", () => {
+            const timer = this.hoverTimers.get(element);
+            if (timer) {
+              clearTimeout(timer);
+              this.hoverTimers.delete(element);
+            }
+          });
+        }
+      });
+    }
+  }
+
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
