@@ -91,17 +91,17 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/boy_dance%20.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
+    animation: "breathing_idle",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/dance%20.glb",
     animation: "dance",
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking.glb",
-    animation: "casual_talk",
-  },
-  {
-    model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/Casual_Talking_1.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_1.glb",
     animation: "casual_talk_1",
   },
   {
@@ -111,8 +111,13 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_3.glb",
+    animation: "casual_talk_3",
+  },
+  {
+    model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/victory_vibes.glb",
-    animation: "celebration",
+    animation: "victory_vibes",
   },
   {
     model_url:
@@ -2708,7 +2713,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "",
+        animation: "casual_talk_2",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
