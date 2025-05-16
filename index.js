@@ -638,12 +638,83 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           source: getSource(),
         });
 
-        // Initialize head tracking after model is loaded
-        setTimeout(() => {
-          if (!isMobile) {
-            resetHead();
+        if (!isMobile) {
+          let timer = setTimeout(() => resetHead());
+
+          // Check if Head-Cursor Sync is enabled
+          const headCursorSync = INTERACTION_DATA.find(
+            (i) => i.key === "Head-Cursor Sync"
+          );
+
+          if (headCursorSync && headCursorSync.status) {
+            let timer = null;
+            let lastMouseMoveTime = Date.now();
+            let isResetting = false;
+            let isInitialized = false;
+
+            // Initialize head position
+            setTimeout(() => {
+              resetHead();
+              isInitialized = true;
+            }, 1000);
+
+            document.addEventListener("mousemove", function (e) {
+              if (!isInitialized) {
+                return;
+              }
+
+              // Skip if interaction is active or currently animating
+              if (currentlyAnimating || isInteractionActive) {
+                return;
+              }
+
+              // Update last mouse move time
+              const currentTime = Date.now();
+              const timeSinceLastMove = currentTime - lastMouseMoveTime;
+              lastMouseMoveTime = currentTime;
+
+              // Clear existing timer if any
+              if (timer) {
+                clearTimeout(timer);
+              }
+
+              var mousecoords = getMousePos(e);
+              // Add validation for neck reference
+              if (!neck) {
+                console.error("Neck reference is missing");
+                return;
+              }
+
+              if (neck && !currentlyAnimating) {
+                moveJoint(mousecoords, neck, 50);
+              }
+
+              // Only set new timer if we're not already resetting
+              if (!isResetting) {
+                timer = setTimeout(() => {
+                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                  // Only reset if there's been no movement for at least 5 seconds
+                  if (timeSinceLastMove >= 5000) {
+                    isResetting = true;
+                    resetHead();
+                    // Add a small delay before allowing another reset
+                    setTimeout(() => {
+                      isResetting = false;
+                    }, 1000);
+                  }
+                }, 5000);
+              }
+            });
+
+            // Add visibility change handler to handle tab switching
+            document.addEventListener("visibilitychange", () => {
+              if (document.visibilityState === "visible") {
+                resetHead();
+                lastMouseMoveTime = Date.now();
+              }
+            });
           }
-        }, 1000);
+        }
       },
       undefined,
       function (error) {
@@ -1440,7 +1511,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             });
           }
         }
-      }, 500);
+      }, 10);
     }
 
     if (type === "tooltip") {
@@ -2931,10 +3002,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 30;
+      const isNearTop = event.clientY < 15;
 
       // Check if any point in the mouse path is near the top
-      const isNearTopInPath = this.mousePath.some((point) => point.y < 30);
+      const isNearTopInPath = this.mousePath.some((point) => point.y < 15);
 
       // Check if the movement is upward by comparing first and last points in path
       const isMovingUpward =
@@ -2980,7 +3051,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         // Find dance animation and get its duration
         const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
         const danceDuration = danceAnim
-          ? danceAnim.clip._clip.duration * 1000
+          ? danceAnim.bodyClip._clip.duration * 1000
           : 6000;
 
         showUIAnimation({
@@ -3125,10 +3196,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Check if any point in the mouse path is near the top or corners
       const isNearTopOrCorners = this.mousePath.some((point) => {
-        const isNearTop = point.y < 30;
-        const isNearTopLeftCorner = point.x < 30 && point.y < 30;
+        const isNearTop = point.y < 15;
+        const isNearTopLeftCorner = point.x < 15 && point.y < 15;
         const isNearTopRightCorner =
-          point.x > window.innerWidth - 30 && point.y < 30;
+          point.x > window.innerWidth - 15 && point.y < 15;
         return isNearTop || isNearTopLeftCorner || isNearTopRightCorner;
       });
 
