@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -2831,7 +2831,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           },
         ],
       });
-
       updateInteractionImpression(newVisitorInteraction.id);
       localStorage.setItem("hasWelcomeVisitor", "true");
     }
@@ -3051,7 +3050,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       setTimeout(() => {
         // Find dance animation and get its duration
         const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
-        console.log(danceAnim.bodyClip, "dance animation");
         const danceDuration = danceAnim
           ? danceAnim.bodyClip._clip.duration * 1000
           : 6000;
