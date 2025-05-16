@@ -91,7 +91,7 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/boy_dance%20.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/dance%20.glb",
     animation: "dance",
   },
   {
