@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -638,12 +638,83 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           source: getSource(),
         });
 
-        // Initialize head tracking after model is loaded
-        setTimeout(() => {
-          if (!isMobile) {
-            resetHead();
+        if (!isMobile) {
+          let timer = setTimeout(() => resetHead());
+
+          // Check if Head-Cursor Sync is enabled
+          const headCursorSync = INTERACTION_DATA.find(
+            (i) => i.key === "Head-Cursor Sync"
+          );
+
+          if (headCursorSync && headCursorSync.status) {
+            let timer = null;
+            let lastMouseMoveTime = Date.now();
+            let isResetting = false;
+            let isInitialized = false;
+
+            // Initialize head position
+            setTimeout(() => {
+              resetHead();
+              isInitialized = true;
+            }, 1000);
+
+            document.addEventListener("mousemove", function (e) {
+              if (!isInitialized) {
+                return;
+              }
+
+              // Skip if interaction is active or currently animating
+              if (currentlyAnimating || isInteractionActive) {
+                return;
+              }
+
+              // Update last mouse move time
+              const currentTime = Date.now();
+              const timeSinceLastMove = currentTime - lastMouseMoveTime;
+              lastMouseMoveTime = currentTime;
+
+              // Clear existing timer if any
+              if (timer) {
+                clearTimeout(timer);
+              }
+
+              var mousecoords = getMousePos(e);
+              // Add validation for neck reference
+              if (!neck) {
+                console.error("Neck reference is missing");
+                return;
+              }
+
+              if (neck && !currentlyAnimating) {
+                moveJoint(mousecoords, neck, 50);
+              }
+
+              // Only set new timer if we're not already resetting
+              if (!isResetting) {
+                timer = setTimeout(() => {
+                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                  // Only reset if there's been no movement for at least 5 seconds
+                  if (timeSinceLastMove >= 5000) {
+                    isResetting = true;
+                    resetHead();
+                    // Add a small delay before allowing another reset
+                    setTimeout(() => {
+                      isResetting = false;
+                    }, 1000);
+                  }
+                }, 5000);
+              }
+            });
+
+            // Add visibility change handler to handle tab switching
+            document.addEventListener("visibilitychange", () => {
+              if (document.visibilityState === "visible") {
+                resetHead();
+                lastMouseMoveTime = Date.now();
+              }
+            });
           }
-        }, 1000);
+        }
       },
       undefined,
       function (error) {
