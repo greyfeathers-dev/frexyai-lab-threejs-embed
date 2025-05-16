@@ -2447,70 +2447,70 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Initialize head cursor sync if enabled
-    if (isEnabled("Head-Cursor Sync") && !isMobile) {
-      console.log("Head-Cursor Sync is enabled");
-      if (!neck) {
-        console.error("Neck bone reference is missing");
-        return;
-      }
+    // if (isEnabled("Head-Cursor Sync") && !isMobile) {
+    //   console.log("Head-Cursor Sync is enabled");
+    //   if (!neck) {
+    //     console.error("Neck bone reference is missing");
+    //     return;
+    //   }
 
-      let timer = null;
-      let lastMouseMoveTime = Date.now();
-      let isResetting = false;
-      let isInitialized = false;
+    //   let timer = null;
+    //   let lastMouseMoveTime = Date.now();
+    //   let isResetting = false;
+    //   let isInitialized = false;
 
-      // Initialize head position
-      resetHead();
-      isInitialized = true;
+    //   // Initialize head position
+    //   resetHead();
+    //   isInitialized = true;
 
-      document.addEventListener("mousemove", function (e) {
-        if (!isInitialized || !neck) {
-          return;
-        }
+    //   document.addEventListener("mousemove", function (e) {
+    //     if (!isInitialized || !neck) {
+    //       return;
+    //     }
 
-        // Skip if interaction is active or currently animating
-        if (currentlyAnimating || isInteractionActive) {
-          return;
-        }
+    //     // Skip if interaction is active or currently animating
+    //     if (currentlyAnimating || isInteractionActive) {
+    //       return;
+    //     }
 
-        // Update last mouse move time
-        const currentTime = Date.now();
-        const timeSinceLastMove = currentTime - lastMouseMoveTime;
-        lastMouseMoveTime = currentTime;
+    //     // Update last mouse move time
+    //     const currentTime = Date.now();
+    //     const timeSinceLastMove = currentTime - lastMouseMoveTime;
+    //     lastMouseMoveTime = currentTime;
 
-        // Clear existing timer if any
-        if (timer) {
-          clearTimeout(timer);
-        }
+    //     // Clear existing timer if any
+    //     if (timer) {
+    //       clearTimeout(timer);
+    //     }
 
-        var mousecoords = getMousePos(e);
-        moveJoint(mousecoords, neck, 50);
+    //     var mousecoords = getMousePos(e);
+    //     moveJoint(mousecoords, neck, 50);
 
-        // Only set new timer if we're not already resetting
-        if (!isResetting) {
-          timer = setTimeout(() => {
-            const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-            // Only reset if there's been no movement for at least 5 seconds
-            if (timeSinceLastMove >= 5000) {
-              isResetting = true;
-              resetHead();
-              // Add a small delay before allowing another reset
-              setTimeout(() => {
-                isResetting = false;
-              }, 1000);
-            }
-          }, 5000);
-        }
-      });
+    //     // Only set new timer if we're not already resetting
+    //     if (!isResetting) {
+    //       timer = setTimeout(() => {
+    //         const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+    //         // Only reset if there's been no movement for at least 5 seconds
+    //         if (timeSinceLastMove >= 5000) {
+    //           isResetting = true;
+    //           resetHead();
+    //           // Add a small delay before allowing another reset
+    //           setTimeout(() => {
+    //             isResetting = false;
+    //           }, 1000);
+    //         }
+    //       }, 5000);
+    //     }
+    //   });
 
-      // Add visibility change handler to handle tab switching
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          resetHead();
-          lastMouseMoveTime = Date.now();
-        }
-      });
-    }
+    //   // Add visibility change handler to handle tab switching
+    //   document.addEventListener("visibilitychange", () => {
+    //     if (document.visibilityState === "visible") {
+    //       resetHead();
+    //       lastMouseMoveTime = Date.now();
+    //     }
+    //   });
+    // }
 
     // Initialize other interactions
     if (isEnabled("Welcome New Visitor")) {
