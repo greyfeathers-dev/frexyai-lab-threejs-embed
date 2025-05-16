@@ -67,8 +67,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -639,83 +639,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         });
 
         // Initialize head tracking after model is loaded
-        if (!isMobile) {
-          let timer = setTimeout(() => resetHead());
-
-          // Check if Head-Cursor Sync is enabled
-          const headCursorSync = INTERACTION_DATA.find(
-            (i) => i.key === "Head-Cursor Sync"
-          );
-
-          if (headCursorSync && headCursorSync.status) {
-            let timer = null;
-            let lastMouseMoveTime = Date.now();
-            let isResetting = false;
-            let isInitialized = false;
-
-            // Initialize head position
-            setTimeout(() => {
-              resetHead();
-              isInitialized = true;
-            }, 1000);
-
-            document.addEventListener("mousemove", function (e) {
-              if (!isInitialized) {
-                return;
-              }
-
-              // Skip if interaction is active or currently animating
-              if (currentlyAnimating || isInteractionActive) {
-                return;
-              }
-
-              // Update last mouse move time
-              const currentTime = Date.now();
-              const timeSinceLastMove = currentTime - lastMouseMoveTime;
-              lastMouseMoveTime = currentTime;
-
-              // Clear existing timer if any
-              if (timer) {
-                clearTimeout(timer);
-              }
-
-              var mousecoords = getMousePos(e);
-              // Add validation for neck reference
-              if (!neck) {
-                console.error("Neck reference is missing");
-                return;
-              }
-
-              if (neck && !currentlyAnimating) {
-                moveJoint(mousecoords, neck, 50);
-              }
-
-              // Only set new timer if we're not already resetting
-              if (!isResetting) {
-                timer = setTimeout(() => {
-                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-                  // Only reset if there's been no movement for at least 5 seconds
-                  if (timeSinceLastMove >= 5000) {
-                    isResetting = true;
-                    resetHead();
-                    // Add a small delay before allowing another reset
-                    setTimeout(() => {
-                      isResetting = false;
-                    }, 1000);
-                  }
-                }, 5000);
-              }
-            });
-
-            // Add visibility change handler to handle tab switching
-            document.addEventListener("visibilitychange", () => {
-              if (document.visibilityState === "visible") {
-                resetHead();
-                lastMouseMoveTime = Date.now();
-              }
-            });
+        setTimeout(() => {
+          if (!isMobile) {
+            resetHead();
           }
-        }
+        }, 1000);
       },
       undefined,
       function (error) {
@@ -2518,7 +2446,73 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return interaction ? interaction.status : false;
     };
 
-    // Initialize each interaction based on its status
+    // Initialize head cursor sync if enabled
+    if (isEnabled("Head-Cursor Sync") && !isMobile) {
+      console.log("Head-Cursor Sync is enabled");
+      if (!neck) {
+        console.error("Neck bone reference is missing");
+        return;
+      }
+
+      let timer = null;
+      let lastMouseMoveTime = Date.now();
+      let isResetting = false;
+      let isInitialized = false;
+
+      // Initialize head position
+      resetHead();
+      isInitialized = true;
+
+      document.addEventListener("mousemove", function (e) {
+        if (!isInitialized || !neck) {
+          return;
+        }
+
+        // Skip if interaction is active or currently animating
+        if (currentlyAnimating || isInteractionActive) {
+          return;
+        }
+
+        // Update last mouse move time
+        const currentTime = Date.now();
+        const timeSinceLastMove = currentTime - lastMouseMoveTime;
+        lastMouseMoveTime = currentTime;
+
+        // Clear existing timer if any
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        var mousecoords = getMousePos(e);
+        moveJoint(mousecoords, neck, 50);
+
+        // Only set new timer if we're not already resetting
+        if (!isResetting) {
+          timer = setTimeout(() => {
+            const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+            // Only reset if there's been no movement for at least 5 seconds
+            if (timeSinceLastMove >= 5000) {
+              isResetting = true;
+              resetHead();
+              // Add a small delay before allowing another reset
+              setTimeout(() => {
+                isResetting = false;
+              }, 1000);
+            }
+          }, 5000);
+        }
+      });
+
+      // Add visibility change handler to handle tab switching
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          resetHead();
+          lastMouseMoveTime = Date.now();
+        }
+      });
+    }
+
+    // Initialize other interactions
     if (isEnabled("Welcome New Visitor")) {
       console.log("New visitor is enabled");
       document.addEventListener("DOMContentLoaded", () => {
@@ -2755,7 +2749,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "wait_up",
+        animation: "wave",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
