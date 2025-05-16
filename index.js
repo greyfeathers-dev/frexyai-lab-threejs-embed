@@ -1,6 +1,6 @@
 /** @format */
-// localStorage.clear();
-// sessionStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
@@ -2831,6 +2831,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           },
         ],
       });
+
       updateInteractionImpression(newVisitorInteraction.id);
       localStorage.setItem("hasWelcomeVisitor", "true");
     }
@@ -3002,10 +3003,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const timeSinceStart = Date.now() - this.sessionStartTime;
       const isWithin30Seconds = timeSinceStart <= 30000;
       const scrollPercentage = getScrollPercentage();
-      const isNearTop = event.clientY < 30;
+      const isNearTop = event.clientY < 15;
 
       // Check if any point in the mouse path is near the top
-      const isNearTopInPath = this.mousePath.some((point) => point.y < 30);
+      const isNearTopInPath = this.mousePath.some((point) => point.y < 15);
 
       // Check if the movement is upward by comparing first and last points in path
       const isMovingUpward =
@@ -3050,8 +3051,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       setTimeout(() => {
         // Find dance animation and get its duration
         const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
+        console.log(danceAnim.bodyClip, "dance animation");
         const danceDuration = danceAnim
-          ? danceAnim.clip._clip.duration * 1000
+          ? danceAnim.bodyClip._clip.duration * 1000
           : 6000;
 
         showUIAnimation({
@@ -3196,10 +3198,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Check if any point in the mouse path is near the top or corners
       const isNearTopOrCorners = this.mousePath.some((point) => {
-        const isNearTop = point.y < 30;
-        const isNearTopLeftCorner = point.x < 30 && point.y < 30;
+        const isNearTop = point.y < 15;
+        const isNearTopLeftCorner = point.x < 15 && point.y < 15;
         const isNearTopRightCorner =
-          point.x > window.innerWidth - 30 && point.y < 30;
+          point.x > window.innerWidth - 15 && point.y < 15;
         return isNearTop || isNearTopLeftCorner || isNearTopRightCorner;
       });
 
