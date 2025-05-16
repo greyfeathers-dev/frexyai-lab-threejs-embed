@@ -96,18 +96,18 @@ const ANIMATION_LIST = [
   },
   {
     model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking.glb",
-    animation: "casual_talk",
-  },
-  {
-    model_url:
-      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/Casual_Talking_1.glb",
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_1.glb",
     animation: "casual_talk_1",
   },
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_2.glb",
     animation: "casual_talk_2",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/casual_talking_3.glb",
+    animation: "casual_talk_3",
   },
   {
     model_url:
@@ -585,22 +585,41 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
         // Handle idle animation
         if (fileAnimations && fileAnimations.length > 0) {
-          let idleAnim = fileAnimations[0]; // Use first animation as idle
-          idleAnim.name = "idle"; // Set the name to idle
+          let idleAnim = fileAnimations[0];
+          idleAnim.name = "idle";
 
-          // Clone the animation and filter out jaw bone tracks
-          let clonedIdleAnim = idleAnim.clone();
-          clonedIdleAnim.tracks = clonedIdleAnim.tracks
-            .filter((track) => !track.name.includes("scale"))
-            .filter((track) => !track.name.includes("position"))
-            .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
-            .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
-            .filter((track) => !track.name.includes("neckbone"));
+          // Split idle animation into body and head parts
+          const bodyTracks = idleAnim.tracks.filter(
+            (track) =>
+              !track.name.includes("CC_Base_JawRoot") &&
+              !track.name.includes("CC_Base_Head") &&
+              !track.name.includes("neckbone")
+          );
 
-          const idleAction = mixer.clipAction(clonedIdleAnim);
-          idleAction.setLoop(THREE.LoopRepeat, Infinity);
-          idle = idleAction;
+          const headTracks = idleAnim.tracks.filter(
+            (track) =>
+              track.name.includes("CC_Base_JawRoot") ||
+              track.name.includes("CC_Base_Head") ||
+              track.name.includes("neckbone")
+          );
+
+          const bodyIdleAnim = idleAnim.clone();
+          bodyIdleAnim.tracks = bodyTracks;
+          bodyIdleAnim.name = "idle_body";
+
+          const headIdleAnim = idleAnim.clone();
+          headIdleAnim.tracks = headTracks;
+          headIdleAnim.name = "idle_head";
+
+          const bodyIdleAction = mixer.clipAction(bodyIdleAnim);
+          const headIdleAction = mixer.clipAction(headIdleAnim);
+
+          bodyIdleAction.setLoop(THREE.LoopRepeat, Infinity);
+          headIdleAction.setLoop(THREE.LoopRepeat, Infinity);
+
+          idle = bodyIdleAction;
           idle.play();
+          headIdleAction.play();
         }
 
         // Remove loader after successful model load
@@ -852,32 +871,51 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           // Add new animations to the existing GLTF animations
           newGLTF.animations.forEach((anim) => {
-            // Clone the animation and filter out jaw bone tracks
+            // Clone the animation and filter tracks
             let clonedAnim = anim.clone();
-            clonedAnim.tracks = clonedAnim.tracks
-              .filter((track) => !track.name.includes("scale"))
-              .filter((track) => !track.name.includes("position"))
-              .filter((track) => !track.name.includes("CC_Base_JawRoot")) // Filter out jaw bone animations
-              .filter((track) => !track.name.includes("CC_Base_Head")) // Filter out jaw bone animations
-              .filter((track) => !track.name.includes("neckbone"));
 
-            // Set the animation name to match the expected name
-            clonedAnim.name = animationItem.animation;
-            gltf.animations.push(clonedAnim);
-          });
+            // Create separate tracks for body and head/jaw
+            const bodyTracks = clonedAnim.tracks.filter(
+              (track) =>
+                !track.name.includes("CC_Base_JawRoot") &&
+                !track.name.includes("CC_Base_Head") &&
+                !track.name.includes("neckbone")
+            );
 
-          // Update possible animations list
-          const newAnim = newGLTF.animations[0]; // Get the first animation from the loaded file
-          if (newAnim) {
-            const action = mixer.clipAction(newAnim);
+            const headTracks = clonedAnim.tracks.filter(
+              (track) =>
+                track.name.includes("CC_Base_JawRoot") ||
+                track.name.includes("CC_Base_Head") ||
+                track.name.includes("neckbone")
+            );
+
+            // Create two separate animations
+            const bodyAnim = clonedAnim.clone();
+            bodyAnim.tracks = bodyTracks;
+            bodyAnim.name = `${animationItem.animation}_body`;
+
+            const headAnim = clonedAnim.clone();
+            headAnim.tracks = headTracks;
+            headAnim.name = `${animationItem.animation}_head`;
+
+            // Add both animations to the mixer
+            gltf.animations.push(bodyAnim);
+            gltf.animations.push(headAnim);
+
+            // Create actions for both animations
+            const bodyAction = mixer.clipAction(bodyAnim);
+            const headAction = mixer.clipAction(headAnim);
+
+            // Store both actions in possibleAnims
             if (!possibleAnims) {
               possibleAnims = [];
             }
             possibleAnims.push({
               name: animationItem.animation,
-              clip: action,
+              bodyClip: bodyAction,
+              headClip: headAction,
             });
-          }
+          });
         },
         undefined,
         function (error) {
@@ -1431,7 +1469,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const type = config.imageUrl ? "overlay" : "tooltip";
     hideInput();
     if (animationIdx >= 0) {
+      // Store the current head animation to restore it later
+      const currentHeadAnim = possibleAnims[animationIdx].headClip;
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
+
+      // If there's audio, stop the head animation to allow jaw movement
+      if (config.interactionAudio && !isMuted) {
+        currentHeadAnim.stop();
+      }
     }
     incrementImpression(config.id);
     console.log("config.audioDuration", config.audioDuration);
@@ -1454,6 +1499,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             analyzeAudioFrequency(config.interactionAudio).then(() => {
               // Start jaw animation when audio starts
               if (config.audioDuration > 0) {
+                // Stop any existing head animations to ensure jaw movement works
+                if (mixer) {
+                  mixer._actions.forEach((action) => {
+                    if (action._clip.name.includes("_head")) {
+                      action.stop();
+                    }
+                  });
+                }
                 animateJawSpeaking(config.audioDuration);
               }
             });
@@ -1919,44 +1972,50 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= ANIMATION FUNCTIONS =============================================
 
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
-    const to = finalAnim.clip;
+    const toBody = finalAnim.bodyClip;
+    const toHead = finalAnim.headClip;
 
-    // Instead of stopping all animations, we'll handle the transition more smoothly
     if (mixer) {
-      // Only stop other animations if they're not the idle animation
+      // Stop other animations except idle
       mixer._actions.forEach((action) => {
-        if (action !== from && action !== to) {
+        if (action !== from && action !== toBody && action !== toHead) {
           action.stop();
         }
       });
     }
 
-    // Reset and play the new animation
-    to.reset();
-    to.setLoop(THREE.LoopOnce);
-    to.clampWhenFinished = true;
-    to.play();
+    // Reset and play the new animations
+    toBody.reset();
+    toHead.reset();
+    toBody.setLoop(THREE.LoopOnce);
+    toHead.setLoop(THREE.LoopOnce);
+    toBody.clampWhenFinished = true;
+    toHead.clampWhenFinished = true;
+    toBody.play();
+    toHead.play();
 
-    // Crossfade from idle to the new animation with a shorter duration
-    from.crossFadeTo(to, fSpeed * 0.5, true);
+    // Crossfade from idle to the new animations
+    from.crossFadeTo(toBody, fSpeed * 0.5, true);
 
     // Calculate when the animation will finish
-    const animationDuration = to._clip.duration;
+    const animationDuration = toBody._clip.duration;
 
-    // Set up the transition back to idle with a shorter duration
+    // Set up the transition back to idle
     setTimeout(() => {
       // Reset and play the idle animation
       from.reset();
       from.setLoop(THREE.LoopRepeat, Infinity);
       from.play();
 
-      // Crossfade from the current animation back to idle with a shorter duration
-      to.crossFadeTo(from, tSpeed * 0.5, true);
+      // Crossfade from the current animations back to idle
+      toBody.crossFadeTo(from, tSpeed * 0.5, true);
+      toHead.crossFadeTo(from, tSpeed * 0.5, true);
 
-      // After the crossfade is complete, stop the temporary animation
+      // After the crossfade is complete, stop the temporary animations
       setTimeout(() => {
-        to.stop();
-      }, tSpeed * 500); // Reduced from 1000ms to 500ms
+        toBody.stop();
+        toHead.stop();
+      }, tSpeed * 500);
     }, (animationDuration - tSpeed) * 1000);
   }
 
@@ -2202,7 +2261,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Enhanced jaw movement parameters
-    const baseMinAngle = -0.7; // Y-axis movement (up/down)
+    const baseMinAngle = -0.7;
     const baseMaxAngle = 0.6;
     const frequencySensitivity = 2.0;
     const movementSpeed = 1.1;
@@ -2210,16 +2269,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const randomFactor = 0.1;
 
     // New parameters for X and Z axis movement
-    const xAxisRange = 0.2; // Side-to-side movement range
-    const zAxisRange = 0.25; // Forward/backward movement range
-    const xAxisPhase = Math.PI / 4; // Phase offset for X movement
-    const zAxisPhase = Math.PI / 2; // Phase offset for Z movement
-    const axisMovementSpeed = 1.2; // Speed multiplier for X/Z movement
+    const xAxisRange = 0.2;
+    const zAxisRange = 0.25;
+    const xAxisPhase = Math.PI / 4;
+    const zAxisPhase = Math.PI / 2;
+    const axisMovementSpeed = 1.2;
 
     // Silence detection parameters
-    const silenceThreshold = 0.48; // Threshold below which we consider it silent
-    const silenceDurationThreshold = 100; // Minimum duration of silence in ms
-    const minClosedDuration = 200; // Minimum time jaw stays closed in ms
+    const silenceThreshold = 0.48;
+    const silenceDurationThreshold = 100;
+    const minClosedDuration = 200;
     let silenceStartTime = null;
     let isSilent = false;
     let closedStartTime = null;
@@ -2262,7 +2321,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           isSilent = true;
         }
       } else {
-        // Only reset silence if we've been closed for minimum duration
         if (
           closedStartTime &&
           Date.now() - closedStartTime >= minClosedDuration
@@ -2290,9 +2348,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // If silent, minimize jaw movement
       if (isSilent) {
-        basePosition = baseMinAngle * 0.2; // Keep jaw slightly open during silence
-        frequencyAdjustment *= 0.1; // Drastically reduce movement
-        randomVariation *= 0.1; // Reduce random variation
+        basePosition = baseMinAngle * 0.2;
+        frequencyAdjustment *= 0.1;
+        randomVariation *= 0.1;
       }
 
       const finalYPosition =
@@ -2336,17 +2394,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       jawRoot.position.x = initialPosition.x + finalXPosition;
       jawRoot.position.y = initialPosition.y + finalYPosition;
       jawRoot.position.z = initialPosition.z + finalZPosition;
-
-      // Log movement data for debugging
-      console.log("Jaw Movement:", {
-        x: finalXPosition,
-        y: finalYPosition,
-        z: finalZPosition,
-        frequencyFactor,
-        cycleProgress,
-        normalized: previousFrequency,
-        isSilent,
-      });
 
       requestAnimationFrame(updateJaw);
     }
@@ -2708,7 +2755,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 15,
         interactionAudio: newVisitorInteraction?.audio_url || "",
         hasClose: false,
-        animation: "",
+        animation: "wait_up",
         audioDuration: newVisitorInteraction?.audio_duration || 0,
         cta: [
           {
