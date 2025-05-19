@@ -71,8 +71,7 @@ const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
-
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
@@ -2191,7 +2190,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (neck) {
       // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
-      const targetX = THREE.Math.degToRad(37); // Negative value tilts head upward
+      const targetX = THREE.Math.degToRad(30); // Negative value tilts head upward
 
       // Create a function to update the head position
       function updateHeadPosition() {
