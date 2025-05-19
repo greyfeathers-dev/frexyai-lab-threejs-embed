@@ -2,48 +2,46 @@
 // localStorage.clear();
 // sessionStorage.clear();
 
-// ***************************************************************** ENCRYPTION KEYS *****************************************************************
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
 
-// Initialize Supabase client
-let supabase = null;
+// // Initialize Supabase client
+// let supabase = null;
 
-// Function to initialize Supabase client
-function initializeSupabase() {
-  if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-    return true;
-  }
-  return false;
-}
+// // Function to initialize Supabase client
+// function initializeSupabase() {
+//   if (typeof window.supabase !== "undefined") {
+//     supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+//     return true;
+//   }
+//   return false;
+// }
 
-// Try to initialize immediately
-if (!initializeSupabase()) {
-  // If initialization fails, wait for the script to load
-  window.addEventListener("load", function () {
-    let attempts = 0;
-    const maxAttempts = 10;
+// // Try to initialize immediately
+// if (!initializeSupabase()) {
+//   // If initialization fails, wait for the script to load
+//   window.addEventListener("load", function () {
+//     let attempts = 0;
+//     const maxAttempts = 10;
 
-    function tryInitialize() {
-      if (initializeSupabase()) {
-        console.log("Supabase client initialized successfully");
-      } else if (attempts < maxAttempts) {
-        attempts++;
-        setTimeout(tryInitialize, 500);
-      } else {
-        console.error(
-          "Failed to initialize Supabase client after multiple attempts"
-        );
-      }
-    }
+//     function tryInitialize() {
+//       if (initializeSupabase()) {
+//       } else if (attempts < maxAttempts) {
+//         attempts++;
+//         setTimeout(tryInitialize, 500);
+//       } else {
+//         console.error(
+//           "Failed to initialize Supabase client after multiple attempts"
+//         );
+//       }
+//     }
 
-    tryInitialize();
-  });
-}
+//     tryInitialize();
+//   });
+// }
 
-const leadIdLocal = localStorage.getItem("leadId");
+// ***************************************************************** ENCRYPTION KEYS *****************************************************************
 
 // Add ElevenLabs configuration
 const ELEVENLABS_API_KEY =
@@ -69,11 +67,11 @@ const audio = new Audio(
 );
 const user_id = localStorage.getItem("merchantId");
 // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
-
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
@@ -169,7 +167,6 @@ function getUnmuteIcon() {
 
 // Function to convert text to speech using ElevenLabs
 async function convertTextToSpeech(text) {
-  console.log(text, "text in convert text to speech");
   try {
     const response = await fetch(
       `${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`,
@@ -210,12 +207,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const sanitizedInteractionName = interactionName.replace(/\s+/g, "_");
     const filename = `leads/${leadIdLocal}/${sanitizedInteractionName}_${timestamp}.mp3`;
 
-    console.log(
-      leadIdLocal,
-      filename,
-      "leadId from local storage in interactions"
-    );
-
     const { data, error } = await supabase.storage
       .from("interactions")
       .upload(filename, audioBlob, {
@@ -231,7 +222,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const { data: publicUrlData } = supabase.storage
       .from("interactions")
       .getPublicUrl(filename);
-    console.log(publicUrlData, "public url data in interactions");
 
     return publicUrlData.publicUrl;
   } catch (error) {
@@ -270,7 +260,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (!isMuted) return; // Already unmuted
 
       isMuted = false;
-      console.log("User interacted, audio enabled");
 
       // Remove the event listeners after first interaction
       window.removeEventListener("click", unmute);
@@ -292,7 +281,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   const getLeadsData = async () => {
     // const leadId = "1743157089204-1gqwxib4tv4";
     try {
-      console.log(leadIdLocal, "leadId from local storage in interactions");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
         {
@@ -309,7 +297,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const leads = await response.json();
-      console.log("LEADS FROM FETCH", leads);
       leadData = leads[0];
 
       // Extract the required information
@@ -333,7 +320,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     try {
       // Upload audio to storage using interaction name
       const audioUrl = await uploadAudioToStorage(audioBlob, name);
-      console.log(audioUrl, "audio url in update leads data");
       if (!audioUrl) {
         throw new Error("Failed to upload audio");
       }
@@ -370,7 +356,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log("Audio uploaded and data updated successfully");
       return audioUrl;
     } catch (error) {
       console.error("Error in UpdateLeadsData:", error);
@@ -558,18 +543,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           }
           // Add detailed bone logging
           if (o.isBone) {
-            console.log("Found bone:", o.name);
             if (o.name === "neckbone") {
               neck = o;
-              console.log("Found neck bone:", neck);
             }
             if (o.name === "spine_01x") {
               waist = o;
-              console.log("Found waist bone:", waist);
             }
             if (o.name === "CC_Base_JawRoot") {
               jawRoot = o;
-              console.log("Found jaw bone:", jawRoot);
             }
           }
         });
@@ -637,84 +618,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           type: "pageVisit",
           source: getSource(),
         });
-
-        if (!isMobile) {
-          let timer = setTimeout(() => resetHead());
-
-          // Check if Head-Cursor Sync is enabled
-          const headCursorSync = INTERACTION_DATA.find(
-            (i) => i.key === "Head-Cursor Sync"
-          );
-
-          if (headCursorSync && headCursorSync.status) {
-            let timer = null;
-            let lastMouseMoveTime = Date.now();
-            let isResetting = false;
-            let isInitialized = false;
-
-            // Initialize head position
-            setTimeout(() => {
-              resetHead();
-              isInitialized = true;
-            }, 1000);
-
-            document.addEventListener("mousemove", function (e) {
-              if (!isInitialized) {
-                return;
-              }
-
-              // Skip if interaction is active or currently animating
-              if (currentlyAnimating || isInteractionActive) {
-                return;
-              }
-
-              // Update last mouse move time
-              const currentTime = Date.now();
-              const timeSinceLastMove = currentTime - lastMouseMoveTime;
-              lastMouseMoveTime = currentTime;
-
-              // Clear existing timer if any
-              if (timer) {
-                clearTimeout(timer);
-              }
-
-              var mousecoords = getMousePos(e);
-              // Add validation for neck reference
-              if (!neck) {
-                console.error("Neck reference is missing");
-                return;
-              }
-
-              if (neck && !currentlyAnimating) {
-                moveJoint(mousecoords, neck, 50);
-              }
-
-              // Only set new timer if we're not already resetting
-              if (!isResetting) {
-                timer = setTimeout(() => {
-                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-                  // Only reset if there's been no movement for at least 5 seconds
-                  if (timeSinceLastMove >= 5000) {
-                    isResetting = true;
-                    resetHead();
-                    // Add a small delay before allowing another reset
-                    setTimeout(() => {
-                      isResetting = false;
-                    }, 1000);
-                  }
-                }, 5000);
-              }
-            });
-
-            // Add visibility change handler to handle tab switching
-            document.addEventListener("visibilitychange", () => {
-              if (document.visibilityState === "visible") {
-                resetHead();
-                lastMouseMoveTime = Date.now();
-              }
-            });
-          }
-        }
       },
       undefined,
       function (error) {
@@ -782,14 +685,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           playModifierAnimation(idle, 0.5, danceAnim, 0.5);
 
           // Reset currentlyAnimating after animation duration
-          const animationDuration = danceAnim.clip._clip.duration * 1000; // Convert to milliseconds
+          const animationDuration = danceAnim.bodyClip._clip.duration * 1000; // Convert to milliseconds
           setTimeout(() => {
             currentlyAnimating = false;
           }, animationDuration);
         } else {
           currentlyAnimating = false;
         }
-      } else {
       }
     }
 
@@ -1419,12 +1321,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           min: min,
           normalized: normalized,
         };
-
-        // Log raw frequency data array
-        console.log("Raw Frequency Data:", dataArray);
-
-        // Log processed frequency data
-        console.log("Processed Frequency Data:", currentFrequencyData);
 
         return currentFrequencyData;
       }
@@ -2194,6 +2090,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
+      console.log("moveJoint function called", degrees, joint, degreeLimit);
       // Apply rotations with easing
       const currentY = joint.rotation.y;
       const currentX = joint.rotation.x;
@@ -2215,7 +2112,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (neck) {
       // Set target positions with a slight upward tilt
       const targetY = THREE.Math.degToRad(0);
-      const targetX = THREE.Math.degToRad(37); // Negative value tilts head upward
+      const targetX = THREE.Math.degToRad(30); // Negative value tilts head upward
 
       // Create a function to update the head position
       function updateHeadPosition() {
@@ -2518,70 +2415,70 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     // Initialize head cursor sync if enabled
-    // if (isEnabled("Head-Cursor Sync") && !isMobile) {
-    //   console.log("Head-Cursor Sync is enabled");
-    //   if (!neck) {
-    //     console.error("Neck bone reference is missing");
-    //     return;
-    //   }
+    if (isEnabled("Head-Cursor Sync") && !isMobile) {
+      console.log("Head-Cursor Sync is enabled");
+      if (!neck) {
+        console.error("Neck bone reference is missing");
+        return;
+      }
+      let timer = null;
+      let lastMouseMoveTime = Date.now();
+      let isResetting = false;
+      let isInitialized = false;
 
-    //   let timer = null;
-    //   let lastMouseMoveTime = Date.now();
-    //   let isResetting = false;
-    //   let isInitialized = false;
+      // Initialize head position
+      resetHead();
+      isInitialized = true;
 
-    //   // Initialize head position
-    //   resetHead();
-    //   isInitialized = true;
+      document.addEventListener("mousemove", function (e) {
+        if (!isInitialized || !neck) {
+          return;
+        }
 
-    //   document.addEventListener("mousemove", function (e) {
-    //     if (!isInitialized || !neck) {
-    //       return;
-    //     }
+        // Skip if interaction is active or currently animating
+        if (currentlyAnimating || isInteractionActive) {
+          return;
+        }
 
-    //     // Skip if interaction is active or currently animating
-    //     if (currentlyAnimating || isInteractionActive) {
-    //       return;
-    //     }
+        // Update last mouse move time
+        const currentTime = Date.now();
+        const timeSinceLastMove = currentTime - lastMouseMoveTime;
+        lastMouseMoveTime = currentTime;
 
-    //     // Update last mouse move time
-    //     const currentTime = Date.now();
-    //     const timeSinceLastMove = currentTime - lastMouseMoveTime;
-    //     lastMouseMoveTime = currentTime;
+        // Clear existing timer if any
+        if (timer) {
+          clearTimeout(timer);
+        }
 
-    //     // Clear existing timer if any
-    //     if (timer) {
-    //       clearTimeout(timer);
-    //     }
+        var mousecoords = getMousePos(e);
+        moveJoint(mousecoords, neck, 50);
+        console.log("Head-Cursor Sync is enabled INITIALIZED");
 
-    //     var mousecoords = getMousePos(e);
-    //     moveJoint(mousecoords, neck, 50);
+        // Only set new timer if we're not already resetting
+        if (!isResetting) {
+          timer = setTimeout(() => {
+            const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+            // Only reset if there's been no movement for at least 5 seconds
+            if (timeSinceLastMove >= 5000) {
+              isResetting = true;
+              resetHead();
+              // Add a small delay before allowing another reset
+              setTimeout(() => {
+                isResetting = false;
+              }, 1000);
+            }
+          }, 5000);
+        }
+      });
 
-    //     // Only set new timer if we're not already resetting
-    //     if (!isResetting) {
-    //       timer = setTimeout(() => {
-    //         const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-    //         // Only reset if there's been no movement for at least 5 seconds
-    //         if (timeSinceLastMove >= 5000) {
-    //           isResetting = true;
-    //           resetHead();
-    //           // Add a small delay before allowing another reset
-    //           setTimeout(() => {
-    //             isResetting = false;
-    //           }, 1000);
-    //         }
-    //       }, 5000);
-    //     }
-    //   });
-
-    //   // Add visibility change handler to handle tab switching
-    //   document.addEventListener("visibilitychange", () => {
-    //     if (document.visibilityState === "visible") {
-    //       resetHead();
-    //       lastMouseMoveTime = Date.now();
-    //     }
-    //   });
-    // }
+      // Add visibility change handler to handle tab switching
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          resetHead();
+          lastMouseMoveTime = Date.now();
+        }
+      });
+    }
 
     // Initialize other interactions
     if (isEnabled("Welcome New Visitor")) {
@@ -3619,7 +3516,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Find all buttons and links
       const elements = document.querySelectorAll("button, a");
-      console.log(elements, "elements");
 
       elements.forEach((element) => {
         const text = element.textContent?.trim() || "";
