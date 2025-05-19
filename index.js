@@ -2,9 +2,9 @@
 // localStorage.clear();
 // sessionStorage.clear();
 
-// const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
-// const supabaseAnonKey =
-// "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
+const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
 
 // // Initialize Supabase client
 // let supabase = null;
