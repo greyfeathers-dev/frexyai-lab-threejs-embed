@@ -2417,67 +2417,69 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Initialize head cursor sync if enabled
     if (isEnabled("Head-Cursor Sync") && !isMobile) {
       console.log("Head-Cursor Sync is enabled");
-      if (!neck) {
-        console.error("Neck bone reference is missing");
-        return;
-      }
-      let timer = null;
-      let lastMouseMoveTime = Date.now();
-      let isResetting = false;
-      let isInitialized = false;
-
-      // Initialize head position
-      resetHead();
-      isInitialized = true;
-
-      document.addEventListener("mousemove", function (e) {
-        if (!isInitialized || !neck) {
+      setTimeout(() => {
+        if (!neck) {
+          console.error("Neck bone reference is missing");
           return;
         }
+        let timer = null;
+        let lastMouseMoveTime = Date.now();
+        let isResetting = false;
+        let isInitialized = false;
 
-        // Skip if interaction is active or currently animating
-        if (currentlyAnimating || isInteractionActive) {
-          return;
-        }
+        // Initialize head position
+        resetHead();
+        isInitialized = true;
 
-        // Update last mouse move time
-        const currentTime = Date.now();
-        const timeSinceLastMove = currentTime - lastMouseMoveTime;
-        lastMouseMoveTime = currentTime;
+        document.addEventListener("mousemove", function (e) {
+          if (!isInitialized || !neck) {
+            return;
+          }
 
-        // Clear existing timer if any
-        if (timer) {
-          clearTimeout(timer);
-        }
+          // Skip if interaction is active or currently animating
+          if (currentlyAnimating || isInteractionActive) {
+            return;
+          }
 
-        var mousecoords = getMousePos(e);
-        moveJoint(mousecoords, neck, 50);
-        console.log("Head-Cursor Sync is enabled INITIALIZED");
+          // Update last mouse move time
+          const currentTime = Date.now();
+          const timeSinceLastMove = currentTime - lastMouseMoveTime;
+          lastMouseMoveTime = currentTime;
 
-        // Only set new timer if we're not already resetting
-        if (!isResetting) {
-          timer = setTimeout(() => {
-            const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-            // Only reset if there's been no movement for at least 5 seconds
-            if (timeSinceLastMove >= 5000) {
-              isResetting = true;
-              resetHead();
-              // Add a small delay before allowing another reset
-              setTimeout(() => {
-                isResetting = false;
-              }, 1000);
-            }
-          }, 5000);
-        }
-      });
+          // Clear existing timer if any
+          if (timer) {
+            clearTimeout(timer);
+          }
 
-      // Add visibility change handler to handle tab switching
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          resetHead();
-          lastMouseMoveTime = Date.now();
-        }
-      });
+          var mousecoords = getMousePos(e);
+          moveJoint(mousecoords, neck, 50);
+          console.log("Head-Cursor Sync is enabled INITIALIZED");
+
+          // Only set new timer if we're not already resetting
+          if (!isResetting) {
+            timer = setTimeout(() => {
+              const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+              // Only reset if there's been no movement for at least 5 seconds
+              if (timeSinceLastMove >= 5000) {
+                isResetting = true;
+                resetHead();
+                // Add a small delay before allowing another reset
+                setTimeout(() => {
+                  isResetting = false;
+                }, 1000);
+              }
+            }, 5000);
+          }
+        });
+
+        // Add visibility change handler to handle tab switching
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            resetHead();
+            lastMouseMoveTime = Date.now();
+          }
+        });
+      }, 2500);
     }
 
     // Initialize other interactions
