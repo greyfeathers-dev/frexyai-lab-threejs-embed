@@ -764,7 +764,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           playModifierAnimation(idle, 0.5, danceAnim, 0.5);
 
           // Reset currentlyAnimating after animation duration
-          const animationDuration = danceAnim.clip._clip.duration * 1000; // Convert to milliseconds
+          const animationDuration = danceAnim.bodyClip._clip.duration * 1000; // Convert to milliseconds
           setTimeout(() => {
             currentlyAnimating = false;
           }, animationDuration);
@@ -1401,12 +1401,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           min: min,
           normalized: normalized,
         };
-
-        // Log raw frequency data array
-        console.log("Raw Frequency Data:", dataArray);
-
-        // Log processed frequency data
-        console.log("Processed Frequency Data:", currentFrequencyData);
 
         return currentFrequencyData;
       }
