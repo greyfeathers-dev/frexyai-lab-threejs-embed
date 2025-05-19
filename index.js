@@ -2,47 +2,46 @@
 // localStorage.clear();
 // sessionStorage.clear();
 
+// const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
+// const supabaseAnonKey =
+// "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
+
+// // Initialize Supabase client
+// let supabase = null;
+
+// // Function to initialize Supabase client
+// function initializeSupabase() {
+//   if (typeof window.supabase !== "undefined") {
+//     supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+//     return true;
+//   }
+//   return false;
+// }
+
+// // Try to initialize immediately
+// if (!initializeSupabase()) {
+//   // If initialization fails, wait for the script to load
+//   window.addEventListener("load", function () {
+//     let attempts = 0;
+//     const maxAttempts = 10;
+
+//     function tryInitialize() {
+//       if (initializeSupabase()) {
+//       } else if (attempts < maxAttempts) {
+//         attempts++;
+//         setTimeout(tryInitialize, 500);
+//       } else {
+//         console.error(
+//           "Failed to initialize Supabase client after multiple attempts"
+//         );
+//       }
+//     }
+
+//     tryInitialize();
+//   });
+// }
+
 // ***************************************************************** ENCRYPTION KEYS *****************************************************************
-const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iaXprc2pmemVoYml3bWNpcGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg1NTM3MDQsImV4cCI6MjA0NDEyOTcwNH0.t21-ZutMm4eRFPfYnUsu0y2dBqADN1yTUfeMWJs1eeg";
-
-// Initialize Supabase client
-let supabase = null;
-
-// Function to initialize Supabase client
-function initializeSupabase() {
-  if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-    return true;
-  }
-  return false;
-}
-
-// Try to initialize immediately
-if (!initializeSupabase()) {
-  // If initialization fails, wait for the script to load
-  window.addEventListener("load", function () {
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    function tryInitialize() {
-      if (initializeSupabase()) {
-      } else if (attempts < maxAttempts) {
-        attempts++;
-        setTimeout(tryInitialize, 500);
-      } else {
-        console.error(
-          "Failed to initialize Supabase client after multiple attempts"
-        );
-      }
-    }
-
-    tryInitialize();
-  });
-}
-
-const leadIdLocal = localStorage.getItem("leadId");
 
 // Add ElevenLabs configuration
 const ELEVENLABS_API_KEY =
@@ -68,6 +67,7 @@ const audio = new Audio(
 );
 // const user_id = localStorage.getItem("merchantId");
 const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
   model_url:
