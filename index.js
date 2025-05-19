@@ -28,7 +28,6 @@ if (!initializeSupabase()) {
 
     function tryInitialize() {
       if (initializeSupabase()) {
-        console.log("Supabase client initialized successfully");
       } else if (attempts < maxAttempts) {
         attempts++;
         setTimeout(tryInitialize, 500);
@@ -67,8 +66,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 
 const BASE_MODEL = {
   model_url:
@@ -169,7 +168,6 @@ function getUnmuteIcon() {
 
 // Function to convert text to speech using ElevenLabs
 async function convertTextToSpeech(text) {
-  console.log(text, "text in convert text to speech");
   try {
     const response = await fetch(
       `${ELEVENLABS_API_URL}/${ELEVENLABS_VOICE_ID}`,
@@ -210,12 +208,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const sanitizedInteractionName = interactionName.replace(/\s+/g, "_");
     const filename = `leads/${leadIdLocal}/${sanitizedInteractionName}_${timestamp}.mp3`;
 
-    console.log(
-      leadIdLocal,
-      filename,
-      "leadId from local storage in interactions"
-    );
-
     const { data, error } = await supabase.storage
       .from("interactions")
       .upload(filename, audioBlob, {
@@ -231,7 +223,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const { data: publicUrlData } = supabase.storage
       .from("interactions")
       .getPublicUrl(filename);
-    console.log(publicUrlData, "public url data in interactions");
 
     return publicUrlData.publicUrl;
   } catch (error) {
@@ -270,7 +261,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (!isMuted) return; // Already unmuted
 
       isMuted = false;
-      console.log("User interacted, audio enabled");
 
       // Remove the event listeners after first interaction
       window.removeEventListener("click", unmute);
@@ -292,7 +282,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   const getLeadsData = async () => {
     // const leadId = "1743157089204-1gqwxib4tv4";
     try {
-      console.log(leadIdLocal, "leadId from local storage in interactions");
       const response = await fetch(
         `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
         {
@@ -309,7 +298,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const leads = await response.json();
-      console.log("LEADS FROM FETCH", leads);
       leadData = leads[0];
 
       // Extract the required information
@@ -333,7 +321,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     try {
       // Upload audio to storage using interaction name
       const audioUrl = await uploadAudioToStorage(audioBlob, name);
-      console.log(audioUrl, "audio url in update leads data");
       if (!audioUrl) {
         throw new Error("Failed to upload audio");
       }
@@ -370,7 +357,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log("Audio uploaded and data updated successfully");
       return audioUrl;
     } catch (error) {
       console.error("Error in UpdateLeadsData:", error);
@@ -558,18 +544,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           }
           // Add detailed bone logging
           if (o.isBone) {
-            console.log("Found bone:", o.name);
             if (o.name === "neckbone") {
               neck = o;
-              console.log("Found neck bone:", neck);
             }
             if (o.name === "spine_01x") {
               waist = o;
-              console.log("Found waist bone:", waist);
             }
             if (o.name === "CC_Base_JawRoot") {
               jawRoot = o;
-              console.log("Found jaw bone:", jawRoot);
             }
           }
         });
@@ -3619,7 +3601,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Find all buttons and links
       const elements = document.querySelectorAll("button, a");
-      console.log(elements, "elements");
 
       elements.forEach((element) => {
         const text = element.textContent?.trim() || "";
