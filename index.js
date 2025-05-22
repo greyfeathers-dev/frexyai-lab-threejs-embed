@@ -2372,7 +2372,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ***********************************************Function to get interactions*****************************************************
   const getInteractions = async () => {
     try {
-      console.log("Fetching interactions for user:", user_id);
       const response = await fetch(
         `${supabaseUrl}/rest/v1/interactions?user_id=eq.${user_id}`,
         {
@@ -2390,11 +2389,97 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       const interactions = await response.json();
-      console.log("Fetched interactions:", interactions);
-
       // Store the interactions in INTERACTION_DATA for use in other functions
       INTERACTION_DATA = interactions;
       initializeInteractions(interactions);
+      setTimeout(() => {
+        // Set up head-cursor sync after data is loaded
+        if (!isMobile) {
+          let timer = setTimeout(() => resetHead());
+
+          // Check if Head-Cursor Sync is enabled
+          const headCursorSync = INTERACTION_DATA.find(
+            (i) => i.key === "Head-Cursor Sync"
+          );
+
+          if (headCursorSync && headCursorSync.status) {
+            let timer = null;
+            let lastMouseMoveTime = Date.now();
+            let isResetting = false;
+            let isInitialized = false;
+            let isModelReady = false;
+
+            // Initialize head position after model is ready
+            const initializeHeadTracking = () => {
+              if (!isModelReady) {
+                alert("Model is ready");
+                isModelReady = true;
+                setTimeout(() => {
+                  resetHead();
+                  isInitialized = true;
+                }, 1000);
+              }
+            };
+
+            // Call this when model is loaded
+            if (model) {
+              initializeHeadTracking();
+            } else {
+              alert("Model is not loaded");
+            }
+
+            document.addEventListener("mousemove", function (e) {
+              if (!isInitialized || !isModelReady) {
+                return;
+              }
+
+              // Skip if interaction is active or currently animating
+              if (currentlyAnimating || isInteractionActive) {
+                return;
+              }
+
+              // Update last mouse move time
+              const currentTime = Date.now();
+              const timeSinceLastMove = currentTime - lastMouseMoveTime;
+              lastMouseMoveTime = currentTime;
+
+              // Clear existing timer if any
+              if (timer) {
+                clearTimeout(timer);
+              }
+
+              var mousecoords = getMousePos(e);
+              if (neck && !currentlyAnimating) {
+                moveJoint(mousecoords, neck, 50);
+              }
+
+              // Only set new timer if we're not already resetting
+              if (!isResetting) {
+                timer = setTimeout(() => {
+                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                  // Only reset if there's been no movement for at least 5 seconds
+                  if (timeSinceLastMove >= 5000) {
+                    isResetting = true;
+                    resetHead();
+                    // Add a small delay before allowing another reset
+                    setTimeout(() => {
+                      isResetting = false;
+                    }, 1000);
+                  }
+                }, 5000);
+              }
+            });
+
+            // Add visibility change handler to handle tab switching
+            document.addEventListener("visibilitychange", () => {
+              if (document.visibilityState === "visible") {
+                resetHead();
+                lastMouseMoveTime = Date.now();
+              }
+            });
+          }
+        }
+      }, 2000);
 
       return interactions;
     } catch (error) {
@@ -2411,73 +2496,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const interaction = interactions.find((i) => i.key === key);
       return interaction ? interaction.status : false;
     };
-
-    // Initialize head cursor sync if enabled
-    if (isEnabled("Head-Cursor Sync") && !isMobile) {
-      console.log("Head-Cursor Sync is enabled");
-      setTimeout(() => {
-        if (!neck) {
-          console.error("Neck bone reference is missing");
-          return;
-        }
-        let timer = null;
-        let lastMouseMoveTime = Date.now();
-        let isResetting = false;
-        let isInitialized = false;
-
-        // Initialize head position
-        resetHead();
-        isInitialized = true;
-
-        document.addEventListener("mousemove", function (e) {
-          if (!isInitialized || !neck) {
-            return;
-          }
-
-          // Skip if interaction is active or currently animating
-          if (currentlyAnimating || isInteractionActive) {
-            return;
-          }
-
-          // Update last mouse move time
-          const currentTime = Date.now();
-          const timeSinceLastMove = currentTime - lastMouseMoveTime;
-          lastMouseMoveTime = currentTime;
-
-          // Clear existing timer if any
-          if (timer) {
-            clearTimeout(timer);
-          }
-
-          var mousecoords = getMousePos(e);
-          moveJoint(mousecoords, neck, 50);
-
-          // Only set new timer if we're not already resetting
-          if (!isResetting) {
-            timer = setTimeout(() => {
-              const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-              // Only reset if there's been no movement for at least 5 seconds
-              if (timeSinceLastMove >= 5000) {
-                isResetting = true;
-                resetHead();
-                // Add a small delay before allowing another reset
-                setTimeout(() => {
-                  isResetting = false;
-                }, 1000);
-              }
-            }, 5000);
-          }
-        });
-
-        // Add visibility change handler to handle tab switching
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            resetHead();
-            lastMouseMoveTime = Date.now();
-          }
-        });
-      }, 2500);
-    }
 
     // Initialize other interactions
     if (isEnabled("Welcome New Visitor")) {
