@@ -2412,7 +2412,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             // Initialize head position after model is ready
             const initializeHeadTracking = () => {
               if (!isModelReady) {
-                alert("Model is ready");
                 isModelReady = true;
                 setTimeout(() => {
                   resetHead();
@@ -2425,7 +2424,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             if (model) {
               initializeHeadTracking();
             } else {
-              alert("Model is not loaded");
+              console.log("Model is not loaded");
             }
 
             document.addEventListener("mousemove", function (e) {
