@@ -2417,11 +2417,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Initialize head cursor sync if enabled
     if (isEnabled("Head-Cursor Sync") && !isMobile) {
       console.log("Head-Cursor Sync is enabled");
-      setTimeout(() => {
+
+      // Initialize head tracking after model is loaded
+      const initializeHeadTracking = () => {
         if (!neck) {
           console.error("Neck bone reference is missing");
           return;
         }
+
+        // Stop all mixer actions that affect the neck/head
+        if (mixer && mixer._actions) {
+          mixer._actions.forEach((action) => {
+            if (
+              action._clip.name.includes("head") ||
+              action._clip.name.includes("neck")
+            ) {
+              action.stop();
+            }
+          });
+        }
+
         let timer = null;
         let lastMouseMoveTime = Date.now();
         let isResetting = false;
@@ -2471,15 +2486,28 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             }, 5000);
           }
         });
+      };
 
-        // Add visibility change handler to handle tab switching
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            resetHead();
-            lastMouseMoveTime = Date.now();
-          }
+      // Call initializeHeadTracking 3 seconds after the page is fully loaded
+      if (model) {
+        window.addEventListener("load", () => {
+          setTimeout(() => {
+            initializeHeadTracking();
+          }, 3000);
         });
-      }, 2500);
+      } else {
+        // If model isn't loaded yet, wait for it
+        const checkModelInterval = setInterval(() => {
+          if (model) {
+            clearInterval(checkModelInterval);
+            window.addEventListener("load", () => {
+              setTimeout(() => {
+                initializeHeadTracking();
+              }, 3000);
+            });
+          }
+        }, 100);
+      }
     }
 
     // Initialize other interactions
