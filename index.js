@@ -3334,6 +3334,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // 2. The current page hasn't been scrolled past 70%
       if (!wasConfusedInteractionPageScrolled(currentPath)) {
         if (!hasConfusedInteractionPageBeenVisited(currentPath)) {
+          alert("incrementing");
           incrementConfusedInteractionVisits(currentPath);
           this.checkPageVisits();
         }
