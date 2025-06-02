@@ -3343,14 +3343,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     checkPageVisits() {
       if (hasConfusedInteractionTriggered()) return;
-      alert("checkPageVisits");
-
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
       const visits = getConfusedInteractionVisitCount();
-      alert(visits);
       if (visits >= 3) {
-        alert("triggering");
         this.triggerInteraction();
       }
     }
