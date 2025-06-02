@@ -3221,6 +3221,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function incrementConfusedInteractionVisits(path) {
     if (!hasConfusedInteractionPageBeenVisited(path)) {
       const currentVisits = getConfusedInteractionVisitCount();
+      alert((currentVisits + 1).toString());
       sessionStorage.setItem(
         "confusedInteractionVisits",
         (currentVisits + 1).toString()
