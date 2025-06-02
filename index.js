@@ -3319,11 +3319,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       history.pushState = function () {
         originalPushState.apply(this, arguments);
+        alert("[ConfusedInteraction] pushState called");
         this.handlePathChange();
       }.bind(this);
 
       history.replaceState = function () {
         originalReplaceState.apply(this, arguments);
+        alert("[ConfusedInteraction] replaceState called");
         this.handlePathChange();
       }.bind(this);
 
@@ -3348,7 +3350,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       document.addEventListener("click", (e) => {
         const link = e.target.closest("a");
         if (link && link.href && link.href.startsWith(window.location.origin)) {
-          // Small delay to ensure navigation has occurred
+          alert("[ConfusedInteraction] link click detected");
           setTimeout(() => this.handlePathChange(), 100);
         }
       });
@@ -3357,6 +3359,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     handlePathChange() {
       const currentPath = window.location.pathname;
       const initialPath = getConfusedInteractionInitialPath();
+      alert("[ConfusedInteraction] Path changed:", currentPath);
 
       // Skip if we're on the initial path
       if (currentPath === initialPath) {
