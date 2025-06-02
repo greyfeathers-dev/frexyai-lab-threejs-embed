@@ -3221,7 +3221,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function incrementConfusedInteractionVisits(path) {
     if (!hasConfusedInteractionPageBeenVisited(path)) {
       const currentVisits = getConfusedInteractionVisitCount();
-      alert((currentVisits + 1).toString());
       sessionStorage.setItem(
         "confusedInteractionVisits",
         (currentVisits + 1).toString()
@@ -3289,7 +3288,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   class ConfusedInteractionHandler {
     constructor() {
       this.handleScroll = this.handleScroll.bind(this);
-      this.handlePathChange = this.handlePathChange.bind(this);
       this.setupEventListeners();
       this.checkPageVisits();
       // Set initial path when handler is created
@@ -3300,45 +3298,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Track scroll events
       document.addEventListener("scroll", this.handleScroll);
 
-      // Track route changes for all types of navigation
+      // Track route changes for Next.js
       let lastPath = window.location.pathname;
-      let lastHash = window.location.hash;
-
-      // Handle history changes (back/forward buttons)
-      window.addEventListener("popstate", () => {
-        this.handlePathChange();
-      });
-
-      // Handle hash changes
-      window.addEventListener("hashchange", () => {
-        this.handlePathChange();
-      });
-
-      // Handle pushState and replaceState
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
-
-      history.pushState = function () {
-        originalPushState.apply(this, arguments);
-        console.log("[ConfusedInteraction] pushState called");
-        this.handlePathChange();
-      }.bind(this);
-
-      history.replaceState = function () {
-        originalReplaceState.apply(this, arguments);
-        console.log("[ConfusedInteraction] replaceState called");
-        this.handlePathChange();
-      }.bind(this);
-
-      // Track route changes for Next.js and other SPA frameworks
       const observer = new MutationObserver(() => {
         const currentPath = window.location.pathname;
-        const currentHash = window.location.hash;
-
-        if (currentPath !== lastPath || currentHash !== lastHash) {
+        if (currentPath !== lastPath) {
           lastPath = currentPath;
-          lastHash = currentHash;
-          this.handlePathChange();
+          this.handlePageChange();
         }
       });
 
@@ -3346,21 +3312,17 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         childList: true,
         subtree: true,
       });
-
-      // Additional check for mobile navigation
-      document.addEventListener("click", (e) => {
-        const link = e.target.closest("a");
-        if (link && link.href && link.href.startsWith(window.location.origin)) {
-          console.log("[ConfusedInteraction] link click detected");
-          setTimeout(() => this.handlePathChange(), 100);
-        }
-      });
     }
 
-    handlePathChange() {
+    handleScroll() {
+      if (hasConfusedInteractionPageScrolledPast70Percent()) {
+        markConfusedInteractionPageScrolled(window.location.pathname);
+      }
+    }
+
+    handlePageChange() {
       const currentPath = window.location.pathname;
       const initialPath = getConfusedInteractionInitialPath();
-      console.log("[ConfusedInteraction] Path changed:", currentPath);
 
       // Skip if we're on the initial path
       if (currentPath === initialPath) {
@@ -3375,12 +3337,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           incrementConfusedInteractionVisits(currentPath);
           this.checkPageVisits();
         }
-      }
-    }
-
-    handleScroll() {
-      if (hasConfusedInteractionPageScrolledPast70Percent()) {
-        markConfusedInteractionPageScrolled(window.location.pathname);
       }
     }
 
