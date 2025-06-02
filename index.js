@@ -3189,6 +3189,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // Function to get current unique page visits count for confused interaction
   function getConfusedInteractionVisitCount() {
+    alert(sessionStorage.getItem("confusedInteractionVisits"));
     return parseInt(sessionStorage.getItem("confusedInteractionVisits") || "0");
   }
 
