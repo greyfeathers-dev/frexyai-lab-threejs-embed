@@ -55,10 +55,13 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 // ***************************************************************************************************************************************************
 
 const MODEL_TEXTURE =
-  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/body_texture.jpg";
 
-// const MODEL_TEXTURE =
-//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+const HAIR_BASE_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_base.jpg";
+
+const HAIR_OPACITY_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_opacity%20.jpg";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
@@ -71,7 +74,7 @@ const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/test_model.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
@@ -500,8 +503,41 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     );
     stacy_txt.flipY = false;
 
+    // Load hair textures
+    let hair_base_txt = new THREE.TextureLoader().load(
+      HAIR_BASE_TEXTURE,
+      (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+      },
+      undefined,
+      (error) => console.error("Error loading hair base texture:", error)
+    );
+    hair_base_txt.flipY = false;
+
+    let hair_opacity_txt = new THREE.TextureLoader().load(
+      HAIR_OPACITY_TEXTURE,
+      (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+      },
+      undefined,
+      (error) => console.error("Error loading hair opacity texture:", error)
+    );
+    hair_opacity_txt.flipY = false;
+
     const stacy_mtl = new THREE.MeshStandardMaterial({
       map: stacy_txt,
+      skinning: true,
+      metalness: 0.2,
+      roughness: 0.7,
+      color: new THREE.Color(0xffffff),
+      emissive: new THREE.Color(0x000000),
+      envMapIntensity: 1.0,
+    });
+
+    const hair_mtl = new THREE.MeshStandardMaterial({
+      map: hair_base_txt,
+      alphaMap: hair_opacity_txt,
+      transparent: true,
       skinning: true,
       metalness: 0.2,
       roughness: 0.7,
@@ -533,7 +569,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
               o.receiveShadow = false;
             }
 
-            o.material = stacy_mtl.clone();
+            // Apply hair material to hair meshes, body material to others
+            if (o.name.toLowerCase().includes("hair")) {
+              o.material = hair_mtl.clone();
+            } else {
+              o.material = stacy_mtl.clone();
+            }
 
             // Enhance material colors
             if (o.material instanceof THREE.MeshStandardMaterial) {
