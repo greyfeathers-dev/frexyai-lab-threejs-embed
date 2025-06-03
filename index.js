@@ -3210,7 +3210,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const visitedPages = getConfusedInteractionVisitedPages();
 
     if (!visitedPages.includes(path)) {
-      alert(JSON.stringify(visitedPages));
       visitedPages.push(path);
       sessionStorage.setItem(
         "confusedInteractionVisitedPages",
@@ -3347,6 +3346,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
       const visits = getConfusedInteractionVisitCount();
+      alert(visits);
       if (visits >= 3) {
         this.triggerInteraction();
       }
