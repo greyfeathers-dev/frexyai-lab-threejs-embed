@@ -3189,6 +3189,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // Function to get current unique page visits count for confused interaction
   function getConfusedInteractionVisitCount() {
+    alert(sessionStorage.getItem("confusedInteractionVisits"));
     return parseInt(sessionStorage.getItem("confusedInteractionVisits") || "0");
   }
 
@@ -3345,8 +3346,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (hasConfusedInteractionTriggered()) return;
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
+      alert(getConfusedInteractionVisitCount() + " visits");
       const visits = getConfusedInteractionVisitCount();
-      alert(visits);
       if (visits >= 3) {
         this.triggerInteraction();
       }
