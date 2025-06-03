@@ -3313,6 +3313,28 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         childList: true,
         subtree: true,
       });
+
+      // --- Added for better mobile support ---
+      // Listen for popstate (browser back/forward)
+      window.addEventListener("popstate", () => {
+        this.handlePageChange();
+      });
+
+      // Listen for hash changes (if you use hash routing)
+      window.addEventListener("hashchange", () => {
+        this.handlePageChange();
+      });
+
+      // Listen for clicks on <a> tags (client-side navigation)
+      document.body.addEventListener("click", (e) => {
+        const target = e.target.closest("a");
+        if (target) {
+          setTimeout(() => {
+            this.handlePageChange();
+          }, 100); // Delay to allow route to change
+        }
+      });
+      // --- End added ---
     }
 
     handleScroll() {
