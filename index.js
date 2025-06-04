@@ -3293,6 +3293,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       this.checkPageVisits();
       // Set initial path when handler is created
       setConfusedInteractionInitialPath(window.location.pathname);
+
+      // --- Add polling fallback for route changes ---
+      this.lastPathname = window.location.pathname;
+      setInterval(() => {
+        if (window.location.pathname !== this.lastPathname) {
+          this.lastPathname = window.location.pathname;
+          this.handlePageChange();
+        }
+      }, 300); // 300ms polling interval
+      // --- End polling fallback ---
     }
 
     setupEventListeners() {
