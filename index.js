@@ -1487,7 +1487,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "240px" : "310px";
+    tooltipContainer.style.maxWidth = isMobile ? "200px" : "310px";
 
     const tooltip = document.createElement("div");
     tooltip.id = "tooltip";
@@ -1687,8 +1687,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     document.body.appendChild(tooltipContainer);
-    tooltipContainer.style.right = isMobile ? "90px" : "180px";
-    tooltipContainer.style.bottom = isMobile ? "40px" : "120px";
+    tooltipContainer.style.right = isMobile ? "100px" : "180px";
+    tooltipContainer.style.bottom = isMobile ? "50px" : "120px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -1950,7 +1950,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.lineHeight = isMobile ? "28px" : "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
-    input.style.width = isMobile ? "42vw" : "220px";
+    input.style.width = isMobile ? "47vw" : "220px";
     input.style.height = isMobile ? "30px" : "36px";
     input.style.borderRadius = "20px"; // Rounded corners
     input.style.fontSize = isMobile ? "11px" : "14px";
