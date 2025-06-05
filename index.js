@@ -1369,7 +1369,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
 
       // If there's audio, stop the head animation to allow jaw movement
-      if (config.interactionAudio && !isMuted) {
+      if (config.interactionAudio) {
         currentHeadAnim.stop();
       }
     }
@@ -1387,24 +1387,32 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (config.text) {
       console.log("Preparing to play text-to-speech for:", config.text);
       setTimeout(() => {
-        // Play audio if interactionAudio is provided
-        if (config.interactionAudio && !isMuted) {
-          // Analyze audio frequency and play audio
-          if (config.interactionAudio) {
+        if (config.interactionAudio) {
+          // Always animate jaw, regardless of mute state
+          if (mixer) {
+            mixer._actions.forEach((action) => {
+              if (action._clip.name.includes("_head")) {
+                action.stop();
+              }
+            });
+          }
+          if (!isMuted) {
             analyzeAudioFrequency(config.interactionAudio).then(() => {
-              // Start jaw animation when audio starts
               if (config.audioDuration > 0) {
-                // Stop any existing head animations to ensure jaw movement works
-                if (mixer) {
-                  mixer._actions.forEach((action) => {
-                    if (action._clip.name.includes("_head")) {
-                      action.stop();
-                    }
-                  });
-                }
                 animateJawSpeaking(config.audioDuration);
               }
             });
+          } else {
+            // If muted, use dummy frequency data and animate jaw
+            currentFrequencyData = {
+              average: 128 + Math.random() * 32, // mid value
+              max: 255,
+              min: 0,
+              normalized: 0.5 + (Math.random() - 0.5) * 0.2, // randomize a bit
+            };
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
           }
         }
       }, 10);
@@ -2188,6 +2196,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const smoothingFactor = 0.2;
 
     function updateJaw() {
+      // If muted, simulate talking by randomizing frequency
+      if (isMuted) {
+        currentFrequencyData.normalized = 0.4 + Math.random() * 0.3;
+      }
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
         // Reset to initial position
