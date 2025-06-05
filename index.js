@@ -1954,8 +1954,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.color = "#000";
     input.style.background = "#fff";
     input.style.color = "#8F8F8F";
-    input.style.fontSize = isMobile ? "11px" : "14px";
-    input.style.lineHeight = isMobile ? "28px" : "36px";
+    input.style.fontSize = isMobile ? "12px" : "14px";
+    input.style.lineHeight = isMobile ? "30px" : "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
     input.style.width = isMobile ? "47vw" : "220px";
@@ -1971,7 +1971,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     imageIcon.src =
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
-    imageIcon.style.top = "-1px";
+    imageIcon.style.top = isMobile ? "-3px" : "-1px";
     imageIcon.style.right = "2px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
