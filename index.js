@@ -1510,13 +1510,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltip.style.position = "relative";
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = isMobile ? "8px 8px 8px 13px" : "14px 18px";
+    tooltip.style.padding = isMobile ? "11px 11px 11px 15px" : "14px 18px";
     tooltip.style.paddingRight = isMobile ? "28px" : "34px";
 
     tooltip.style.borderRadius = isMobile ? "12px" : "17px";
-    tooltip.style.fontSize = isMobile ? "11px" : "14px";
+    tooltip.style.fontSize = isMobile ? "12px" : "14px";
     tooltip.style.color = "#0D1934";
-    tooltip.style.lineHeight = isMobile ? "16px" : "24px";
+    tooltip.style.lineHeight = isMobile ? "19px" : "24px";
     tooltip.style.fontFamily = "Inter, sans-serif";
     tooltip.style.fontWeight = "400";
     tooltip.style.pointerEvents = "none";
@@ -1527,7 +1527,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     const controlsContainer = document.createElement("div");
     controlsContainer.style.position = "absolute";
-    controlsContainer.style.top = isMobile ? "19px" : "27px";
+    controlsContainer.style.top = isMobile ? "21px" : "27px";
     controlsContainer.style.right = isMobile ? "10px" : "13px";
     controlsContainer.style.left = "auto";
     controlsContainer.style.display = "flex";
@@ -1666,10 +1666,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = "0";
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = isMobile ? "8px 12px" : "12px 20px";
+        btn.style.padding = isMobile ? "11px 15px" : "12px 20px";
         btn.style.marginRight = "6px";
         btn.style.cursor = "pointer";
-        btn.style.fontSize = isMobile ? "10px" : "14px";
+        btn.style.fontSize = isMobile ? "12px" : "14px";
         btn.style.fontWeight = "400";
         btn.style.fontFamily = "Inter, sans-serif";
         btn.style.letterSpacing = "0.02em";
