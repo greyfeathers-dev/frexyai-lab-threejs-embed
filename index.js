@@ -1369,7 +1369,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
 
       // If there's audio, stop the head animation to allow jaw movement
-      if (config.interactionAudio && !isMuted) {
+      if (config.interactionAudio) {
         currentHeadAnim.stop();
       }
     }
@@ -1387,24 +1387,32 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (config.text) {
       console.log("Preparing to play text-to-speech for:", config.text);
       setTimeout(() => {
-        // Play audio if interactionAudio is provided
-        if (config.interactionAudio && !isMuted) {
-          // Analyze audio frequency and play audio
-          if (config.interactionAudio) {
+        if (config.interactionAudio) {
+          // Always animate jaw, regardless of mute state
+          if (mixer) {
+            mixer._actions.forEach((action) => {
+              if (action._clip.name.includes("_head")) {
+                action.stop();
+              }
+            });
+          }
+          if (!isMuted) {
             analyzeAudioFrequency(config.interactionAudio).then(() => {
-              // Start jaw animation when audio starts
               if (config.audioDuration > 0) {
-                // Stop any existing head animations to ensure jaw movement works
-                if (mixer) {
-                  mixer._actions.forEach((action) => {
-                    if (action._clip.name.includes("_head")) {
-                      action.stop();
-                    }
-                  });
-                }
                 animateJawSpeaking(config.audioDuration);
               }
             });
+          } else {
+            // If muted, use dummy frequency data and animate jaw
+            currentFrequencyData = {
+              average: 128 + Math.random() * 32, // mid value
+              max: 255,
+              min: 0,
+              normalized: 0.5 + (Math.random() - 0.5) * 0.2, // randomize a bit
+            };
+            if (config.audioDuration > 0) {
+              animateJawSpeaking(config.audioDuration);
+            }
           }
         }
       }, 10);
@@ -1502,13 +1510,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltip.style.position = "relative";
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = isMobile ? "8px 8px 8px 13px" : "14px 18px";
+    tooltip.style.padding = isMobile ? "11px 11px 11px 15px" : "14px 18px";
     tooltip.style.paddingRight = isMobile ? "28px" : "34px";
 
     tooltip.style.borderRadius = isMobile ? "12px" : "17px";
-    tooltip.style.fontSize = isMobile ? "11px" : "14px";
+    tooltip.style.fontSize = isMobile ? "12px" : "14px";
     tooltip.style.color = "#0D1934";
-    tooltip.style.lineHeight = isMobile ? "16px" : "24px";
+    tooltip.style.lineHeight = isMobile ? "19px" : "24px";
     tooltip.style.fontFamily = "Inter, sans-serif";
     tooltip.style.fontWeight = "400";
     tooltip.style.pointerEvents = "none";
@@ -1519,7 +1527,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     const controlsContainer = document.createElement("div");
     controlsContainer.style.position = "absolute";
-    controlsContainer.style.top = isMobile ? "19px" : "27px";
+    controlsContainer.style.top = isMobile ? "21px" : "27px";
     controlsContainer.style.right = isMobile ? "10px" : "13px";
     controlsContainer.style.left = "auto";
     controlsContainer.style.display = "flex";
@@ -1658,10 +1666,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = "0";
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = isMobile ? "8px 12px" : "12px 20px";
+        btn.style.padding = isMobile ? "11px 15px" : "12px 20px";
         btn.style.marginRight = "6px";
         btn.style.cursor = "pointer";
-        btn.style.fontSize = isMobile ? "10px" : "14px";
+        btn.style.fontSize = isMobile ? "12px" : "14px";
         btn.style.fontWeight = "400";
         btn.style.fontFamily = "Inter, sans-serif";
         btn.style.letterSpacing = "0.02em";
@@ -1946,8 +1954,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.color = "#000";
     input.style.background = "#fff";
     input.style.color = "#8F8F8F";
-    input.style.fontSize = isMobile ? "11px" : "14px";
-    input.style.lineHeight = isMobile ? "28px" : "36px";
+    input.style.fontSize = isMobile ? "12px" : "14px";
+    input.style.lineHeight = isMobile ? "30px" : "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
     input.style.width = isMobile ? "47vw" : "220px";
@@ -1963,7 +1971,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     imageIcon.src =
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
-    imageIcon.style.top = "-1px";
+    imageIcon.style.top = isMobile ? "-3px" : "-1px";
     imageIcon.style.right = "2px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
@@ -2188,6 +2196,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const smoothingFactor = 0.2;
 
     function updateJaw() {
+      // If muted, simulate talking by randomizing frequency
+      if (isMuted) {
+        currentFrequencyData.normalized = 0.4 + Math.random() * 0.3;
+      }
       const currentTime = Date.now() - startTime;
       if (currentTime >= durationMs) {
         // Reset to initial position
