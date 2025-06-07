@@ -2753,25 +2753,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       //     console.log(audioUrl, "audio url in new visitor");
       //   }
       // }
-
-      showUIAnimation({
-        text: newVisitorInteraction?.message,
-        time: 15,
-        interactionAudio: newVisitorInteraction?.audio_url || "",
-        hasClose: false,
-        animation: "wave",
-        audioDuration: newVisitorInteraction?.audio_duration || 0,
-        cta: [
-          {
-            text: "Ask me Anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(newVisitorInteraction.id);
-      localStorage.setItem("hasWelcomeVisitor", "true");
+      setTimeout(() => {
+        showUIAnimation({
+          text: newVisitorInteraction?.message,
+          time: 15,
+          interactionAudio: newVisitorInteraction?.audio_url || "",
+          hasClose: false,
+          animation: "wave",
+          audioDuration: newVisitorInteraction?.audio_duration || 0,
+          cta: [
+            {
+              text: "Ask me Anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+        });
+        updateInteractionImpression(newVisitorInteraction.id);
+        localStorage.setItem("hasWelcomeVisitor", "true");
+      }, 1000);
     }
   }
 
@@ -2809,7 +2810,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         });
 
         updateInteractionImpression(returningVisitorInteraction.id);
-      }, 2000);
+      }, 1000);
       // Set the flag only after the message is shown
       sessionStorage.setItem("hasShownReturningMessage", "true");
     } else {
