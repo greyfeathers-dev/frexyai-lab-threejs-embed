@@ -1954,8 +1954,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.color = "#000";
     input.style.background = "#fff";
     input.style.color = "#8F8F8F";
-    input.style.fontSize = isMobile ? "11px" : "14px";
-    input.style.lineHeight = isMobile ? "28px" : "36px";
+    input.style.fontSize = isMobile ? "12px" : "14px";
+    input.style.lineHeight = isMobile ? "30px" : "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
     input.style.width = isMobile ? "47vw" : "220px";
@@ -1971,7 +1971,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     imageIcon.src =
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
-    imageIcon.style.top = "-1px";
+    imageIcon.style.top = isMobile ? "-3px" : "-1px";
     imageIcon.style.right = "2px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
@@ -2710,50 +2710,50 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
-    if (hasVisitedBefore !== "true") {
-      const newVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome New Visitor"
-      );
-      console.log("New visitor interaction:", newVisitorInteraction);
-      // const message = replaceMessagePlaceholders(
-      //   newVisitorInteraction?.message,
-      //   leadData
-      // );
-      // console.log("Message new visitors:", message);
+    // if (hasVisitedBefore !== "true") {
+    const newVisitorInteraction = INTERACTION_DATA.find(
+      (i) => i.key === "Welcome New Visitor"
+    );
+    console.log("New visitor interaction:", newVisitorInteraction);
+    // const message = replaceMessagePlaceholders(
+    //   newVisitorInteraction?.message,
+    //   leadData
+    // );
+    // console.log("Message new visitors:", message);
 
-      // const hasPlaceholders =
-      //   newVisitorInteraction?.message?.includes("{firstName}") ||
-      //   newVisitorInteraction?.message?.includes("{companyName}");
+    // const hasPlaceholders =
+    //   newVisitorInteraction?.message?.includes("{firstName}") ||
+    //   newVisitorInteraction?.message?.includes("{companyName}");
 
-      // let audioUrl = null;
+    // let audioUrl = null;
 
-      // // Fetch existing message and audio URL from the table
-      // const existingData = await fetchExistingInteractionData(
-      //   "Welcome New Visitor"
-      // );
-      // const existingMessage = existingData?.message;
-      // const existingAudioUrl = existingData?.audio_url;
+    // // Fetch existing message and audio URL from the table
+    // const existingData = await fetchExistingInteractionData(
+    //   "Welcome New Visitor"
+    // );
+    // const existingMessage = existingData?.message;
+    // const existingAudioUrl = existingData?.audio_url;
 
-      // if (
-      //   hasPlaceholders &&
-      //   existingMessage === newVisitorInteraction?.message
-      // ) {
-      //   console.log(existingAudioUrl, "existing audio url in new visitor");
-      //   // Use existing audio if the message matches
-      //   audioUrl = existingAudioUrl;
-      // } else {
-      //   // Generate new audio if the message differs
-      //   const audioBlob = await convertTextToSpeech(message);
-      //   if (audioBlob) {
-      //     audioUrl = await UpdateLeadsData(
-      //       "Welcome New Visitor",
-      //       audioBlob,
-      //       newVisitorInteraction?.message
-      //     );
-      //     console.log(audioUrl, "audio url in new visitor");
-      //   }
-      // }
-
+    // if (
+    //   hasPlaceholders &&
+    //   existingMessage === newVisitorInteraction?.message
+    // ) {
+    //   console.log(existingAudioUrl, "existing audio url in new visitor");
+    //   // Use existing audio if the message matches
+    //   audioUrl = existingAudioUrl;
+    // } else {
+    //   // Generate new audio if the message differs
+    //   const audioBlob = await convertTextToSpeech(message);
+    //   if (audioBlob) {
+    //     audioUrl = await UpdateLeadsData(
+    //       "Welcome New Visitor",
+    //       audioBlob,
+    //       newVisitorInteraction?.message
+    //     );
+    //     console.log(audioUrl, "audio url in new visitor");
+    //   }
+    // }
+    setTimeout(() => {
       showUIAnimation({
         text: newVisitorInteraction?.message,
         time: 15,
@@ -2772,7 +2772,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
       updateInteractionImpression(newVisitorInteraction.id);
       localStorage.setItem("hasWelcomeVisitor", "true");
-    }
+    }, 1000);
+    // }
   }
 
   function showReturningVisitorMessage() {
@@ -2809,7 +2810,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         });
 
         updateInteractionImpression(returningVisitorInteraction.id);
-      }, 2000);
+      }, 1000);
       // Set the flag only after the message is shown
       sessionStorage.setItem("hasShownReturningMessage", "true");
     } else {
@@ -3353,11 +3354,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     checkPageVisits() {
-      console.log(
-        "checkPageVisits",
-        hasConfusedInteractionTriggered(),
-        hasConfusedInteractionAnyPageScrolled()
-      );
       if (hasConfusedInteractionTriggered()) return;
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
