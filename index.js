@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -2710,70 +2710,84 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     console.log("Showing new visitor message", INTERACTION_DATA);
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
-    // if (hasVisitedBefore !== "true") {
-    const newVisitorInteraction = INTERACTION_DATA.find(
-      (i) => i.key === "Welcome New Visitor"
-    );
-    console.log("New visitor interaction:", newVisitorInteraction);
-    // const message = replaceMessagePlaceholders(
-    //   newVisitorInteraction?.message,
-    //   leadData
-    // );
-    // console.log("Message new visitors:", message);
+    if (hasVisitedBefore !== "true") {
+      // Wait for animations to be loaded
+      if (!possibleAnims || possibleAnims.length === 0) {
+        console.log("Waiting for animations to load...");
+        // alert("Waiting for animations to load...");
+        await new Promise((resolve) => {
+          const checkAnimations = setInterval(() => {
+            if (possibleAnims && possibleAnims.length > 0) {
+              clearInterval(checkAnimations);
+              resolve();
+            }
+          }, 1);
+        });
+      }
 
-    // const hasPlaceholders =
-    //   newVisitorInteraction?.message?.includes("{firstName}") ||
-    //   newVisitorInteraction?.message?.includes("{companyName}");
+      const newVisitorInteraction = INTERACTION_DATA.find(
+        (i) => i.key === "Welcome New Visitor"
+      );
+      console.log("New visitor interaction:", newVisitorInteraction);
+      // const message = replaceMessagePlaceholders(
+      //   newVisitorInteraction?.message,
+      //   leadData
+      // );
+      // console.log("Message new visitors:", message);
 
-    // let audioUrl = null;
+      // const hasPlaceholders =
+      //   newVisitorInteraction?.message?.includes("{firstName}") ||
+      //   newVisitorInteraction?.message?.includes("{companyName}");
 
-    // // Fetch existing message and audio URL from the table
-    // const existingData = await fetchExistingInteractionData(
-    //   "Welcome New Visitor"
-    // );
-    // const existingMessage = existingData?.message;
-    // const existingAudioUrl = existingData?.audio_url;
+      // let audioUrl = null;
 
-    // if (
-    //   hasPlaceholders &&
-    //   existingMessage === newVisitorInteraction?.message
-    // ) {
-    //   console.log(existingAudioUrl, "existing audio url in new visitor");
-    //   // Use existing audio if the message matches
-    //   audioUrl = existingAudioUrl;
-    // } else {
-    //   // Generate new audio if the message differs
-    //   const audioBlob = await convertTextToSpeech(message);
-    //   if (audioBlob) {
-    //     audioUrl = await UpdateLeadsData(
-    //       "Welcome New Visitor",
-    //       audioBlob,
-    //       newVisitorInteraction?.message
-    //     );
-    //     console.log(audioUrl, "audio url in new visitor");
-    //   }
-    // }
-    setTimeout(() => {
-      showUIAnimation({
-        text: newVisitorInteraction?.message,
-        time: 15,
-        interactionAudio: newVisitorInteraction?.audio_url || "",
-        hasClose: false,
-        animation: "wave",
-        audioDuration: newVisitorInteraction?.audio_duration || 0,
-        cta: [
-          {
-            text: "Ask me Anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(newVisitorInteraction.id);
-      localStorage.setItem("hasWelcomeVisitor", "true");
-    }, 1000);
-    // }
+      // // Fetch existing message and audio URL from the table
+      // const existingData = await fetchExistingInteractionData(
+      //   "Welcome New Visitor"
+      // );
+      // const existingMessage = existingData?.message;
+      // const existingAudioUrl = existingData?.audio_url;
+
+      // if (
+      //   hasPlaceholders &&
+      //   existingMessage === newVisitorInteraction?.message
+      // ) {
+      //   console.log(existingAudioUrl, "existing audio url in new visitor");
+      //   // Use existing audio if the message matches
+      //   audioUrl = existingAudioUrl;
+      // } else {
+      //   // Generate new audio if the message differs
+      //   const audioBlob = await convertTextToSpeech(message);
+      //   if (audioBlob) {
+      //     audioUrl = await UpdateLeadsData(
+      //       "Welcome New Visitor",
+      //       audioBlob,
+      //       newVisitorInteraction?.message
+      //     );
+      //     console.log(audioUrl, "audio url in new visitor");
+      //   }
+      // }
+      setTimeout(() => {
+        showUIAnimation({
+          text: newVisitorInteraction?.message,
+          time: 15,
+          interactionAudio: newVisitorInteraction?.audio_url || "",
+          hasClose: false,
+          animation: "wave",
+          audioDuration: newVisitorInteraction?.audio_duration || 0,
+          cta: [
+            {
+              text: "Ask me Anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+        });
+        updateInteractionImpression(newVisitorInteraction.id);
+        localStorage.setItem("hasWelcomeVisitor", "true");
+      }, 1000);
+    }
   }
 
   function showReturningVisitorMessage() {
