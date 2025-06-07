@@ -2711,6 +2711,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
     console.log("Has visited before:", hasVisitedBefore);
     if (hasVisitedBefore !== "true") {
+      // Wait for animations to be loaded
+      if (!possibleAnims || possibleAnims.length === 0) {
+        console.log("Waiting for animations to load...");
+        // alert("Waiting for animations to load...");
+        await new Promise((resolve) => {
+          const checkAnimations = setInterval(() => {
+            if (possibleAnims && possibleAnims.length > 0) {
+              clearInterval(checkAnimations);
+              resolve();
+            }
+          }, 1);
+        });
+      }
+
       const newVisitorInteraction = INTERACTION_DATA.find(
         (i) => i.key === "Welcome New Visitor"
       );
