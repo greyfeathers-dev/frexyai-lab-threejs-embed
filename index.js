@@ -147,7 +147,7 @@ const ANIMATION_LIST = [
 // ********************************************************************************* SVG ICONS *********************************************************************************
 function getMuteIcon() {
   return `
-<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="mobile:w-4 mobile:h-4">
+<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" >
 <path d="M3.61689 2.44586L2.44189 3.62086L6.07523 7.25419L5.83356 7.5042H2.50023V12.5042H5.83356L10.0002 16.6709V11.1792L13.4836 14.6625C12.9419 15.0709 12.3336 15.3959 11.6669 15.5875V17.3042C12.7836 17.0542 13.8086 16.5375 14.6752 15.8459L16.3836 17.5542L17.5586 16.3792L3.61689 2.44586ZM8.33356 12.6459L6.52523 10.8375H4.16689V9.17086H6.52523L7.25856 8.43753L8.33356 9.51253V12.6459ZM15.8336 10.0042C15.8336 10.6875 15.7086 11.3459 15.4919 11.9542L16.7669 13.2292C17.2336 12.2542 17.5002 11.1625 17.5002 10.0042C17.5002 6.43753 15.0086 3.4542 11.6669 2.69586V4.41253C14.0752 5.1292 15.8336 7.36253 15.8336 10.0042ZM10.0002 3.33753L8.43356 4.9042L10.0002 6.47086V3.33753ZM13.7502 10.0042C13.7502 8.5292 12.9002 7.26253 11.6669 6.64586V8.13753L13.7336 10.2042C13.7419 10.1375 13.7502 10.0709 13.7502 10.0042Z" fill="#414141"/>
 </svg>
   `;
@@ -156,7 +156,7 @@ function getMuteIcon() {
 // SVG for unmute icon
 function getUnmuteIcon() {
   return `
-<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="mobile:w-4 mobile:h-4">
+<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" >
 <path d="M2.5 7.49998V12.5H5.83333L10 16.6667V3.33332L5.83333 7.49998H2.5ZM8.33333 7.35832V12.6417L6.525 10.8333H4.16667V9.16665H6.525L8.33333 7.35832ZM13.75 9.99998C13.75 8.52498 12.9 7.25832 11.6667 6.64165V13.35C12.9 12.7417 13.75 11.475 13.75 9.99998ZM11.6667 2.69165V4.40832C14.075 5.12498 15.8333 7.35832 15.8333 9.99998C15.8333 12.6417 14.075 14.875 11.6667 15.5917V17.3083C15.0083 16.55 17.5 13.5667 17.5 9.99998C17.5 6.43332 15.0083 3.44998 11.6667 2.69165Z" fill="#414141"/>
 </svg>
   `;
@@ -1495,7 +1495,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "200px" : "310px";
+    tooltipContainer.style.maxWidth = isMobile ? "265px" : "310px";
 
     const tooltip = document.createElement("div");
     tooltip.id = "tooltip";
@@ -1510,13 +1510,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltip.style.position = "relative";
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = isMobile ? "11px 11px 11px 15px" : "14px 18px";
+    tooltip.style.padding = isMobile ? "12px 12px 12px 15px" : "14px 18px";
     tooltip.style.paddingRight = isMobile ? "28px" : "34px";
-
-    tooltip.style.borderRadius = isMobile ? "12px" : "17px";
-    tooltip.style.fontSize = isMobile ? "12px" : "14px";
+    tooltip.style.borderRadius = "17px";
+    tooltip.style.fontSize = "14px";
     tooltip.style.color = "#0D1934";
-    tooltip.style.lineHeight = isMobile ? "19px" : "24px";
+    tooltip.style.lineHeight = "24px";
     tooltip.style.fontFamily = "Inter, sans-serif";
     tooltip.style.fontWeight = "400";
     tooltip.style.pointerEvents = "none";
@@ -1527,8 +1526,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     const controlsContainer = document.createElement("div");
     controlsContainer.style.position = "absolute";
-    controlsContainer.style.top = isMobile ? "21px" : "27px";
-    controlsContainer.style.right = isMobile ? "10px" : "13px";
+    controlsContainer.style.top = isMobile ? "25px" : "27px";
+    controlsContainer.style.right = "13px";
     controlsContainer.style.left = "auto";
     controlsContainer.style.display = "flex";
 
@@ -1666,10 +1665,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = "0";
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = isMobile ? "11px 15px" : "12px 20px";
+        btn.style.padding = "12px 20px";
         btn.style.marginRight = "6px";
         btn.style.cursor = "pointer";
-        btn.style.fontSize = isMobile ? "12px" : "14px";
+        btn.style.fontSize = "14px";
         btn.style.fontWeight = "400";
         btn.style.fontFamily = "Inter, sans-serif";
         btn.style.letterSpacing = "0.02em";
@@ -1838,7 +1837,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = 0;
         btn.style.background = ctaItem?.bg;
         btn.style.color = ctaItem?.color;
-        btn.style.padding = "10px 14px";
+        btn.style.padding = "9px 14px";
         btn.style.marginTop = "4px";
         btn.style.cursor = "pointer";
         btn.addEventListener("click", () => {
@@ -1928,6 +1927,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Create an input element (rounded input box)
     const inputContainer = document.createElement("div");
     inputContainer.id = "input";
+    inputContainer.style.width = isMobile ? "calc(100% - 145px)" : "220px";
     inputContainer.style.background = "linear-gradient(45deg, purple, blue)";
     inputContainer.style.padding = "1px";
     inputContainer.style.position = "relative";
@@ -1954,14 +1954,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.color = "#000";
     input.style.background = "#fff";
     input.style.color = "#8F8F8F";
-    input.style.fontSize = isMobile ? "12px" : "14px";
-    input.style.lineHeight = isMobile ? "30px" : "36px";
+    input.style.fontSize = "14px";
+    input.style.lineHeight = "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
-    input.style.width = isMobile ? "47vw" : "220px";
-    input.style.height = isMobile ? "30px" : "36px";
+    input.style.width = isMobile ? "100%" : "220px";
+    input.style.height = "36px";
     input.style.borderRadius = "20px"; // Rounded corners
-    input.style.fontSize = isMobile ? "11px" : "14px";
+    input.style.fontSize = "14px";
     input.style.cursor = "pointer";
     input.style.zIndex = "10";
     input.style.fontFamily = "Inter, sans-serif";
@@ -1971,8 +1971,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     imageIcon.src =
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
-    imageIcon.style.top = isMobile ? "-3px" : "-1px";
-    imageIcon.style.right = "2px";
+    imageIcon.style.top = isMobile ? "-2px" : "-1px";
+    imageIcon.style.right = isMobile ? "-40px" : "2px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
     inputContainer.appendChild(imageIcon);
@@ -1980,7 +1980,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Positioning of the input box
     inputContainer.style.position = "fixed";
     inputContainer.style.bottom = isMobile ? "12px" : "30px";
-    inputContainer.style.right = isMobile ? "105px" : "165px";
+    inputContainer.style.right = isMobile ? "135px" : "165px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
