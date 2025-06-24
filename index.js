@@ -3554,7 +3554,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       ];
       this.hoverTimers = new Map();
       this.triggeredButtons = new Set();
+      this.triggerCount = this.getTriggerCount();
       this.setupClickAssist();
+    }
+
+    getTriggerCount() {
+      const count = sessionStorage.getItem("clickAssistTriggerCount");
+      return count ? parseInt(count) : 0;
+    }
+
+    incrementTriggerCount() {
+      const newCount = this.triggerCount + 1;
+      sessionStorage.setItem("clickAssistTriggerCount", newCount.toString());
+      this.triggerCount = newCount;
     }
 
     setupClickAssist() {
@@ -3566,8 +3578,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     attachHoverListeners() {
-      // Check if already triggered in this session
-      if (sessionStorage.getItem("clickAssistTriggered") === "true") {
+      // Check if already triggered twice in this session
+      if (this.triggerCount >= 2) {
         return;
       }
 
@@ -3608,7 +3620,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           element.addEventListener("mouseenter", () => {
             if (
               !this.triggeredButtons.has(element) &&
-              sessionStorage.getItem("clickAssistTriggered") !== "true"
+              this.triggerCount < 2
             ) {
               const clickAssistInteraction = INTERACTION_DATA.find(
                 (i) => i.key === "Click Assist"
@@ -3618,7 +3630,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                 setTimeout(() => {
                   if (
                     !this.triggeredButtons.has(element) &&
-                    sessionStorage.getItem("clickAssistTriggered") !== "true"
+                    this.triggerCount < 2
                   ) {
                     showUIAnimation({
                       text:
@@ -3640,8 +3652,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                       ],
                     });
                     this.triggeredButtons.add(element);
-                    // Mark as triggered in session storage
-                    sessionStorage.setItem("clickAssistTriggered", "true");
+                    // Increment trigger count
+                    this.incrementTriggerCount();
                   }
                 }, 4000)
               );
