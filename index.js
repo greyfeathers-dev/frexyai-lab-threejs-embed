@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -455,7 +455,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(canvas);
     canvas.style.position = "fixed";
     canvas.style.bottom = isMobile ? "-28px" : "-40px";
-    canvas.style.right = isMobile ? "-10px" : "-18px";
+    canvas.style.right = isMobile ? "-10px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "400px";
     canvas.style.width = isMobile ? "148px" : "280px";
     canvas.style.zIndex = "10";
@@ -1972,7 +1972,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
     imageIcon.style.top = isMobile ? "-2px" : "-1px";
-    imageIcon.style.right = isMobile ? "-40px" : "2px";
+    imageIcon.style.right = isMobile ? "-40px" : "-35px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
     inputContainer.appendChild(imageIcon);
@@ -1980,7 +1980,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Positioning of the input box
     inputContainer.style.position = "fixed";
     inputContainer.style.bottom = isMobile ? "12px" : "30px";
-    inputContainer.style.right = isMobile ? "135px" : "165px";
+    inputContainer.style.right = isMobile ? "135px" : "190px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
@@ -2033,6 +2033,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     chatWindow.style.right = isMobile ? 0 : "20px";
     chatWindow.style.zIndex = "1000";
     chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
+    
+    // Add transition for smooth animations
+    chatWindow.style.transition = "transform 0.3s ease-in-out, opacity 0.3s ease-in-out";
+    chatWindow.style.transform = "translateY(100%)"; // Start hidden below the viewport
+    chatWindow.style.opacity = "0";
+    
     const merchantId = localStorage.getItem("merchantId");
     const iframeContainer = document.createElement("iframe");
     iframeContainer.id = "chatbot-iframe";
@@ -2055,16 +2061,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     closeButton.style.color = "#fff";
 
     closeButton.onclick = function () {
-      chatWindow.style.display = "none";
+      hideChatWindow();
     };
 
     chatWindow.appendChild(closeButton);
     document.body.appendChild(chatWindow);
 
-    chatWindow.style.display = "none";
+    chatWindow.style.display = "block";
   }
 
-  // Modify the showChatWindow function to handle autoplay permissions
+  // Modify the showChatWindow function to handle autoplay permissions and smooth animations
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
@@ -2077,15 +2083,45 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           clearInterval(checkData);
           chatbot.src = sourceLink;
           setTimeout(() => {
+            // Make sure the chat window is visible before animating
             chat.style.display = "block";
+            // Force a reflow to ensure display: block is applied before animation
+            chat.offsetHeight;
+            // Animate the chat window in
+            chat.style.transform = "translateY(0)";
+            chat.style.opacity = "1";
           }, 200);
         }
       }, 100);
     } else {
       chatbot.src = sourceLink;
       setTimeout(() => {
+        // Make sure the chat window is visible before animating
         chat.style.display = "block";
+        // Force a reflow to ensure display: block is applied before animation
+        chat.offsetHeight;
+        // Animate the chat window in
+        chat.style.transform = "translateY(0)";
+        chat.style.opacity = "1";
       }, 200);
+    }
+  }
+
+  // Add a new function to hide chat window with smooth animation
+  function hideChatWindow() {
+    const chat = document.getElementById("chatWindow");
+    if (chat) {
+      // Animate the chat window out
+      chat.style.transform = "translateY(100%)";
+      chat.style.opacity = "0";
+      
+      // Hide the element after animation completes
+      setTimeout(() => {
+        chat.style.display = "none";
+        // Reset transform for next time
+        chat.style.transform = "translateY(100%)";
+        chat.style.opacity = "0";
+      }, 300); // Match the transition duration
     }
   }
 
