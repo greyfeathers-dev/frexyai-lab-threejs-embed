@@ -1927,7 +1927,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Create an input element (rounded input box)
     const inputContainer = document.createElement("div");
     inputContainer.id = "input";
-    inputContainer.style.width = isMobile ? "calc(100% - 145px)" : "220px";
+    inputContainer.style.width = isMobile ? "calc(100% - 145px)" : "";
     inputContainer.style.background = "linear-gradient(45deg, purple, blue)";
     inputContainer.style.padding = "1px";
     inputContainer.style.position = "relative";
@@ -1972,7 +1972,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
     imageIcon.style.top = isMobile ? "-2px" : "-1px";
-    imageIcon.style.right = isMobile ? "-40px" : "-35px";
+    imageIcon.style.right = isMobile ? "-40px" : "1px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
     inputContainer.appendChild(imageIcon);
@@ -1980,7 +1980,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Positioning of the input box
     inputContainer.style.position = "fixed";
     inputContainer.style.bottom = isMobile ? "12px" : "30px";
-    inputContainer.style.right = isMobile ? "135px" : "190px";
+    inputContainer.style.right = isMobile ? "135px" : "150px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
@@ -3030,6 +3030,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 8,
         hasClose: false,
         animation: "no_no",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+            format: "chat",
+          },
+        ],
         interactionAudio: avoidBounceInteraction?.audio_url || "",
         audioDuration: avoidBounceInteraction?.audio_duration || 0,
       });
