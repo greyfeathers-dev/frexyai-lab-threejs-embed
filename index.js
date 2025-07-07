@@ -681,7 +681,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         // Find dance animation
         const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
 
-        if (danceAnim) {
+        if (danceAnim && danceAnim.bodyClip && danceAnim.headClip) {
           playModifierAnimation(idle, 0.5, danceAnim, 0.5);
 
           // Reset currentlyAnimating after animation duration
@@ -1363,7 +1363,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
     const type = config.imageUrl ? "overlay" : "tooltip";
     hideInput();
-    if (animationIdx >= 0) {
+    if (animationIdx >= 0 && possibleAnims[animationIdx] && possibleAnims[animationIdx].bodyClip && possibleAnims[animationIdx].headClip) {
       // Store the current head animation to restore it later
       const currentHeadAnim = possibleAnims[animationIdx].headClip;
       playModifierAnimation(idle, 1, possibleAnims[animationIdx], 1.5);
@@ -1874,6 +1874,21 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= ANIMATION FUNCTIONS =============================================
 
   function playModifierAnimation(from, fSpeed, finalAnim, tSpeed) {
+    // Handle special case where finalAnim is the idle animation action itself
+    if (finalAnim === idle) {
+      // Reset and play the idle animation
+      from.reset();
+      from.setLoop(THREE.LoopRepeat, Infinity);
+      from.play();
+      return;
+    }
+
+    // Check if finalAnim and its clips exist
+    if (!finalAnim || !finalAnim.bodyClip || !finalAnim.headClip) {
+      console.warn("Animation clips not available:", finalAnim);
+      return;
+    }
+
     const toBody = finalAnim.bodyClip;
     const toHead = finalAnim.headClip;
 
