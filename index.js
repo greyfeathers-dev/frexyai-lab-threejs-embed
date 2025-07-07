@@ -2134,7 +2134,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
-      console.log("moveJoint function called", degrees, joint, degreeLimit);
+      // console.log("moveJoint function called", degrees, joint, degreeLimit);
       // Apply rotations with easing
       const currentY = joint.rotation.y;
       const currentX = joint.rotation.x;
@@ -2413,7 +2413,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       dy = Math.max(centerDY - dyRangeUp, Math.min(centerDY, dy));
     }
 
-    console.log("dx dy:", dx, dy);
+    // console.log("dx dy:", dx, dy);
     return { x: dx, y: dy };
   }
 
@@ -2516,7 +2516,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           var mousecoords = getMousePos(e);
           moveJoint(mousecoords, neck, 50);
-          console.log("Head-Cursor Sync is enabled INITIALIZED");
+          // console.log("Head-Cursor Sync is enabled INITIALIZED");
 
           // Only set new timer if we're not already resetting
           if (!isResetting) {
