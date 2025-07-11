@@ -21,7 +21,7 @@ console.log("Merchant ID:", merchantId);
 
 // Use '*' as target origin to allow cross-origin communication
 window.parent.postMessage({ type: "MERCHANT_ID", merchantId }, "*");
-
+myUndefinedFunction();
 try {
   localStorage.setItem("merchantId", merchantId);
   console.log(

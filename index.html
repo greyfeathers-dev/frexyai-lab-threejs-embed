@@ -51,6 +51,7 @@
     <section id="milestone-2">
       <h2>milestone-2</h2>
       <button>hello</button>
+      <button onclick="testSentry()" style="background: red; color: white; padding: 10px; margin: 10px;">Test Sentry Error</button>
       <!-- <div>
             1. 3D model interaction on: <br>
             &nbsp;&nbsp;&nbsp; - Location <br>
@@ -68,6 +69,32 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/Three.js@r92/examples/js/loaders/GLTFLoader.js"></script>
+    <script
+      src="https://js-de.sentry-cdn.com/dfbe70065e3f6c91f6549e47afab44b3.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      // Initialize Sentry
+      Sentry.init({
+        dsn: "https://dfbe70065e3f6c91f6549e47afab44b3@js-de.sentry-cdn.com/4500000000000000",
+        environment: "development", // Change to "production" for production
+        integrations: [
+          // Enable automatic instrumentation of React components
+          new Sentry.BrowserTracing({
+            // Set sampling rate for performance monitoring
+            tracesSampleRate: 1.0,
+          }),
+        ],
+        // Performance Monitoring
+        tracesSampleRate: 1.0,
+        // Session Replay
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+      });
+
+      // Test Sentry by capturing a test error
+      // Sentry.captureMessage("Sentry is working!", "info");
+    </script>
     <!-- <script src='load.js'></script> -->
     <script src="index.js"></script>
   </body>

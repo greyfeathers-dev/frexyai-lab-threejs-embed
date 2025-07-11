@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -276,6 +276,74 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // Call this early in your app/script
   enableAudioOnUserInteraction();
 
+  // Interaction Error Tracking for Sentry
+  const INTERACTION_NAMES = {
+    'Welcome New Visitor': 'welcome_new_visitor',
+    'Welcome Returning Visitor': 'welcome_returning_visitor', 
+    'Avoid Bounce': 'avoid_bounce',
+    'Idle on Page': 'idle_on_page',
+    'Normal Exit Intent': 'normal_exit_intent',
+    'Confused?': 'confused',
+    'Click Assist': 'click_assist',
+    'Head-Cursor Sync': 'head_cursor_sync',
+    'Click-to-Dance': 'click_to_dance'
+  };
+
+  // Function to track interaction failures
+  function trackInteractionFailure(interactionName, error, context = {}) {
+    if (typeof Sentry !== 'undefined') {
+      const interactionKey = INTERACTION_NAMES[interactionName] || interactionName;
+      
+      Sentry.captureException(error, {
+        tags: {
+          type: 'interaction_failure',
+          interaction: interactionKey,
+          category: 'user_interaction'
+        },
+        extra: {
+          interactionName: interactionName,
+          interactionKey: interactionKey,
+          leadId: leadId,
+          userId: user_id,
+          currentUrl: window.location.href,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          ...context
+        }
+      });
+      
+      console.error(`Interaction Failure - ${interactionName}:`, {
+        error: error.message,
+        interaction: interactionKey,
+        context: context
+      });
+    }
+  }
+
+  // Function to track interaction success
+  function trackInteractionSuccess(interactionName, context = {}) {
+    if (typeof Sentry !== 'undefined') {
+      const interactionKey = INTERACTION_NAMES[interactionName] || interactionName;
+      
+      Sentry.captureMessage(`Interaction Success - ${interactionName}`, 'info', {
+        tags: {
+          type: 'interaction_success',
+          interaction: interactionKey,
+          category: 'user_interaction'
+        },
+        extra: {
+          interactionName: interactionName,
+          interactionKey: interactionKey,
+          leadId: leadId,
+          userId: user_id,
+          currentUrl: window.location.href,
+          timestamp: new Date().toISOString(),
+          ...context
+        }
+      });
+    }
+  }
+
   // ***************************************************************LEADS API CALLS************************************************************************************
 
   const getLeadsData = async () => {
@@ -294,6 +362,27 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       );
 
       if (!response.ok) {
+        // Capture HTTP errors with Sentry
+        const errorData = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          leadIdLocal: leadIdLocal,
+          supabaseUrl: supabaseUrl
+        };
+        
+        console.error("HTTP Error in getLeadsData:", errorData);
+        
+        if (typeof Sentry !== 'undefined') {
+          Sentry.captureException(new Error(`HTTP ${response.status}: ${response.statusText}`), {
+            tags: {
+              function: 'getLeadsData',
+              status: response.status.toString()
+            },
+            extra: errorData
+          });
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const leads = await response.json();
@@ -311,6 +400,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return leadInfo;
     } catch (error) {
       console.error("Failed to get interactions:", error);
+      
+      // Capture network/other errors with Sentry
+      if (typeof Sentry !== 'undefined') {
+        Sentry.captureException(error, {
+          tags: {
+            function: 'getLeadsData'
+          },
+          extra: {
+            leadIdLocal: leadIdLocal,
+            supabaseUrl: supabaseUrl
+          }
+        });
+      }
+      
       return [];
     }
   };
@@ -353,12 +456,51 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
 
       if (!response.ok) {
+        // Capture HTTP errors with Sentry
+        const errorData = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          method: method,
+          leadIdLocal: leadIdLocal,
+          interactionName: name,
+          supabaseUrl: supabaseUrl
+        };
+        
+        console.error("HTTP Error in UpdateLeadsData:", errorData);
+        
+        if (typeof Sentry !== 'undefined') {
+          Sentry.captureException(new Error(`HTTP ${response.status}: ${response.statusText}`), {
+            tags: {
+              function: 'UpdateLeadsData',
+              status: response.status.toString(),
+              method: method
+            },
+            extra: errorData
+          });
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       return audioUrl;
     } catch (error) {
       console.error("Error in UpdateLeadsData:", error);
+      
+      // Capture network/other errors with Sentry
+      if (typeof Sentry !== 'undefined') {
+        Sentry.captureException(error, {
+          tags: {
+            function: 'UpdateLeadsData'
+          },
+          extra: {
+            leadIdLocal: leadIdLocal,
+            interactionName: name,
+            supabaseUrl: supabaseUrl
+          }
+        });
+      }
+      
       return null;
     }
   };
@@ -629,69 +771,85 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     // Add click handler function
     function onModelClick(event) {
-      if (currentlyAnimating) {
-        return;
-      }
-
-      // Check if Click-to-Dance interaction is enabled
-      const clickToDanceInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Click-to-Dance"
-      );
-
-      if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
-        return;
-      }
-
-      // Get the canvas element and its bounds
-      const canvas = renderer.domElement;
-      const rect = canvas.getBoundingClientRect();
-
-      // Calculate mouse position in normalized device coordinates (-1 to +1)
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Update the picking ray with the camera and mouse position
-      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
-
-      // Configure raycaster for better intersection detection
-      raycaster.firstHitOnly = false; // Check all intersections
-      raycaster.params.Line.threshold = 0.1; // Increase threshold for better detection
-      raycaster.params.Points.threshold = 0.1; // Increase threshold for better detection
-
-      // Ensure model's world matrix is updated
-      model.updateMatrixWorld(true);
-
-      // Get all meshes from the model for intersection testing
-      const meshes = [];
-      model.traverse((child) => {
-        if (child.isMesh) {
-          // Enable raycasting for all meshes
-          child.raycast = THREE.Mesh.prototype.raycast;
-          meshes.push(child);
+      try {
+        if (currentlyAnimating) {
+          return;
         }
-      });
 
-      // Calculate objects intersecting the picking ray using the collected meshes
-      const intersects = raycaster.intersectObjects(meshes, true);
+        // Check if Click-to-Dance interaction is enabled
+        const clickToDanceInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Click-to-Dance"
+        );
 
-      // Make intersection detection more lenient - if click is close enough to model
-      if (intersects.length > 0 || isClickNearModel(x, y)) {
-        currentlyAnimating = true;
+        if (!clickToDanceInteraction || !clickToDanceInteraction.status) {
+          return;
+        }
 
-        // Find dance animation
-        const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
+        // Get the canvas element and its bounds
+        const canvas = renderer.domElement;
+        const rect = canvas.getBoundingClientRect();
 
-        if (danceAnim) {
-          playModifierAnimation(idle, 0.5, danceAnim, 0.5);
+        // Calculate mouse position in normalized device coordinates (-1 to +1)
+        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-          // Reset currentlyAnimating after animation duration
-          const animationDuration = danceAnim.bodyClip._clip.duration * 1000; // Convert to milliseconds
-          setTimeout(() => {
+        // Update the picking ray with the camera and mouse position
+        raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+        // Configure raycaster for better intersection detection
+        raycaster.firstHitOnly = false; // Check all intersections
+        raycaster.params.Line.threshold = 0.1; // Increase threshold for better detection
+        raycaster.params.Points.threshold = 0.1; // Increase threshold for better detection
+
+        // Ensure model's world matrix is updated
+        model.updateMatrixWorld(true);
+
+        // Get all meshes from the model for intersection testing
+        const meshes = [];
+        model.traverse((child) => {
+          if (child.isMesh) {
+            // Enable raycasting for all meshes
+            child.raycast = THREE.Mesh.prototype.raycast;
+            meshes.push(child);
+          }
+        });
+
+        // Calculate objects intersecting the picking ray using the collected meshes
+        const intersects = raycaster.intersectObjects(meshes, true);
+
+        // Make intersection detection more lenient - if click is close enough to model
+        if (intersects.length > 0 || isClickNearModel(x, y)) {
+          currentlyAnimating = true;
+
+          // Find dance animation
+          const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
+
+          if (danceAnim) {
+            playModifierAnimation(idle, 0.5, danceAnim, 0.5);
+
+            // Track successful interaction
+            trackInteractionSuccess("Click-to-Dance", {
+              interactionId: clickToDanceInteraction.id,
+              animation: "dance",
+              clickPosition: { x, y },
+              hasIntersection: intersects.length > 0
+            });
+
+            // Reset currentlyAnimating after animation duration
+            const animationDuration = danceAnim.bodyClip._clip.duration * 1000; // Convert to milliseconds
+            setTimeout(() => {
+              currentlyAnimating = false;
+            }, animationDuration);
+          } else {
             currentlyAnimating = false;
-          }, animationDuration);
-        } else {
-          currentlyAnimating = false;
+            throw new Error("Dance animation not found in possibleAnims");
+          }
         }
+      } catch (error) {
+        trackInteractionFailure("Click-to-Dance", error, {
+          stage: "onModelClick",
+          clickPosition: event ? { x: event.clientX, y: event.clientY } : null
+        });
       }
     }
 
@@ -953,6 +1111,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
 
       if (!response.ok) {
+        
         // throw new Error(`HTTP error! Status: ${response.status}`);
       }
     } catch (error) {
@@ -2436,6 +2595,27 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       );
 
       if (!response.ok) {
+        // Capture HTTP errors with Sentry
+        const errorData = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          userId: user_id,
+          supabaseUrl: supabaseUrl
+        };
+        
+        console.error("HTTP Error in getInteractions:", errorData);
+        
+        if (typeof Sentry !== 'undefined') {
+          Sentry.captureException(new Error(`HTTP ${response.status}: ${response.statusText}`), {
+            tags: {
+              function: 'getInteractions',
+              status: response.status.toString()
+            },
+            extra: errorData
+          });
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -2449,6 +2629,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return interactions;
     } catch (error) {
       console.error("Failed to get interactions:", error);
+      
+      // Capture network/other errors with Sentry
+      if (typeof Sentry !== 'undefined') {
+        Sentry.captureException(error, {
+          tags: {
+            function: 'getInteractions'
+          },
+          extra: {
+            userId: user_id,
+            supabaseUrl: supabaseUrl
+          }
+        });
+      }
+      
       return [];
     }
   };
@@ -2468,72 +2662,90 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Initialize head tracking after model is loaded
       const initializeHeadTracking = () => {
-        if (!neck) {
-          console.error("Neck bone reference is missing");
-          return;
-        }
+        try {
+          if (!neck) {
+            throw new Error("Neck bone reference is missing for Head-Cursor Sync");
+          }
 
-        // Stop all mixer actions that affect the neck/head
-        if (mixer && mixer._actions) {
-          mixer._actions.forEach((action) => {
-            if (
-              action._clip.name.includes("head") ||
-              action._clip.name.includes("neck")
-            ) {
-              action.stop();
+          // Stop all mixer actions that affect the neck/head
+          if (mixer && mixer._actions) {
+            mixer._actions.forEach((action) => {
+              if (
+                action._clip.name.includes("head") ||
+                action._clip.name.includes("neck")
+              ) {
+                action.stop();
+              }
+            });
+          }
+
+          let timer = null;
+          let lastMouseMoveTime = Date.now();
+          let isResetting = false;
+          let isInitialized = false;
+
+          // Initialize head position
+          resetHead();
+          isInitialized = true;
+
+          document.addEventListener("mousemove", function (e) {
+            try {
+              if (!isInitialized || !neck) {
+                return;
+              }
+
+              // Skip if interaction is active or currently animating
+              if (currentlyAnimating || isInteractionActive) {
+                return;
+              }
+
+              // Update last mouse move time
+              const currentTime = Date.now();
+              const timeSinceLastMove = currentTime - lastMouseMoveTime;
+              lastMouseMoveTime = currentTime;
+
+              // Clear existing timer if any
+              if (timer) {
+                clearTimeout(timer);
+              }
+
+              var mousecoords = getMousePos(e);
+              moveJoint(mousecoords, neck, 50);
+              console.log("Head-Cursor Sync is enabled INITIALIZED");
+
+              // Only set new timer if we're not already resetting
+              if (!isResetting) {
+                timer = setTimeout(() => {
+                  const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+                  // Only reset if there's been no movement for at least 5 seconds
+                  if (timeSinceLastMove >= 5000) {
+                    isResetting = true;
+                    resetHead();
+                    // Add a small delay before allowing another reset
+                    setTimeout(() => {
+                      isResetting = false;
+                    }, 1000);
+                  }
+                }, 5000);
+              }
+            } catch (error) {
+              trackInteractionFailure("Head-Cursor Sync", error, {
+                stage: "mousemove_handler"
+              });
             }
           });
+          
+          // Track successful initialization
+          trackInteractionSuccess("Head-Cursor Sync", {
+            stage: "initialization",
+            hasNeck: !!neck,
+            hasMixer: !!mixer
+          });
+        } catch (error) {
+          trackInteractionFailure("Head-Cursor Sync", error, {
+            stage: "initialization"
+          });
         }
-
-        let timer = null;
-        let lastMouseMoveTime = Date.now();
-        let isResetting = false;
-        let isInitialized = false;
-
-        // Initialize head position
-        resetHead();
-        isInitialized = true;
-
-        document.addEventListener("mousemove", function (e) {
-          if (!isInitialized || !neck) {
-            return;
-          }
-
-          // Skip if interaction is active or currently animating
-          if (currentlyAnimating || isInteractionActive) {
-            return;
-          }
-
-          // Update last mouse move time
-          const currentTime = Date.now();
-          const timeSinceLastMove = currentTime - lastMouseMoveTime;
-          lastMouseMoveTime = currentTime;
-
-          // Clear existing timer if any
-          if (timer) {
-            clearTimeout(timer);
-          }
-
-          var mousecoords = getMousePos(e);
-          moveJoint(mousecoords, neck, 50);
-          console.log("Head-Cursor Sync is enabled INITIALIZED");
-
-          // Only set new timer if we're not already resetting
-          if (!isResetting) {
-            timer = setTimeout(() => {
-              const timeSinceLastMove = Date.now() - lastMouseMoveTime;
-              // Only reset if there's been no movement for at least 5 seconds
-              if (timeSinceLastMove >= 5000) {
-                isResetting = true;
-                resetHead();
-                // Add a small delay before allowing another reset
-                setTimeout(() => {
-                  isResetting = false;
-                }, 1000);
-              }
-            }, 5000);
-          }
-        });
       };
 
       // Call initializeHeadTracking 3 seconds after the page is fully loaded
@@ -2743,128 +2955,143 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // Modify the showNewVisitorMessage function to use text-to-speech
   async function showNewVisitorMessage() {
-    console.log("Showing new visitor message", INTERACTION_DATA);
-    let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
-    console.log("Has visited before:", hasVisitedBefore);
-    if (hasVisitedBefore !== "true") {
-      // Wait for animations to be loaded
-      if (!possibleAnims || possibleAnims.length === 0) {
-        console.log("Waiting for animations to load...");
-        // alert("Waiting for animations to load...");
-        await new Promise((resolve) => {
-          const checkAnimations = setInterval(() => {
-            if (possibleAnims && possibleAnims.length > 0) {
-              clearInterval(checkAnimations);
-              resolve();
-            }
-          }, 1);
-        });
+    try {
+      console.log("Showing new visitor message", INTERACTION_DATA);
+      let hasVisitedBefore = localStorage.getItem("hasWelcomeVisitor");
+      console.log("Has visited before:", hasVisitedBefore);
+      
+      if (hasVisitedBefore !== "true") {
+        // Wait for animations to be loaded
+        if (!possibleAnims || possibleAnims.length === 0) {
+          console.log("Waiting for animations to load...");
+          await new Promise((resolve) => {
+            const checkAnimations = setInterval(() => {
+              if (possibleAnims && possibleAnims.length > 0) {
+                clearInterval(checkAnimations);
+                resolve();
+              }
+            }, 1);
+          });
+        }
+
+        const newVisitorInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Welcome New Visitor"
+        );
+        
+        if (!newVisitorInteraction) {
+          throw new Error("Welcome New Visitor interaction not found in INTERACTION_DATA");
+        }
+        
+        console.log("New visitor interaction:", newVisitorInteraction);
+        
+        setTimeout(() => {
+          try {
+            showUIAnimation({
+              text: newVisitorInteraction?.message,
+              time: 15,
+              interactionAudio: newVisitorInteraction?.audio_url || "",
+              hasClose: false,
+              animation: "wave",
+              audioDuration: newVisitorInteraction?.audio_duration || 0,
+              cta: [
+                {
+                  text: "Ask me Anything!",
+                  bg: "#007AFF",
+                  color: "#fff",
+                  format: "chat",
+                },
+              ],
+            });
+            updateInteractionImpression(newVisitorInteraction.id);
+            localStorage.setItem("hasWelcomeVisitor", "true");
+            
+            // Track successful interaction
+            trackInteractionSuccess("Welcome New Visitor", {
+              interactionId: newVisitorInteraction.id,
+              hasAudio: !!newVisitorInteraction?.audio_url,
+              animation: "wave"
+            });
+          } catch (error) {
+            trackInteractionFailure("Welcome New Visitor", error, {
+              interactionId: newVisitorInteraction.id,
+              stage: "showUIAnimation"
+            });
+          }
+        }, 1000);
       }
-
-      const newVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome New Visitor"
-      );
-      console.log("New visitor interaction:", newVisitorInteraction);
-      // const message = replaceMessagePlaceholders(
-      //   newVisitorInteraction?.message,
-      //   leadData
-      // );
-      // console.log("Message new visitors:", message);
-
-      // const hasPlaceholders =
-      //   newVisitorInteraction?.message?.includes("{firstName}") ||
-      //   newVisitorInteraction?.message?.includes("{companyName}");
-
-      // let audioUrl = null;
-
-      // // Fetch existing message and audio URL from the table
-      // const existingData = await fetchExistingInteractionData(
-      //   "Welcome New Visitor"
-      // );
-      // const existingMessage = existingData?.message;
-      // const existingAudioUrl = existingData?.audio_url;
-
-      // if (
-      //   hasPlaceholders &&
-      //   existingMessage === newVisitorInteraction?.message
-      // ) {
-      //   console.log(existingAudioUrl, "existing audio url in new visitor");
-      //   // Use existing audio if the message matches
-      //   audioUrl = existingAudioUrl;
-      // } else {
-      //   // Generate new audio if the message differs
-      //   const audioBlob = await convertTextToSpeech(message);
-      //   if (audioBlob) {
-      //     audioUrl = await UpdateLeadsData(
-      //       "Welcome New Visitor",
-      //       audioBlob,
-      //       newVisitorInteraction?.message
-      //     );
-      //     console.log(audioUrl, "audio url in new visitor");
-      //   }
-      // }
-      setTimeout(() => {
-        showUIAnimation({
-          text: newVisitorInteraction?.message,
-          time: 15,
-          interactionAudio: newVisitorInteraction?.audio_url || "",
-          hasClose: false,
-          animation: "wave",
-          audioDuration: newVisitorInteraction?.audio_duration || 0,
-          cta: [
-            {
-              text: "Ask me Anything!",
-              bg: "#007AFF",
-              color: "#fff",
-              format: "chat",
-            },
-          ],
-        });
-        updateInteractionImpression(newVisitorInteraction.id);
-        localStorage.setItem("hasWelcomeVisitor", "true");
-      }, 1000);
+    } catch (error) {
+      trackInteractionFailure("Welcome New Visitor", error, {
+        stage: "initialization"
+      });
     }
   }
 
   function showReturningVisitorMessage() {
-    console.log("Showing returning visitor message");
-    let hasReturningVisitedBefore = localStorage.getItem("hasReturningVisitor");
-    const hasShownReturningMessage = sessionStorage.getItem(
-      "hasShownReturningMessage"
-    );
-    if (hasReturningVisitedBefore === "true" && !hasShownReturningMessage) {
-      const returningVisitorInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Welcome Returning Visitor"
+    try {
+      console.log("Showing returning visitor message");
+      let hasReturningVisitedBefore = localStorage.getItem("hasReturningVisitor");
+      const hasShownReturningMessage = sessionStorage.getItem(
+        "hasShownReturningMessage"
       );
-      const message = replaceMessagePlaceholders(
-        returningVisitorInteraction?.message,
-        leadData
-      );
+      
+      if (hasReturningVisitedBefore === "true" && !hasShownReturningMessage) {
+        const returningVisitorInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Welcome Returning Visitor"
+        );
+        
+        if (!returningVisitorInteraction) {
+          throw new Error("Welcome Returning Visitor interaction not found in INTERACTION_DATA");
+        }
+        
+        const message = replaceMessagePlaceholders(
+          returningVisitorInteraction?.message,
+          leadData
+        );
 
-      setTimeout(() => {
-        showUIAnimation({
-          text: message,
-          time: 8,
-          hasClose: false,
-          animation: "wave",
-          interactionAudio: returningVisitorInteraction?.audio_url || "",
-          audioDuration: returningVisitorInteraction?.audio_duration || 0,
-          cta: [
-            {
-              text: "Ask me anything!",
-              bg: "#007AFF",
-              color: "#fff",
-              format: "chat",
-            },
-          ],
-        });
+        setTimeout(() => {
+          try {
+            showUIAnimation({
+              text: message,
+              time: 8,
+              hasClose: false,
+              animation: "wave",
+              interactionAudio: returningVisitorInteraction?.audio_url || "",
+              audioDuration: returningVisitorInteraction?.audio_duration || 0,
+              cta: [
+                {
+                  text: "Ask me anything!",
+                  bg: "#007AFF",
+                  color: "#fff",
+                  format: "chat",
+                },
+              ],
+            });
 
-        updateInteractionImpression(returningVisitorInteraction.id);
-      }, 1000);
-      // Set the flag only after the message is shown
-      sessionStorage.setItem("hasShownReturningMessage", "true");
-    } else {
-      localStorage.setItem("hasReturningVisitor", "true");
+            updateInteractionImpression(returningVisitorInteraction.id);
+            
+            // Track successful interaction
+            trackInteractionSuccess("Welcome Returning Visitor", {
+              interactionId: returningVisitorInteraction.id,
+              hasAudio: !!returningVisitorInteraction?.audio_url,
+              animation: "wave"
+            });
+          } catch (error) {
+            trackInteractionFailure("Welcome Returning Visitor", error, {
+              interactionId: returningVisitorInteraction.id,
+              stage: "showUIAnimation"
+            });
+          }
+        }, 1000);
+        
+        // Set the flag only after the message is shown
+        sessionStorage.setItem("hasShownReturningMessage", "true");
+      } else {
+        localStorage.setItem("hasReturningVisitor", "true");
+      }
+    } catch (error) {
+      trackInteractionFailure("Welcome Returning Visitor", error, {
+        stage: "initialization"
+      });
     }
   }
 
@@ -3019,68 +3246,94 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     triggerInteraction() {
-      this.hasInteracted = true;
-      const avoidBounceInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Avoid Bounce"
-      );
-      showUIAnimation({
-        text:
-          avoidBounceInteraction?.message ||
-          "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
-        time: 8,
-        hasClose: false,
-        animation: "no_no",
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-        interactionAudio: avoidBounceInteraction?.audio_url || "",
-        audioDuration: avoidBounceInteraction?.audio_duration || 0,
-      });
-      updateInteractionImpression(avoidBounceInteraction.id);
-      document.removeEventListener("mousemove", this.handleMouseMovement);
-
-      // Follow-up interactions after 8 seconds (after no_no animation)
-      setTimeout(() => {
-        // Find dance animation and get its duration
-        const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
-        const danceDuration = danceAnim
-          ? danceAnim.bodyClip._clip.duration * 1000
-          : 6000;
-
+      try {
+        this.hasInteracted = true;
+        const avoidBounceInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Avoid Bounce"
+        );
+        
+        if (!avoidBounceInteraction) {
+          throw new Error("Avoid Bounce interaction not found in INTERACTION_DATA");
+        }
+        
         showUIAnimation({
-          animation: "dance",
-          time: 0,
+          text:
+            avoidBounceInteraction?.message ||
+            "Wait, wait, wait! I've been practicing my dance moves, watch this! 🕺",
+          time: 8,
           hasClose: false,
+          animation: "no_no",
+          cta: [
+            {
+              text: "Ask me anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+          interactionAudio: avoidBounceInteraction?.audio_url || "",
+          audioDuration: avoidBounceInteraction?.audio_duration || 0,
+        });
+        updateInteractionImpression(avoidBounceInteraction.id);
+        document.removeEventListener("mousemove", this.handleMouseMovement);
+
+        // Track successful interaction
+        trackInteractionSuccess("Avoid Bounce", {
+          interactionId: avoidBounceInteraction.id,
+          hasAudio: !!avoidBounceInteraction?.audio_url,
+          animation: "no_no",
+          sessionStartTime: this.sessionStartTime
         });
 
-        // Show casual talk 2 seconds after dance ends
+        // Follow-up interactions after 8 seconds (after no_no animation)
         setTimeout(() => {
-          showUIAnimation({
-            text: "Liked my dance? Let me help you with something!",
-            time: 15,
-            hasClose: false,
-            animation: "casual_talk_2",
-            cta: [
-              {
-                text: "Ask me anything!",
-                bg: "#007AFF",
-                color: "#fff",
-                format: "chat",
-              },
-            ],
-          });
+          try {
+            // Find dance animation and get its duration
+            const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
+            const danceDuration = danceAnim
+              ? danceAnim.bodyClip._clip.duration * 1000
+              : 6000;
 
-          // Switch back to idle after 15 seconds
-          setTimeout(() => {
-            playModifierAnimation(idle, 1, idle, 1.5);
-          }, 15000);
-        }, danceDuration + 2000); // Show casual talk 2s after dance animation ends
-      }, 8000); // Start dance after 8s no_no animation
+            showUIAnimation({
+              animation: "dance",
+              time: 0,
+              hasClose: false,
+            });
+
+            // Show casual talk 2 seconds after dance ends
+            setTimeout(() => {
+              showUIAnimation({
+                text: "Liked my dance? Let me help you with something!",
+                time: 15,
+                hasClose: false,
+                animation: "casual_talk_2",
+                cta: [
+                  {
+                    text: "Ask me anything!",
+                    bg: "#007AFF",
+                    color: "#fff",
+                    format: "chat",
+                  },
+                ],
+              });
+
+              // Switch back to idle after 15 seconds
+              setTimeout(() => {
+                playModifierAnimation(idle, 1, idle, 1.5);
+              }, 15000);
+            }, danceDuration + 2000); // Show casual talk 2s after dance animation ends
+          } catch (error) {
+            trackInteractionFailure("Avoid Bounce", error, {
+              interactionId: avoidBounceInteraction.id,
+              stage: "follow_up_animations"
+            });
+          }
+        }, 8000); // Start dance after 8s no_no animation
+      } catch (error) {
+        trackInteractionFailure("Avoid Bounce", error, {
+          stage: "triggerInteraction"
+        });
+      }
     }
   }
 
@@ -3218,33 +3471,52 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     normalExitIntentTriggerInteraction() {
-      normalExitIntentMarkInteractionTriggered();
-      const normalExitIntentInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Normal Exit Intent"
-      );
-      showUIAnimation({
-        text:
-          normalExitIntentInteraction?.message ||
-          "Leaving already? If you ever need help, I'm always here!",
-        time: 8,
-        hasClose: false,
-        animation: "casual_talk_2",
-        interactionAudio: normalExitIntentInteraction?.audio_url || "",
-        audioDuration: normalExitIntentInteraction?.audio_duration || 0,
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(normalExitIntentInteraction.id);
-      document.removeEventListener(
-        "mousemove",
-        this.normalExitIntentHandleMouseMovement
-      );
+      try {
+        normalExitIntentMarkInteractionTriggered();
+        const normalExitIntentInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Normal Exit Intent"
+        );
+        
+        if (!normalExitIntentInteraction) {
+          throw new Error("Normal Exit Intent interaction not found in INTERACTION_DATA");
+        }
+        
+        showUIAnimation({
+          text:
+            normalExitIntentInteraction?.message ||
+            "Leaving already? If you ever need help, I'm always here!",
+          time: 8,
+          hasClose: false,
+          animation: "casual_talk_2",
+          interactionAudio: normalExitIntentInteraction?.audio_url || "",
+          audioDuration: normalExitIntentInteraction?.audio_duration || 0,
+          cta: [
+            {
+              text: "Ask me anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+        });
+        updateInteractionImpression(normalExitIntentInteraction.id);
+        document.removeEventListener(
+          "mousemove",
+          this.normalExitIntentHandleMouseMovement
+        );
+        
+        // Track successful interaction
+        trackInteractionSuccess("Normal Exit Intent", {
+          interactionId: normalExitIntentInteraction.id,
+          hasAudio: !!normalExitIntentInteraction?.audio_url,
+          animation: "casual_talk_2",
+          highestScrollPercentage: this.normalExitIntentHighestScrollPercentage
+        });
+      } catch (error) {
+        trackInteractionFailure("Normal Exit Intent", error, {
+          stage: "triggerInteraction"
+        });
+      }
     }
   }
 
@@ -3422,30 +3694,49 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     triggerInteraction() {
-      markConfusedInteractionTriggered();
-      const confusedInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Confused?"
-      );
-      showUIAnimation({
-        text:
-          confusedInteraction?.message ||
-          "Looks like you're exploring 🤔….need a hand finding something?",
-        time: 8,
-        hasClose: false,
-        animation: "casual_talk_2",
-        interactionAudio: confusedInteraction?.audio_url || "",
-        audioDuration: confusedInteraction?.audio_duration || 0,
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(confusedInteraction.id);
-      document.removeEventListener("scroll", this.handleScroll);
+      try {
+        markConfusedInteractionTriggered();
+        const confusedInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Confused?"
+        );
+        
+        if (!confusedInteraction) {
+          throw new Error("Confused? interaction not found in INTERACTION_DATA");
+        }
+        
+        showUIAnimation({
+          text:
+            confusedInteraction?.message ||
+            "Looks like you're exploring 🤔….need a hand finding something?",
+          time: 8,
+          hasClose: false,
+          animation: "casual_talk_2",
+          interactionAudio: confusedInteraction?.audio_url || "",
+          audioDuration: confusedInteraction?.audio_duration || 0,
+          cta: [
+            {
+              text: "Ask me anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+        });
+        updateInteractionImpression(confusedInteraction.id);
+        document.removeEventListener("scroll", this.handleScroll);
+        
+        // Track successful interaction
+        trackInteractionSuccess("Confused?", {
+          interactionId: confusedInteraction.id,
+          hasAudio: !!confusedInteraction?.audio_url,
+          animation: "casual_talk_2",
+          visitCount: getConfusedInteractionVisitCount()
+        });
+      } catch (error) {
+        trackInteractionFailure("Confused?", error, {
+          stage: "triggerInteraction"
+        });
+      }
     }
   }
 
@@ -3544,37 +3835,57 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     showMessage() {
-      const currentCount = this.getTriggerCount();
-      if (currentCount >= 1) {
-        console.log("Skipping message - already reached trigger limit");
-        return;
+      try {
+        const currentCount = this.getTriggerCount();
+        if (currentCount >= 1) {
+          console.log("Skipping message - already reached trigger limit");
+          return;
+        }
+
+        this.isShowingMessage = true;
+        this.lastTriggerTime = Date.now();
+
+        const idleInteraction = INTERACTION_DATA.find(
+          (i) => i.key === "Idle on Page"
+        );
+        
+        if (!idleInteraction) {
+          throw new Error("Idle on Page interaction not found in INTERACTION_DATA");
+        }
+        
+        showUIAnimation({
+          text:
+            idleInteraction?.message ||
+            "Still there? Let me know if you need any help!",
+          time: 8,
+          hasClose: false,
+          animation: "wait_up",
+          interactionAudio: idleInteraction?.audio_url || "",
+          audioDuration: idleInteraction?.audio_duration || 0,
+          cta: [
+            {
+              text: "Ask me anything!",
+              bg: "#007AFF",
+              color: "#fff",
+              format: "chat",
+            },
+          ],
+        });
+        updateInteractionImpression(idleInteraction.id);
+        
+        // Track successful interaction
+        trackInteractionSuccess("Idle on Page", {
+          interactionId: idleInteraction.id,
+          hasAudio: !!idleInteraction?.audio_url,
+          animation: "wait_up",
+          triggerCount: currentCount,
+          lastActivity: this.lastActivity
+        });
+      } catch (error) {
+        trackInteractionFailure("Idle on Page", error, {
+          stage: "showMessage"
+        });
       }
-
-      this.isShowingMessage = true;
-      this.lastTriggerTime = Date.now();
-
-      const idleInteraction = INTERACTION_DATA.find(
-        (i) => i.key === "Idle on Page"
-      );
-      showUIAnimation({
-        text:
-          idleInteraction?.message ||
-          "Still there? Let me know if you need any help!",
-        time: 8,
-        hasClose: false,
-        animation: "wait_up",
-        interactionAudio: idleInteraction?.audio_url || "",
-        audioDuration: idleInteraction?.audio_duration || 0,
-        cta: [
-          {
-            text: "Ask me anything!",
-            bg: "#007AFF",
-            color: "#fff",
-            format: "chat",
-          },
-        ],
-      });
-      updateInteractionImpression(idleInteraction.id);
     }
   }
 
@@ -3676,28 +3987,48 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                     !this.triggeredButtons.has(element) &&
                     this.triggerCount < 2
                   ) {
-                    showUIAnimation({
-                      text:
-                        clickAssistInteraction?.message ||
-                        "Great choice! No need to hesitate, go for it!",
-                      time: 8,
-                      hasClose: false,
-                      animation: "thumbs_up",
-                      interactionAudio: clickAssistInteraction?.audio_url || "",
-                      audioDuration:
-                        clickAssistInteraction?.audio_duration || 0,
-                      cta: [
-                        {
-                          text: "Ask me anything!",
-                          bg: "#007AFF",
-                          color: "#fff",
-                          format: "chat",
-                        },
-                      ],
-                    });
-                    this.triggeredButtons.add(element);
-                    // Increment trigger count
-                    this.incrementTriggerCount();
+                    try {
+                      if (!clickAssistInteraction) {
+                        throw new Error("Click Assist interaction not found in INTERACTION_DATA");
+                      }
+                      
+                      showUIAnimation({
+                        text:
+                          clickAssistInteraction?.message ||
+                          "Great choice! No need to hesitate, go for it!",
+                        time: 8,
+                        hasClose: false,
+                        animation: "thumbs_up",
+                        interactionAudio: clickAssistInteraction?.audio_url || "",
+                        audioDuration:
+                          clickAssistInteraction?.audio_duration || 0,
+                        cta: [
+                          {
+                            text: "Ask me anything!",
+                            bg: "#007AFF",
+                            color: "#fff",
+                            format: "chat",
+                          },
+                        ],
+                      });
+                      this.triggeredButtons.add(element);
+                      // Increment trigger count
+                      this.incrementTriggerCount();
+                      
+                      // Track successful interaction
+                      trackInteractionSuccess("Click Assist", {
+                        interactionId: clickAssistInteraction.id,
+                        hasAudio: !!clickAssistInteraction?.audio_url,
+                        animation: "thumbs_up",
+                        buttonText: element.textContent?.trim(),
+                        triggerCount: this.triggerCount
+                      });
+                    } catch (error) {
+                      trackInteractionFailure("Click Assist", error, {
+                        stage: "showUIAnimation",
+                        buttonText: element.textContent?.trim()
+                      });
+                    }
                   }
                 }, 4000)
               );
@@ -3727,4 +4058,53 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   }
 
   //*************************************************END OF INTERACTION HANDLER*****************************************************
+  // Test function for Sentry - Interaction Failures
+  window.testSentry = function() {
+    if (typeof Sentry !== 'undefined') {
+      // Test interaction failures for each of the 9 interactions
+      const testInteractions = [
+        'Welcome New Visitor',
+        'Welcome Returning Visitor', 
+        'Avoid Bounce',
+        'Idle on Page',
+        'Normal Exit Intent',
+        'Confused?',
+        'Click Assist',
+        'Head-Cursor Sync',
+        'Click-to-Dance'
+      ];
+      
+      testInteractions.forEach((interactionName, index) => {
+        // Simulate different types of failures
+        const failureTypes = [
+          new Error(`Interaction data not found for ${interactionName}`),
+          new Error(`Animation failed to load for ${interactionName}`),
+          new Error(`Audio playback failed for ${interactionName}`),
+          new Error(`UI animation failed for ${interactionName}`)
+        ];
+        
+        const testError = failureTypes[index % failureTypes.length];
+        
+        trackInteractionFailure(interactionName, testError, {
+          testType: 'manual',
+          failureType: failureTypes[index % failureTypes.length].message,
+          timestamp: new Date().toISOString()
+        });
+      });
+      
+      // Also test a successful interaction
+      trackInteractionSuccess("Welcome New Visitor", {
+        testType: 'manual',
+        interactionId: 'test-123',
+        hasAudio: true,
+        animation: 'wave'
+      });
+      
+      console.log("Sentry interaction tests sent!");
+      alert("Sentry interaction tests sent! Check your Sentry dashboard for 9 failure events and 1 success event.");
+    } else {
+      console.error("Sentry is not available");
+      alert("Sentry is not available");
+    }
+  };
 })(); // Don't add anything below this line
