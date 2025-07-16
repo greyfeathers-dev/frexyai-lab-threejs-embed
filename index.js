@@ -3619,18 +3619,41 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       window.addEventListener("load", () => {
         this.attachHoverListeners();
       });
+      
+      // Listen for route changes to re-initialize on new pages
+      window.addEventListener("pathChange", () => {
+        console.log("ClickAssist: Route changed, re-initializing...");
+        // Clean up existing listeners first
+        this.cleanup();
+        // Add a small delay to ensure the new page content is loaded
+        setTimeout(() => {
+          this.attachHoverListeners();
+        }, 500);
+      });
     }
 
     attachHoverListeners() {
       // Check if already triggered twice in this session
       if (this.triggerCount >= 2) {
+        console.log("ClickAssist: Already triggered twice, skipping");
         return;
       }
+
+      console.log("ClickAssist: Attaching hover listeners to new page elements");
+      
+      // Clear any existing timers to prevent memory leaks
+      this.hoverTimers.forEach((timer) => clearTimeout(timer));
+      this.hoverTimers.clear();
 
       // Find all buttons and links
       const elements = document.querySelectorAll("button, a");
 
       elements.forEach((element) => {
+        // Skip if element already has listeners attached (prevent duplicates)
+        if (element.hasAttribute('data-click-assist-initialized')) {
+          return;
+        }
+
         const text = element.textContent?.trim() || "";
         const normalizedText = text.toLowerCase().replace(/\s+/g, "_");
 
@@ -3655,13 +3678,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             );
           })
         ) {
-          // Remove existing listeners to prevent duplicates
-          element.removeEventListener("mouseenter", this.handleMouseEnter);
-          element.removeEventListener("mouseleave", this.handleMouseLeave);
-          element.removeEventListener("click", this.handleClick);
+          // Mark element as initialized to prevent duplicate listeners
+          element.setAttribute('data-click-assist-initialized', 'true');
 
           // Mouse enter handler
-          element.addEventListener("mouseenter", () => {
+          const mouseEnterHandler = () => {
             if (
               !this.triggeredButtons.has(element) &&
               this.triggerCount < 2
@@ -3702,26 +3723,57 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                 }, 4000)
               );
             }
-          });
+          };
 
           // Mouse leave handler
-          element.addEventListener("mouseleave", () => {
+          const mouseLeaveHandler = () => {
             const timer = this.hoverTimers.get(element);
             if (timer) {
               clearTimeout(timer);
               this.hoverTimers.delete(element);
             }
-          });
+          };
 
           // Click handler
-          element.addEventListener("click", () => {
+          const clickHandler = () => {
             const timer = this.hoverTimers.get(element);
             if (timer) {
               clearTimeout(timer);
               this.hoverTimers.delete(element);
             }
-          });
+          };
+
+          // Add event listeners
+          element.addEventListener("mouseenter", mouseEnterHandler);
+          element.addEventListener("mouseleave", mouseLeaveHandler);
+          element.addEventListener("click", clickHandler);
+
+          // Store references for potential cleanup
+          element._clickAssistHandlers = {
+            mouseenter: mouseEnterHandler,
+            mouseleave: mouseLeaveHandler,
+            click: clickHandler
+          };
         }
+      });
+    }
+
+    // Method to clean up event listeners
+    cleanup() {
+      // Clear all timers
+      this.hoverTimers.forEach((timer) => clearTimeout(timer));
+      this.hoverTimers.clear();
+
+      // Remove event listeners from elements
+      const elements = document.querySelectorAll('[data-click-assist-initialized]');
+      elements.forEach((element) => {
+        if (element._clickAssistHandlers) {
+          element.removeEventListener("mouseenter", element._clickAssistHandlers.mouseenter);
+          element.removeEventListener("mouseleave", element._clickAssistHandlers.mouseleave);
+          element.removeEventListener("click", element._clickAssistHandlers.click);
+          delete element._clickAssistHandlers;
+        }
+        element.removeAttribute('data-click-assist-initialized');
       });
     }
   }
