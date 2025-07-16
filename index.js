@@ -1,6 +1,6 @@
 /** @format */
-// localStorage.clear();
-// sessionStorage.clear();
+localStorage.clear();
+sessionStorage.clear();
 
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -834,18 +834,60 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
+    const url = new URL(path);
+    
+    // Check UTM parameters first
+    const utmSource = url.searchParams.get('utm_source');
+    const utmMedium = url.searchParams.get('utm_medium');
+    
+    console.log("🔍 Source detection debug:", {
+      referrer: referrer,
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      fullUrl: path
+    });
+    
+    // Handle UTM parameters
+    if (utmSource) {
+      const source = utmSource.toLowerCase();
+      const medium = utmMedium ? utmMedium.toLowerCase() : '';
+      
+      // Check for paid campaigns
+      if (medium.includes('paid') || medium.includes('cpc') || medium.includes('ppc')) {
+        if (source === 'google') return "paid_google";
+        if (source === 'bing') return "paid_bing";
+        if (source === 'linkedin') return "paid_linkedin";
+        if (source === 'facebook' || source === 'instagram') return "paid_meta";
+        if (source === 'youtube') return "paid_youtube";
+        if (source === 'reddit') return "paid_reddit";
+      }
+      
+      // Check for organic traffic
+      if (source === 'google') return "google";
+      if (source === 'yahoo') return "yahoo";
+      if (source === 'bing') return "bing";
+      if (source === 'youtube') return "youtube";
+      if (source === 'linkedin') return "linkedin";
+      if (source === 'reddit') return "reddit";
+    }
+    
+    // Check referrer
     if (referrer === "https://www.google.com/") return "google";
     else if (referrer === "https://www.yahoo.com/") return "yahoo";
     else if (referrer === "https://www.bing.com/") return "bing";
     else if (referrer === "https://www.youtube.com/") return "youtube";
     else if (referrer === "https://www.linkedin.com/") return "linkedin";
     else if (referrer === "https://www.reddit.com/") return "reddit";
+    
+    // Check for other tracking parameters
     else if (path.includes("gclid")) return "paid_google";
     else if (path.includes("msclkid")) return "paid_bing";
     else if (path.includes("li_fat_id")) return "paid_linkedin";
     else if (path.includes("fbclid")) return "paid_meta";
     else if (path.includes("wbraid")) return "paid_youtube";
     else if (path.includes("cid")) return "paid_reddit";
+    
+    // Default to direct
     else return "direct";
   }
 
@@ -1244,7 +1286,336 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   }
 
   // ============================================= UI ANIMATION FUNCTIONS =============================================
+  // ============================================= OFFERS DATA FETCHING FUNCTIONS =============================================
+  let offers = [];
+  async function getOffersData () {
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?user_id=eq.${user_id}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      offers = await response.json();
+      console.log("Fetched offers:", offers);
+      findAudienceType();
+      return offers;
+
+    } catch (error) {
+      console.error("Failed to get offers:", error);
+      return [];
+    }
+  }
+  getOffersData();
+
+  function findAudienceType () {
+    const filteredGeneralVisitorsOffers = offers.filter((offer) => offer.audience_type === "general_visitors");
+    const filteredTargetedOffers = offers.filter((offer) => offer.audience_type === "target_leads");
+    findOfferForGeneralVisitors(filteredGeneralVisitorsOffers);
+    findOfferForTargetedLeads(filteredTargetedLeadsOffers);
+  }
+
+  // Helper functions for offer session tracking
+  function hasOfferBeenShown(offerId) {
+    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+    return shownOffers.includes(offerId);
+  }
+
+  function markOfferAsShown(offerId) {
+    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+    if (!shownOffers.includes(offerId)) {
+      shownOffers.push(offerId);
+      sessionStorage.setItem('shownOffers', JSON.stringify(shownOffers));
+      console.log("📝 Marked offer as shown in session:", offerId);
+    }
+  }
+
+  function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
+    console.log("🔍 Starting offer evaluation for general visitors");
+    console.log("📊 Total offers to check:", filteredGeneralVisitorsOffers.length);
+    console.log("📋 Offers data:", filteredGeneralVisitorsOffers);
+
+    // Check each offer against current conditions
+    filteredGeneralVisitorsOffers.forEach((offer, index) => {
+      console.log(`\n🎯 Checking offer ${index + 1}: ${offer.offer_name || 'Unnamed Offer'}`);
+      console.log("📄 Offer details:", {
+        id: offer.offer_id,
+        name: offer.offer_name,
+        message: offer.offer_message,
+        trigger: offer.offer_trigger_type,
+        page: offer.page_url,
+        schedule: { start: offer.start_date, end: offer.end_date }
+      });
+
+      // Check if offer has already been shown in this session
+      if (hasOfferBeenShown(offer.offer_id)) {
+        console.log("🚫 Offer already shown in this session, skipping:", offer.offer_name);
+        return;
+      }
+
+      const scheduleCheck = checkScheduleType(offer);
+      const trafficCheck = checkTrafficSource(offer);
+      const locationCheck = checkLocation(offer);
+      const triggerCheck = checkTriggerType(offer);
+      const pageCheck = checkPageUrl(offer);
+
+      console.log("✅ Condition checks:", {
+        schedule: scheduleCheck,
+        traffic: trafficCheck,
+        location: locationCheck,
+        trigger: triggerCheck,
+        page: pageCheck
+      });
+
+      // For immediate triggers, all conditions must be true
+      if (triggerCheck === true && scheduleCheck && trafficCheck && locationCheck && pageCheck) {
+        console.log("🎉 All conditions met! Showing offer immediately:", offer.offer_name);
+        showOfferUI(offer);
+      } else if (triggerCheck === 'scroll' || triggerCheck === 'time_spend') {
+        // For scroll/time triggers, only check other conditions (trigger is handled separately)
+        if (scheduleCheck && trafficCheck && locationCheck && pageCheck) {
+          console.log("⏳ Conditions met for delayed trigger, setting up trigger:", offer.offer_name);
+          // Set up the appropriate trigger
+          if (triggerCheck === 'scroll') {
+            setupScrollTrigger(offer);
+          } else if (triggerCheck === 'time_spend') {
+            setupTimeSpendTrigger(offer);
+          }
+        } else {
+          console.log("❌ Offer conditions not met for delayed trigger, skipping:", offer.offer_name);
+        }
+      } else {
+        console.log("❌ Offer conditions not met, skipping:", offer.offer_name);
+      }
+    });
+  }
+
+  function checkScheduleType(offer) {
+    const now = new Date();
+    const startDate = new Date(offer.start_date);
+    
+    console.log("📅 Schedule check for:", offer.offer_name);
+    console.log("   Schedule type:", offer.schedule_type);
+    console.log("   Current time:", now.toISOString());
+    console.log("   Start date:", startDate.toISOString());
+    
+    // Check if current time is after or equal to start date
+    const isAfterStart = now >= startDate;
+    
+    if (offer.schedule_type === "start") {
+      // Only start date - offer is valid from start date onwards
+      console.log("   Schedule type: start only");
+      console.log("   Is after start date:", isAfterStart);
+      return isAfterStart;
+    } else if (offer.schedule_type === "range") {
+      // Both start and end date - offer is valid within the range
+      const endDate = new Date(offer.end_date);
+      console.log("   End date:", endDate.toISOString());
+      console.log("   Is within range:", isAfterStart && now <= endDate);
+      return isAfterStart && now <= endDate;
+    } else {
+      // Default behavior - treat as range if end_date exists, otherwise as start
+      if (offer.end_date) {
+        const endDate = new Date(offer.end_date);
+        console.log("   End date (default):", endDate.toISOString());
+        console.log("   Is within range (default):", isAfterStart && now <= endDate);
+        return isAfterStart && now <= endDate;
+      } else {
+        console.log("   Schedule type: start only (default)");
+        console.log("   Is after start date (default):", isAfterStart);
+        return isAfterStart;
+      }
+    }
+  }
+
+  function checkTrafficSource(offer) {
+    console.log("🌐 Traffic source check for:", offer.offer_name);
+    console.log("   Allowed sources:", offer.traffic_source);
+    
+    if (!offer.traffic_source || offer.traffic_source.length === 0) {
+      console.log("   No traffic source restrictions - allowing all");
+      return true; // No traffic source restrictions
+    }
+
+    const currentSource = getSource();
+    console.log("   Current source:", currentSource);
+    console.log("   Source allowed:", offer.traffic_source.includes(currentSource));
+    
+    return offer.traffic_source.includes(currentSource);
+  }
+
+  function checkLocation(offer) {
+    console.log("📍 Location check for:", offer.offer_name);
+    console.log("   Allowed locations:", offer.source_location);
+    
+    if (!offer.source_location || offer.source_location.length === 0) {
+      console.log("   No location restrictions - allowing all");
+      return true; // No location restrictions
+    }
+
+    const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log("   Current timezone:", currentTimezone);
+    console.log("   Location allowed:", offer.source_location.includes(currentTimezone));
+    
+    return offer.source_location.includes(currentTimezone);
+  }
+
+  function checkTriggerType(offer) {
+    console.log("⚡ Trigger type check for:", offer.offer_name);
+    console.log("   Trigger type:", offer.offer_trigger_type);
+    
+    if (offer.offer_trigger_type === 'scroll') {
+      console.log("   Scroll trigger detected - will set up later if conditions met");
+      return 'scroll'; // Return special value for scroll trigger
+    } else if (offer.offer_trigger_type === 'time_spend') {
+      console.log("   Time spend trigger detected - will set up later if conditions met");
+      return 'time_spend'; // Return special value for time trigger
+    }
+    
+    console.log("   Showing immediately (no special trigger)");
+    return true; // Show immediately for other trigger types
+  }
+
+  function checkPageUrl(offer) {
+    console.log("🌍 Page URL check for:", offer.offer_name);
+    console.log("   Required page:", offer.page_url);
+    
+    if (!offer.page_url) {
+      console.log("   No page restriction - allowing all pages");
+      return true; // No page restriction
+    }
+
+    const currentUrl = window.location.href;
+    console.log("   Current URL:", currentUrl);
+    console.log("   URL matches:", currentUrl.includes(offer.page_url));
+    
+    return currentUrl.includes(offer.page_url);
+  }
+
+  function setupScrollTrigger(offer) {
+    console.log("📜 Setting up scroll trigger for:", offer.offer_name);
+    
+    const scrollDepth = offer.scroll_depth;
+    if (!scrollDepth || !scrollDepth.is_scroll_enabled) {
+      console.log("   Scroll trigger disabled or not configured");
+      return;
+    }
+
+    const minScroll = parseInt(scrollDepth.min) || 0;
+    const maxScroll = parseInt(scrollDepth.max) || 100;
+    
+    console.log("   Scroll range:", `${minScroll}% - ${maxScroll}%`);
+
+    const scrollHandler = () => {
+      const scrollTop = window.scrollY || window.pageYOffset;
+      const docHeight = document.documentElement.scrollHeight;
+      const winHeight = window.innerHeight;
+      const scrollPercent = (scrollTop / (docHeight - winHeight)) * 100;
+
+      console.log("   Current scroll:", `${scrollPercent.toFixed(1)}%`);
+
+      if (scrollPercent >= minScroll && scrollPercent <= maxScroll) {
+        console.log("   🎯 Scroll trigger activated for:", offer.offer_name);
+        // Remove the listener to prevent multiple triggers
+        window.removeEventListener('scroll', scrollHandler);
+        showOfferUI(offer);
+      }
+    };
+
+    window.addEventListener('scroll', scrollHandler);
+    console.log("   Scroll listener attached");
+  }
+
+  function setupTimeSpendTrigger(offer) {
+    console.log("⏰ Setting up time spend trigger for:", offer.offer_name);
+    
+    const timeSpend = offer.time_spend;
+    if (!timeSpend || !timeSpend.is_delay_enabled) {
+      console.log("   Time spend trigger disabled or not configured");
+      return;
+    }
+
+    const triggerTime = parseInt(timeSpend.time_spend) || 0;
+    console.log("   Trigger time:", `${triggerTime}s`);
+    console.log("   Time spend config:", timeSpend);
+
+    const pageLoadTime = Date.now();
+    let hasTriggered = false;
+    
+    const timeHandler = () => {
+      const timeSpent = (Date.now() - pageLoadTime) / 1000; // Convert to seconds
+      
+      console.log("   Time spent:", `${timeSpent.toFixed(1)}s (trigger at: ${triggerTime}s)`);
+      
+      // Check if we've reached or exceeded the trigger time
+      const shouldTrigger = timeSpent >= triggerTime;
+      console.log("   Should trigger:", shouldTrigger);
+      
+      if (shouldTrigger && !hasTriggered) {
+        console.log("   🎯 Time spend trigger activated for:", offer.offer_name);
+        hasTriggered = true;
+        // Remove the interval to prevent multiple triggers
+        clearInterval(timeInterval);
+        showOfferUI(offer);
+      }
+    };
+
+    const timeInterval = setInterval(timeHandler, 1000); // Check every second
+    console.log("   Time interval started");
+  }
+
+  function showOfferUI(offer) {
+    console.log("🎨 Showing offer UI for:", offer.offer_name);
+    console.log("   Message:", offer.offer_message);
+    console.log("   Button:", offer.button_label);
+    console.log("   Colors:", { bg: offer.button_color, text: offer.button_label_color });
+    console.log("   Objective:", offer.offer_objective);
+    console.log("   Action URL:", offer.action_url);
+    
+    // Mark offer as shown in session
+    markOfferAsShown(offer.offer_id);
+    
+    // Create CTA button based on offer data
+    const ctaButton = {
+      text: offer.button_label || "Click",
+      bg: offer.button_color || "#007AFF",
+      color: offer.button_label_color || "#ffffff",
+      format: offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit",
+      destination_page: offer.action_url || ""
+    };
+
+    console.log("   CTA Button config:", ctaButton);
+
+    showUIAnimation({
+      text: offer.offer_message || "Special offer for you!",
+      time: offer.offer_timeout || 10,
+      hasClose: true,
+      animation: offer.animation || "offer",
+      cta: [ctaButton],
+      id: offer.offer_id,
+      format: offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit",
+      destination_page: offer.action_url || ""
+    });
+    
+    console.log("   ✅ Offer UI triggered successfully");
+  }
+
+  function findOfferForTargetedLeads (filteredTargetedOffers) {
+    console.log("filteredTargetedOffers", filteredTargetedOffers);
+  }
+
+
+  // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
   // Global variable to store current frequency data
   let currentFrequencyData = {
     average: 0,
@@ -1252,6 +1623,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     min: 0,
     normalized: 0,
   };
+
 
   // Global audio context
   let audioContext = null;
@@ -1573,8 +1945,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.padding = "4px";
       closeBtn.style.border = "0";
       closeBtn.style.position = "absolute";
-      closeBtn.style.top = "-6px";
-      closeBtn.style.left = "-12px";
+      closeBtn.style.top = "-32px";
+      closeBtn.style.right = "-22px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -1697,6 +2069,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltipContainer.style.right = isMobile ? "100px" : "180px";
     tooltipContainer.style.bottom = isMobile ? "50px" : "120px";
     tooltipContainer.style.display = "block";
+    tooltipContainer.style.zIndex = "11";
 
     if (time) {
       timeoutDisappear = setTimeout(() => {
@@ -2806,9 +3179,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       setTimeout(() => {
         showUIAnimation({
           text: newVisitorInteraction?.message,
-          time: 15,
+          time: 1500000,
           interactionAudio: newVisitorInteraction?.audio_url || "",
-          hasClose: false,
+          hasClose: true,
           animation: "wave",
           audioDuration: newVisitorInteraction?.audio_duration || 0,
           cta: [
