@@ -1562,7 +1562,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
       currentlyAnimating = false;
-      isInteractionActive = false; // Reset interaction active flag
       animationCB();
       timeoutDisappear = null;
     }
@@ -1645,7 +1644,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         } else {
           tooltipContainer.remove();
           currentlyAnimating = false;
-          isInteractionActive = false; // Reset interaction active flag
           showInput();
         }
       }
@@ -1739,7 +1737,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
       currentlyAnimating = false;
-      isInteractionActive = false; // Reset interaction active flag
       clearAudioQueue();
       animationCB();
       timeoutDisappear = null;
@@ -1820,7 +1817,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         } else {
           tooltipContainer.remove();
           currentlyAnimating = false;
-          isInteractionActive = false; // Reset interaction active flag
           showInput();
         }
       }
@@ -3362,7 +3358,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // Main confused interaction handler
   class ConfusedInteractionHandler {
     constructor() {
-      this.hasTriggered = false; // Add flag to track if interaction has been triggered
       this.handleScroll = this.handleScroll.bind(this);
       this.setupEventListeners();
       this.checkPageVisits();
@@ -3391,16 +3386,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     handleScroll() {
-      if (this.hasTriggered) return; // Skip if already triggered
-      
       if (hasConfusedInteractionPageScrolledPast70Percent()) {
         markConfusedInteractionPageScrolled(window.location.pathname);
       }
     }
 
     handlePageChange() {
-      if (this.hasTriggered) return; // Skip if already triggered
-      
       const currentPath = window.location.pathname;
       const initialPath = getConfusedInteractionInitialPath();
 
@@ -3421,7 +3412,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     checkPageVisits() {
-      if (this.hasTriggered) return; // Skip if already triggered
       if (hasConfusedInteractionTriggered()) return;
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
@@ -3455,18 +3445,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         ],
       });
       updateInteractionImpression(confusedInteraction.id);
-      
-      // Instead of removing the scroll listener, just mark that this interaction is done
-      this.hasTriggered = true;
-      
-      // Re-initialize Click Assist after a short delay to ensure it works
-      setTimeout(() => {
-        if (window.clickAssistHandler) {
-          // Clean up first, then re-attach listeners
-          window.clickAssistHandler.cleanup();
-          window.clickAssistHandler.attachHoverListeners();
-        }
-      }, 1000);
+      document.removeEventListener("scroll", this.handleScroll);
     }
   }
 
@@ -3624,7 +3603,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     getTriggerCount() {
-      console.log("Getting trigger count");
       const count = sessionStorage.getItem("clickAssistTriggerCount");
       return count ? parseInt(count) : 0;
     }
@@ -3641,33 +3619,28 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       window.addEventListener("load", () => {
         this.attachHoverListeners();
       });
-    }
-
-    // Method to clean up event listeners
-    cleanup() {
-      // Clear all timers
-      this.hoverTimers.forEach((timer) => clearTimeout(timer));
-      this.hoverTimers.clear();
-
-      // Remove event listeners from elements
-      const elements = document.querySelectorAll('[data-click-assist-initialized]');
-      elements.forEach((element) => {
-        if (element._clickAssistHandlers) {
-          element.removeEventListener("mouseenter", element._clickAssistHandlers.mouseenter);
-          element.removeEventListener("mouseleave", element._clickAssistHandlers.mouseleave);
-          element.removeEventListener("click", element._clickAssistHandlers.click);
-          delete element._clickAssistHandlers;
-        }
-        element.removeAttribute('data-click-assist-initialized');
+      
+      // Listen for route changes to re-initialize on new pages
+      window.addEventListener("pathChange", () => {
+        console.log("ClickAssist: Route changed, re-initializing...");
+        // Clean up existing listeners first
+        this.cleanup();
+        // Add a small delay to ensure the new page content is loaded
+        setTimeout(() => {
+          this.attachHoverListeners();
+        }, 500);
       });
     }
 
     attachHoverListeners() {
       // Check if already triggered twice in this session
       if (this.triggerCount >= 2) {
+        console.log("ClickAssist: Already triggered twice, skipping");
         return;
       }
 
+      console.log("ClickAssist: Attaching hover listeners to new page elements");
+      
       // Clear any existing timers to prevent memory leaks
       this.hoverTimers.forEach((timer) => clearTimeout(timer));
       this.hoverTimers.clear();
@@ -3676,7 +3649,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const elements = document.querySelectorAll("button, a");
 
       elements.forEach((element) => {
-        // Skip if element already has listeners attached
+        // Skip if element already has listeners attached (prevent duplicates)
         if (element.hasAttribute('data-click-assist-initialized')) {
           return;
         }
@@ -3782,6 +3755,25 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             click: clickHandler
           };
         }
+      });
+    }
+
+    // Method to clean up event listeners
+    cleanup() {
+      // Clear all timers
+      this.hoverTimers.forEach((timer) => clearTimeout(timer));
+      this.hoverTimers.clear();
+
+      // Remove event listeners from elements
+      const elements = document.querySelectorAll('[data-click-assist-initialized]');
+      elements.forEach((element) => {
+        if (element._clickAssistHandlers) {
+          element.removeEventListener("mouseenter", element._clickAssistHandlers.mouseenter);
+          element.removeEventListener("mouseleave", element._clickAssistHandlers.mouseleave);
+          element.removeEventListener("click", element._clickAssistHandlers.click);
+          delete element._clickAssistHandlers;
+        }
+        element.removeAttribute('data-click-assist-initialized');
       });
     }
   }
