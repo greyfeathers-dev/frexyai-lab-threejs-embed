@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -147,7 +147,7 @@ const ANIMATION_LIST = [
 // ********************************************************************************* SVG ICONS *********************************************************************************
 function getMuteIcon() {
   return `
-<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="mobile:w-4 mobile:h-4">
+<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" >
 <path d="M3.61689 2.44586L2.44189 3.62086L6.07523 7.25419L5.83356 7.5042H2.50023V12.5042H5.83356L10.0002 16.6709V11.1792L13.4836 14.6625C12.9419 15.0709 12.3336 15.3959 11.6669 15.5875V17.3042C12.7836 17.0542 13.8086 16.5375 14.6752 15.8459L16.3836 17.5542L17.5586 16.3792L3.61689 2.44586ZM8.33356 12.6459L6.52523 10.8375H4.16689V9.17086H6.52523L7.25856 8.43753L8.33356 9.51253V12.6459ZM15.8336 10.0042C15.8336 10.6875 15.7086 11.3459 15.4919 11.9542L16.7669 13.2292C17.2336 12.2542 17.5002 11.1625 17.5002 10.0042C17.5002 6.43753 15.0086 3.4542 11.6669 2.69586V4.41253C14.0752 5.1292 15.8336 7.36253 15.8336 10.0042ZM10.0002 3.33753L8.43356 4.9042L10.0002 6.47086V3.33753ZM13.7502 10.0042C13.7502 8.5292 12.9002 7.26253 11.6669 6.64586V8.13753L13.7336 10.2042C13.7419 10.1375 13.7502 10.0709 13.7502 10.0042Z" fill="#414141"/>
 </svg>
   `;
@@ -156,7 +156,7 @@ function getMuteIcon() {
 // SVG for unmute icon
 function getUnmuteIcon() {
   return `
-<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="mobile:w-4 mobile:h-4">
+<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" >
 <path d="M2.5 7.49998V12.5H5.83333L10 16.6667V3.33332L5.83333 7.49998H2.5ZM8.33333 7.35832V12.6417L6.525 10.8333H4.16667V9.16665H6.525L8.33333 7.35832ZM13.75 9.99998C13.75 8.52498 12.9 7.25832 11.6667 6.64165V13.35C12.9 12.7417 13.75 11.475 13.75 9.99998ZM11.6667 2.69165V4.40832C14.075 5.12498 15.8333 7.35832 15.8333 9.99998C15.8333 12.6417 14.075 14.875 11.6667 15.5917V17.3083C15.0083 16.55 17.5 13.5667 17.5 9.99998C17.5 6.43332 15.0083 3.44998 11.6667 2.69165Z" fill="#414141"/>
 </svg>
   `;
@@ -455,7 +455,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(canvas);
     canvas.style.position = "fixed";
     canvas.style.bottom = isMobile ? "-28px" : "-40px";
-    canvas.style.right = isMobile ? "-10px" : "-18px";
+    canvas.style.right = isMobile ? "-10px" : "-38px";
     canvas.style.height = isMobile ? "260px" : "400px";
     canvas.style.width = isMobile ? "148px" : "280px";
     canvas.style.zIndex = "10";
@@ -1495,7 +1495,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "200px" : "310px";
+    tooltipContainer.style.maxWidth = isMobile ? "265px" : "310px";
 
     const tooltip = document.createElement("div");
     tooltip.id = "tooltip";
@@ -1510,13 +1510,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltip.style.position = "relative";
     tooltip.style.backgroundColor = bg;
     tooltip.style.color = color;
-    tooltip.style.padding = isMobile ? "11px 11px 11px 15px" : "14px 18px";
+    tooltip.style.padding = isMobile ? "12px 12px 12px 15px" : "14px 18px";
     tooltip.style.paddingRight = isMobile ? "28px" : "34px";
-
-    tooltip.style.borderRadius = isMobile ? "12px" : "17px";
-    tooltip.style.fontSize = isMobile ? "12px" : "14px";
+    tooltip.style.borderRadius = "17px";
+    tooltip.style.fontSize = "14px";
     tooltip.style.color = "#0D1934";
-    tooltip.style.lineHeight = isMobile ? "19px" : "24px";
+    tooltip.style.lineHeight = "24px";
     tooltip.style.fontFamily = "Inter, sans-serif";
     tooltip.style.fontWeight = "400";
     tooltip.style.pointerEvents = "none";
@@ -1527,8 +1526,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     const controlsContainer = document.createElement("div");
     controlsContainer.style.position = "absolute";
-    controlsContainer.style.top = isMobile ? "21px" : "27px";
-    controlsContainer.style.right = isMobile ? "10px" : "13px";
+    controlsContainer.style.top = isMobile ? "25px" : "27px";
+    controlsContainer.style.right = "13px";
     controlsContainer.style.left = "auto";
     controlsContainer.style.display = "flex";
 
@@ -1666,10 +1665,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = "0";
         btn.style.background = ctaItem.bg;
         btn.style.color = ctaItem.color;
-        btn.style.padding = isMobile ? "11px 15px" : "12px 20px";
+        btn.style.padding = "12px 20px";
         btn.style.marginRight = "6px";
         btn.style.cursor = "pointer";
-        btn.style.fontSize = isMobile ? "12px" : "14px";
+        btn.style.fontSize = "14px";
         btn.style.fontWeight = "400";
         btn.style.fontFamily = "Inter, sans-serif";
         btn.style.letterSpacing = "0.02em";
@@ -1838,7 +1837,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         btn.style.border = 0;
         btn.style.background = ctaItem?.bg;
         btn.style.color = ctaItem?.color;
-        btn.style.padding = "10px 14px";
+        btn.style.padding = "9px 14px";
         btn.style.marginTop = "4px";
         btn.style.cursor = "pointer";
         btn.addEventListener("click", () => {
@@ -1928,6 +1927,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Create an input element (rounded input box)
     const inputContainer = document.createElement("div");
     inputContainer.id = "input";
+    inputContainer.style.width = isMobile ? "calc(100% - 145px)" : "";
     inputContainer.style.background = "linear-gradient(45deg, purple, blue)";
     inputContainer.style.padding = "1px";
     inputContainer.style.position = "relative";
@@ -1954,14 +1954,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     input.style.color = "#000";
     input.style.background = "#fff";
     input.style.color = "#8F8F8F";
-    input.style.fontSize = isMobile ? "12px" : "14px";
-    input.style.lineHeight = isMobile ? "30px" : "36px";
+    input.style.fontSize = "14px";
+    input.style.lineHeight = "36px";
     input.style.fontFamily = "sans-serif";
     input.style.padding = "0px 20px";
-    input.style.width = isMobile ? "47vw" : "220px";
-    input.style.height = isMobile ? "30px" : "36px";
+    input.style.width = isMobile ? "100%" : "220px";
+    input.style.height = "36px";
     input.style.borderRadius = "20px"; // Rounded corners
-    input.style.fontSize = isMobile ? "11px" : "14px";
+    input.style.fontSize = "14px";
     input.style.cursor = "pointer";
     input.style.zIndex = "10";
     input.style.fontFamily = "Inter, sans-serif";
@@ -1971,8 +1971,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     imageIcon.src =
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Ask%20me%20Anything%20Animation.gif";
     imageIcon.style.position = "absolute";
-    imageIcon.style.top = isMobile ? "-3px" : "-1px";
-    imageIcon.style.right = "2px";
+    imageIcon.style.top = isMobile ? "-2px" : "-1px";
+    imageIcon.style.right = isMobile ? "-40px" : "1px";
     imageIcon.style.width = "48px";
     imageIcon.style.height = "40px";
     inputContainer.appendChild(imageIcon);
@@ -1980,7 +1980,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Positioning of the input box
     inputContainer.style.position = "fixed";
     inputContainer.style.bottom = isMobile ? "12px" : "30px";
-    inputContainer.style.right = isMobile ? "105px" : "165px";
+    inputContainer.style.right = isMobile ? "135px" : "150px";
 
     // Add the input element to the body
     document.body.appendChild(inputContainer);
@@ -2033,6 +2033,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     chatWindow.style.right = isMobile ? 0 : "20px";
     chatWindow.style.zIndex = "1000";
     chatWindow.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
+    
+    // Add transition for smooth animations
+    chatWindow.style.transition = "transform 0.3s ease-in-out, opacity 0.3s ease-in-out";
+    chatWindow.style.transform = "translateY(100%)"; // Start hidden below the viewport
+    chatWindow.style.opacity = "0";
+    
     const merchantId = localStorage.getItem("merchantId");
     const iframeContainer = document.createElement("iframe");
     iframeContainer.id = "chatbot-iframe";
@@ -2055,16 +2061,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     closeButton.style.color = "#fff";
 
     closeButton.onclick = function () {
-      chatWindow.style.display = "none";
+      hideChatWindow();
     };
 
     chatWindow.appendChild(closeButton);
     document.body.appendChild(chatWindow);
 
-    chatWindow.style.display = "none";
+    chatWindow.style.display = "block";
   }
 
-  // Modify the showChatWindow function to handle autoplay permissions
+  // Modify the showChatWindow function to handle autoplay permissions and smooth animations
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
@@ -2077,15 +2083,45 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           clearInterval(checkData);
           chatbot.src = sourceLink;
           setTimeout(() => {
+            // Make sure the chat window is visible before animating
             chat.style.display = "block";
+            // Force a reflow to ensure display: block is applied before animation
+            chat.offsetHeight;
+            // Animate the chat window in
+            chat.style.transform = "translateY(0)";
+            chat.style.opacity = "1";
           }, 200);
         }
       }, 100);
     } else {
       chatbot.src = sourceLink;
       setTimeout(() => {
+        // Make sure the chat window is visible before animating
         chat.style.display = "block";
+        // Force a reflow to ensure display: block is applied before animation
+        chat.offsetHeight;
+        // Animate the chat window in
+        chat.style.transform = "translateY(0)";
+        chat.style.opacity = "1";
       }, 200);
+    }
+  }
+
+  // Add a new function to hide chat window with smooth animation
+  function hideChatWindow() {
+    const chat = document.getElementById("chatWindow");
+    if (chat) {
+      // Animate the chat window out
+      chat.style.transform = "translateY(100%)";
+      chat.style.opacity = "0";
+      
+      // Hide the element after animation completes
+      setTimeout(() => {
+        chat.style.display = "none";
+        // Reset transform for next time
+        chat.style.transform = "translateY(100%)";
+        chat.style.opacity = "0";
+      }, 300); // Match the transition duration
     }
   }
 
@@ -2098,7 +2134,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function moveJoint(mouse, joint, degreeLimit) {
     let degrees = getMouseDegrees(mouse.x, mouse.y, degreeLimit);
     if (joint) {
-      console.log("moveJoint function called", degrees, joint, degreeLimit);
+      // console.log("moveJoint function called", degrees, joint, degreeLimit);
       // Apply rotations with easing
       const currentY = joint.rotation.y;
       const currentX = joint.rotation.x;
@@ -2377,7 +2413,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       dy = Math.max(centerDY - dyRangeUp, Math.min(centerDY, dy));
     }
 
-    console.log("dx dy:", dx, dy);
+    // console.log("dx dy:", dx, dy);
     return { x: dx, y: dy };
   }
 
@@ -2480,7 +2516,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
           var mousecoords = getMousePos(e);
           moveJoint(mousecoords, neck, 50);
-          console.log("Head-Cursor Sync is enabled INITIALIZED");
+          // console.log("Head-Cursor Sync is enabled INITIALIZED");
 
           // Only set new timer if we're not already resetting
           if (!isResetting) {
@@ -2994,6 +3030,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         time: 8,
         hasClose: false,
         animation: "no_no",
+        cta: [
+          {
+            text: "Ask me anything!",
+            bg: "#007AFF",
+            color: "#fff",
+            format: "chat",
+          },
+        ],
         interactionAudio: avoidBounceInteraction?.audio_url || "",
         audioDuration: avoidBounceInteraction?.audio_duration || 0,
       });
@@ -3314,6 +3358,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // Main confused interaction handler
   class ConfusedInteractionHandler {
     constructor() {
+      this.hasTriggered = false; // Add flag to track if interaction has been triggered
       this.handleScroll = this.handleScroll.bind(this);
       this.setupEventListeners();
       this.checkPageVisits();
@@ -3342,12 +3387,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     handleScroll() {
+      if (this.hasTriggered) return; // Skip if already triggered
+      
       if (hasConfusedInteractionPageScrolledPast70Percent()) {
         markConfusedInteractionPageScrolled(window.location.pathname);
       }
     }
 
     handlePageChange() {
+      if (this.hasTriggered) return; // Skip if already triggered
+      
       const currentPath = window.location.pathname;
       const initialPath = getConfusedInteractionInitialPath();
 
@@ -3368,6 +3417,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
 
     checkPageVisits() {
+      if (this.hasTriggered) return; // Skip if already triggered
       if (hasConfusedInteractionTriggered()) return;
       if (hasConfusedInteractionAnyPageScrolled()) return; // Don't trigger if any page was scrolled
 
@@ -3401,7 +3451,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         ],
       });
       updateInteractionImpression(confusedInteraction.id);
-      document.removeEventListener("scroll", this.handleScroll);
+      
+      // Instead of removing the scroll listener, just mark that this interaction is done
+      this.hasTriggered = true;
+      
+      // Re-initialize Click Assist after a short delay to ensure it works
+      setTimeout(() => {
+        if (window.clickAssistHandler) {
+          // Clean up first, then re-attach listeners
+          window.clickAssistHandler.cleanup();
+          window.clickAssistHandler.attachHoverListeners();
+        }
+      }, 1000);
     }
   }
 
@@ -3554,7 +3615,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       ];
       this.hoverTimers = new Map();
       this.triggeredButtons = new Set();
+      this.triggerCount = this.getTriggerCount();
       this.setupClickAssist();
+    }
+
+    getTriggerCount() {
+      console.log("Getting trigger count");
+      const count = sessionStorage.getItem("clickAssistTriggerCount");
+      return count ? parseInt(count) : 0;
+    }
+
+    incrementTriggerCount() {
+      const newCount = this.triggerCount + 1;
+      sessionStorage.setItem("clickAssistTriggerCount", newCount.toString());
+      this.triggerCount = newCount;
     }
 
     setupClickAssist() {
@@ -3565,16 +3639,44 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
     }
 
+    // Method to clean up event listeners
+    cleanup() {
+      // Clear all timers
+      this.hoverTimers.forEach((timer) => clearTimeout(timer));
+      this.hoverTimers.clear();
+
+      // Remove event listeners from elements
+      const elements = document.querySelectorAll('[data-click-assist-initialized]');
+      elements.forEach((element) => {
+        if (element._clickAssistHandlers) {
+          element.removeEventListener("mouseenter", element._clickAssistHandlers.mouseenter);
+          element.removeEventListener("mouseleave", element._clickAssistHandlers.mouseleave);
+          element.removeEventListener("click", element._clickAssistHandlers.click);
+          delete element._clickAssistHandlers;
+        }
+        element.removeAttribute('data-click-assist-initialized');
+      });
+    }
+
     attachHoverListeners() {
-      // Check if already triggered in this session
-      if (sessionStorage.getItem("clickAssistTriggered") === "true") {
+      // Check if already triggered twice in this session
+      if (this.triggerCount >= 2) {
         return;
       }
+
+      // Clear any existing timers to prevent memory leaks
+      this.hoverTimers.forEach((timer) => clearTimeout(timer));
+      this.hoverTimers.clear();
 
       // Find all buttons and links
       const elements = document.querySelectorAll("button, a");
 
       elements.forEach((element) => {
+        // Skip if element already has listeners attached
+        if (element.hasAttribute('data-click-assist-initialized')) {
+          return;
+        }
+
         const text = element.textContent?.trim() || "";
         const normalizedText = text.toLowerCase().replace(/\s+/g, "_");
 
@@ -3599,16 +3701,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             );
           })
         ) {
-          // Remove existing listeners to prevent duplicates
-          element.removeEventListener("mouseenter", this.handleMouseEnter);
-          element.removeEventListener("mouseleave", this.handleMouseLeave);
-          element.removeEventListener("click", this.handleClick);
+          // Mark element as initialized to prevent duplicate listeners
+          element.setAttribute('data-click-assist-initialized', 'true');
 
           // Mouse enter handler
-          element.addEventListener("mouseenter", () => {
+          const mouseEnterHandler = () => {
             if (
               !this.triggeredButtons.has(element) &&
-              sessionStorage.getItem("clickAssistTriggered") !== "true"
+              this.triggerCount < 2
             ) {
               const clickAssistInteraction = INTERACTION_DATA.find(
                 (i) => i.key === "Click Assist"
@@ -3618,7 +3718,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                 setTimeout(() => {
                   if (
                     !this.triggeredButtons.has(element) &&
-                    sessionStorage.getItem("clickAssistTriggered") !== "true"
+                    this.triggerCount < 2
                   ) {
                     showUIAnimation({
                       text:
@@ -3640,31 +3740,43 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                       ],
                     });
                     this.triggeredButtons.add(element);
-                    // Mark as triggered in session storage
-                    sessionStorage.setItem("clickAssistTriggered", "true");
+                    // Increment trigger count
+                    this.incrementTriggerCount();
                   }
                 }, 4000)
               );
             }
-          });
+          };
 
           // Mouse leave handler
-          element.addEventListener("mouseleave", () => {
+          const mouseLeaveHandler = () => {
             const timer = this.hoverTimers.get(element);
             if (timer) {
               clearTimeout(timer);
               this.hoverTimers.delete(element);
             }
-          });
+          };
 
           // Click handler
-          element.addEventListener("click", () => {
+          const clickHandler = () => {
             const timer = this.hoverTimers.get(element);
             if (timer) {
               clearTimeout(timer);
               this.hoverTimers.delete(element);
             }
-          });
+          };
+
+          // Add event listeners
+          element.addEventListener("mouseenter", mouseEnterHandler);
+          element.addEventListener("mouseleave", mouseLeaveHandler);
+          element.addEventListener("click", clickHandler);
+
+          // Store references for potential cleanup
+          element._clickAssistHandlers = {
+            mouseenter: mouseEnterHandler,
+            mouseleave: mouseLeaveHandler,
+            click: clickHandler
+          };
         }
       });
     }
