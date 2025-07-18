@@ -373,7 +373,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
-    fetchConfig();
+    // Set lead ID first before using it in sourceLink
+    setLeadId();
+    
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -388,6 +390,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
     sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
+    // sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=82408252-28a4-422d-94be-e1c5fba157d0&parentSiteUrl=${parentSiteUrl}`;
+    
+    // Now fetch config after leadId is set and sourceLink is constructed
+    fetchConfig();
+    
     if (document.body) {
       document.body.appendChild(fallbackLoader);
     } else {
@@ -834,25 +841,66 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
+    const url = new URL(path);
+    
+    // Check UTM parameters first
+    const utmSource = url.searchParams.get('utm_source');
+    const utmMedium = url.searchParams.get('utm_medium');
+    
+    console.log("🔍 Source detection debug:", {
+      referrer: referrer,
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      fullUrl: path
+    });
+    
+    // Handle UTM parameters
+    if (utmSource) {
+      const source = utmSource.toLowerCase();
+      const medium = utmMedium ? utmMedium.toLowerCase() : '';
+      
+      // Check for paid campaigns
+      if (medium.includes('paid') || medium.includes('cpc') || medium.includes('ppc')) {
+        if (source === 'google') return "paid_google";
+        if (source === 'bing') return "paid_bing";
+        if (source === 'linkedin') return "paid_linkedin";
+        if (source === 'facebook' || source === 'instagram') return "paid_meta";
+        if (source === 'youtube') return "paid_youtube";
+        if (source === 'reddit') return "paid_reddit";
+      }
+      
+      // Check for organic traffic
+      if (source === 'google') return "google";
+      if (source === 'yahoo') return "yahoo";
+      if (source === 'bing') return "bing";
+      if (source === 'youtube') return "youtube";
+      if (source === 'linkedin') return "linkedin";
+      if (source === 'reddit') return "reddit";
+    }
+    
+    // Check referrer
     if (referrer === "https://www.google.com/") return "google";
     else if (referrer === "https://www.yahoo.com/") return "yahoo";
     else if (referrer === "https://www.bing.com/") return "bing";
     else if (referrer === "https://www.youtube.com/") return "youtube";
     else if (referrer === "https://www.linkedin.com/") return "linkedin";
     else if (referrer === "https://www.reddit.com/") return "reddit";
+    
+    // Check for other tracking parameters
     else if (path.includes("gclid")) return "paid_google";
     else if (path.includes("msclkid")) return "paid_bing";
     else if (path.includes("li_fat_id")) return "paid_linkedin";
     else if (path.includes("fbclid")) return "paid_meta";
     else if (path.includes("wbraid")) return "paid_youtube";
     else if (path.includes("cid")) return "paid_reddit";
+    
+    // Default to direct
     else return "direct";
   }
 
   // ============================================= CONFIG FETCHING FUNCTIONS =============================================
 
   async function fetchConfig() {
-    setLeadId();
     try {
       const response = await fetch(
         `${ENDPOINT}/api/get-interaction?id=${leadId}`,
@@ -1244,7 +1292,219 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   }
 
   // ============================================= UI ANIMATION FUNCTIONS =============================================
+  // ============================================= OFFERS DATA FETCHING FUNCTIONS =============================================
+  let offers = [];
+  async function getOffersData () {
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?user_id=eq.${user_id}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      offers = await response.json();
+      findAudienceType();
+      return offers;
+
+    } catch (error) {
+      return [];
+    }
+  }
+  getOffersData();
+
+  function findAudienceType () {
+    const generalVisitors = offers.filter(offer => offer.audience_type === "general_visitors");
+    const targetedLeads = offers.filter(offer => offer.audience_type === "target_leads");
+    findOfferForGeneralVisitors(generalVisitors);
+    findOfferForTargetedLeads(targetedLeads);
+  }
+
+  // Helper functions for offer session tracking
+  function hasOfferBeenShown(offerId) {
+    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+    return shownOffers.includes(offerId);
+  }
+
+  function markOfferAsShown(offerId) {
+    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+    if (!shownOffers.includes(offerId)) {
+      shownOffers.push(offerId);
+      sessionStorage.setItem('shownOffers', JSON.stringify(shownOffers));
+    }
+  }
+
+  function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
+    filteredGeneralVisitorsOffers.forEach(offer => {
+      if (hasOfferBeenShown(offer.offer_id)) return;
+      
+      const conditions = {
+        schedule: checkScheduleType(offer),
+        traffic: checkTrafficSource(offer),
+        location: checkLocation(offer),
+        trigger: checkTriggerType(offer),
+        page: checkPageUrl(offer)
+      };
+      
+      processOffer(offer, conditions, true);
+    });
+  }
+
+  function processOffer(offer, conditions, includeTrafficLocation = true) {
+    const allConditionsMet = includeTrafficLocation 
+      ? conditions.schedule && conditions.traffic && conditions.location && conditions.page
+      : conditions.schedule && conditions.page;
+    
+    if (conditions.trigger === true && allConditionsMet) {
+      showOfferUI(offer);
+    } else if ((conditions.trigger === 'scroll' || conditions.trigger === 'time_spend') && allConditionsMet) {
+      conditions.trigger === 'scroll' ? setupScrollTrigger(offer) : setupTimeSpendTrigger(offer);
+    }
+  }
+
+  function checkScheduleType(offer) {
+    const now = new Date();
+    const startDate = new Date(offer.start_date);
+    const isAfterStart = now >= startDate;
+    
+    if (offer.schedule_type === "start" || (!offer.schedule_type && !offer.end_date)) {
+      return isAfterStart;
+    }
+    
+    if (offer.schedule_type === "range" || offer.end_date) {
+      const endDate = new Date(offer.end_date);
+      return isAfterStart && now <= endDate;
+    }
+    
+    return isAfterStart;
+  }
+
+  function checkTrafficSource(offer) {
+    return !offer.traffic_source?.length || offer.traffic_source.includes(getSource());
+  }
+
+  function checkLocation(offer) {
+    return !offer.source_location?.length || offer.source_location.includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
+
+  function checkTriggerType(offer) {
+    return offer.offer_trigger_type === 'scroll' ? 'scroll' : 
+           offer.offer_trigger_type === 'time_spend' ? 'time_spend' : true;
+  }
+
+  function checkPageUrl(offer) {
+    if (!offer.page_url) return true;
+    
+    const currentPathname = window.location.pathname;
+    let offerPathname = offer.page_url;
+    
+    try {
+      if (offer.page_url.startsWith('http://') || offer.page_url.startsWith('https://')) {
+        offerPathname = new URL(offer.page_url).pathname;
+      } else if (!offer.page_url.startsWith('/')) {
+        offerPathname = '/' + offer.page_url;
+      }
+    } catch (error) {
+      offerPathname = offer.page_url;
+    }
+    
+    return currentPathname === offerPathname;
+  }
+
+  function setupScrollTrigger(offer) {
+    const scrollDepth = offer.scroll_depth;
+    if (!scrollDepth?.is_scroll_enabled) return;
+
+    const minScroll = parseInt(scrollDepth.min) || 0;
+    const maxScroll = parseInt(scrollDepth.max) || 100;
+
+    const scrollHandler = () => {
+      const scrollPercent = ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+      if (scrollPercent >= minScroll && scrollPercent <= maxScroll) {
+        window.removeEventListener('scroll', scrollHandler);
+        showOfferUI(offer);
+      }
+    };
+
+    window.addEventListener('scroll', scrollHandler);
+  }
+
+  function setupTimeSpendTrigger(offer) {
+    const timeSpend = offer.time_spend;
+    if (!timeSpend?.is_delay_enabled) return;
+
+    const triggerTime = parseInt(timeSpend.time_spend) || 0;
+    const pageLoadTime = Date.now();
+    let hasTriggered = false;
+    
+    const timeInterval = setInterval(() => {
+      if (hasTriggered) return;
+      const timeSpent = (Date.now() - pageLoadTime) / 1000;
+      if (timeSpent >= triggerTime) {
+        hasTriggered = true;
+        clearInterval(timeInterval);
+        showOfferUI(offer);
+      }
+    }, 1000);
+  }
+
+  function showOfferUI(offer) {
+    markOfferAsShown(offer.offer_id);
+    
+    const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
+    const animationConfig = {
+      text: offer.offer_message || "Special offer for you!",
+      time: offer.offer_timeout || 10,
+      hasClose: true,
+      animation: offer.animation || "offer",
+      cta: [{
+        text: offer.button_label || "Click",
+        bg: offer.button_color || "#007AFF",
+        color: offer.button_label_color || "#ffffff",
+        format,
+        destination_page: offer.action_url || ""
+      }],
+      id: offer.offer_id,
+      format,
+      destination_page: offer.action_url || ""
+    };
+
+    if (offer.offer_format === "image_based" && offer.offer_image) {
+      animationConfig.imageUrl = offer.offer_image;
+    }
+
+    showUIAnimation(animationConfig);
+  }
+
+  function findOfferForTargetedLeads (filteredTargetedOffers) {
+    const currentLeadId = localStorage.getItem("leadId");
+    if (!currentLeadId) return;
+
+    filteredTargetedOffers.forEach(offer => {
+      if (hasOfferBeenShown(offer.offer_id)) return;
+      if (!offer.targeted_leads?.includes(currentLeadId)) return;
+      
+      const conditions = {
+        schedule: checkScheduleType(offer),
+        trigger: checkTriggerType(offer),
+        page: checkPageUrl(offer)
+      };
+      
+      processOffer(offer, conditions, false);
+    });
+  }
+
+
+  // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
   // Global variable to store current frequency data
   let currentFrequencyData = {
     average: 0,
@@ -1252,6 +1512,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     min: 0,
     normalized: 0,
   };
+
 
   // Global audio context
   let audioContext = null;
@@ -1443,10 +1704,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
-              <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding: 15px 13px;border-radius:16px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);max-width:${isMobile ? '280px' : '320px'}">
+              <img src="${config.imageUrl}" style="width:200px;height:200px;object-fit:cover;border-radius:8px;margin:auto"/>
               <div id="text-area">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;text-align:left; font-family: Inter, sans-serif;font-weight: 400; margin-top: 6px;">${config.text}</div>
               </div>
             </div>
           `;
@@ -1573,8 +1834,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.padding = "4px";
       closeBtn.style.border = "0";
       closeBtn.style.position = "absolute";
-      closeBtn.style.top = "-6px";
-      closeBtn.style.left = "-12px";
+      closeBtn.style.top = "-32px";
+      closeBtn.style.right = "-22px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -1681,8 +1942,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}`;
             showChatWindow();
           } else if (format === "pageVisit") {
+          
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, "_blank");
           } else if (ctaItem.format === "chat") {
             sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
             showChatWindow();
@@ -1697,6 +1959,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltipContainer.style.right = isMobile ? "100px" : "180px";
     tooltipContainer.style.bottom = isMobile ? "50px" : "120px";
     tooltipContainer.style.display = "block";
+    tooltipContainer.style.zIndex = "11";
 
     if (time) {
       timeoutDisappear = setTimeout(() => {
@@ -1726,7 +1989,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
+    tooltipContainer.style.maxWidth = isMobile ? "230px" : "236px";
 
     tooltipContainer.style.fontSize = isMobile ? "14px" : "16px";
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
@@ -1760,7 +2023,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.alignItems = "center";
       closeBtn.style.zIndex = "99";
       closeBtn.style.cursor = "pointer";
-      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.1)";
 
       const closeImageIcon = document.createElement("img");
       closeImageIcon.src =
@@ -1848,8 +2111,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, "_blank");
           }
+
         });
         ctaContainer.appendChild(btn);
       });
@@ -1860,8 +2124,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(tooltipContainer);
     const canvas = document.getElementById("threejs-canvas");
     const canvasBounds = canvas.getBoundingClientRect();
-    tooltipContainer.style.right = isMobile ? "90px" : "120px";
-    tooltipContainer.style.bottom = isMobile ? "12px" : "20px";
+    tooltipContainer.style.right = isMobile ? "90px" : "160px";
+    tooltipContainer.style.bottom = isMobile ? "12px" : "100px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -2808,7 +3072,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           text: newVisitorInteraction?.message,
           time: 15,
           interactionAudio: newVisitorInteraction?.audio_url || "",
-          hasClose: false,
+          hasClose: true,
           animation: "wave",
           audioDuration: newVisitorInteraction?.audio_duration || 0,
           cta: [
