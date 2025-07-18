@@ -1475,7 +1475,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }],
       id: offer.offer_id,
       format,
-      destination_page: offer.action_url || ""
+      destination_page: offer.action_url || "",
+      audioDuration: offer.duration || 0,
+      interactionAudio: offer.audio_url || ""
     };
 
     if (offer.offer_format === "image_based" && offer.offer_image) {
