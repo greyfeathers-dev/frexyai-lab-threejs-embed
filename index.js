@@ -1,6 +1,6 @@
 /** @format */
-localStorage.clear();
-sessionStorage.clear();
+// localStorage.clear();
+// sessionStorage.clear();
 
 const supabaseUrl = "https://nbizksjfzehbiwmcipep.supabase.co";
 const supabaseAnonKey =
@@ -373,7 +373,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
   function init() {
-    fetchConfig();
+    // Set lead ID first before using it in sourceLink
+    setLeadId();
+    
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -388,6 +390,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
     sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
+    // sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=82408252-28a4-422d-94be-e1c5fba157d0&parentSiteUrl=${parentSiteUrl}`;
+    
+    // Now fetch config after leadId is set and sourceLink is constructed
+    fetchConfig();
+    
     if (document.body) {
       document.body.appendChild(fallbackLoader);
     } else {
@@ -894,7 +901,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= CONFIG FETCHING FUNCTIONS =============================================
 
   async function fetchConfig() {
-    setLeadId();
     try {
       const response = await fetch(
         `${ENDPOINT}/api/get-interaction?id=${leadId}`,
@@ -1322,7 +1328,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const filteredGeneralVisitorsOffers = offers.filter((offer) => offer.audience_type === "general_visitors");
     const filteredTargetedOffers = offers.filter((offer) => offer.audience_type === "target_leads");
     findOfferForGeneralVisitors(filteredGeneralVisitorsOffers);
-    findOfferForTargetedLeads(filteredTargetedLeadsOffers);
+    findOfferForTargetedLeads(filteredTargetedOffers);
   }
 
   // Helper functions for offer session tracking
@@ -1495,11 +1501,38 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       return true; // No page restriction
     }
 
+    // Get current URL pathname (without query parameters, hash, etc.)
+    const currentPathname = window.location.pathname;
     const currentUrl = window.location.href;
-    console.log("   Current URL:", currentUrl);
-    console.log("   URL matches:", currentUrl.includes(offer.page_url));
     
-    return currentUrl.includes(offer.page_url);
+    console.log("   Current full URL:", currentUrl);
+    console.log("   Current pathname:", currentPathname);
+    console.log("   Required page URL:", offer.page_url);
+    
+    // Extract pathname from the offer's page_url (remove protocol, domain, query params, hash)
+    let offerPathname = offer.page_url;
+    
+    try {
+      // If it's a full URL, extract just the pathname
+      if (offer.page_url.startsWith('http://') || offer.page_url.startsWith('https://')) {
+        const url = new URL(offer.page_url);
+        offerPathname = url.pathname;
+      } else if (offer.page_url.startsWith('/')) {
+        // It's already a pathname
+        offerPathname = offer.page_url;
+      } else {
+        // Assume it's a pathname without leading slash
+        offerPathname = '/' + offer.page_url;
+      }
+    } catch (error) {
+      console.log("   Error parsing offer URL, using as-is:", offer.page_url);
+      offerPathname = offer.page_url;
+    }
+    
+    console.log("   Extracted offer pathname:", offerPathname);
+    console.log("   Strict path match:", currentPathname === offerPathname);
+    
+    return currentPathname === offerPathname;
   }
 
   function setupScrollTrigger(offer) {
@@ -1581,6 +1614,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     console.log("   Colors:", { bg: offer.button_color, text: offer.button_label_color });
     console.log("   Objective:", offer.offer_objective);
     console.log("   Action URL:", offer.action_url);
+    console.log("   Format:", offer.offer_format);
+    console.log("   Image URL:", offer.offer_image);
     
     // Mark offer as shown in session
     markOfferAsShown(offer.offer_id);
@@ -1596,7 +1631,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     console.log("   CTA Button config:", ctaButton);
 
-    showUIAnimation({
+    // Prepare the config for showUIAnimation
+    const animationConfig = {
       text: offer.offer_message || "Special offer for you!",
       time: offer.offer_timeout || 10,
       hasClose: true,
@@ -1605,13 +1641,98 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       id: offer.offer_id,
       format: offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit",
       destination_page: offer.action_url || ""
-    });
+    };
+
+    // Add image URL if it's an image-based offer
+    if (offer.offer_format === "image_based" && offer.offer_image) {
+      animationConfig.imageUrl = offer.offer_image;
+      console.log("   📸 Image-based offer detected, adding image URL:", offer.offer_image);
+    }
+
+    showUIAnimation(animationConfig);
     
     console.log("   ✅ Offer UI triggered successfully");
   }
 
   function findOfferForTargetedLeads (filteredTargetedOffers) {
-    console.log("filteredTargetedOffers", filteredTargetedOffers);
+    console.log("🎯 Starting offer evaluation for targeted leads");
+    console.log("📊 Total targeted offers to check:", filteredTargetedOffers.length);
+    console.log("📋 Targeted offers data:", filteredTargetedOffers);
+
+    // Get current lead ID from localStorage
+    const currentLeadId = localStorage.getItem("leadId");
+    console.log("👤 Current lead ID:", currentLeadId);
+
+    if (!currentLeadId) {
+      console.log("❌ No lead ID found in localStorage, skipping targeted offers");
+      return;
+    }
+
+    // Check each offer against current conditions
+    filteredTargetedOffers.forEach((offer, index) => {
+      console.log(`\n🎯 Checking targeted offer ${index + 1}: ${offer.offer_name || 'Unnamed Offer'}`);
+      console.log("📄 Offer details:", {
+        id: offer.offer_id,
+        name: offer.offer_name,
+        message: offer.offer_message,
+        trigger: offer.offer_trigger_type,
+        page: offer.page_url,
+        schedule: { start: offer.start_date, end: offer.end_date },
+        targeted_leads: offer.targeted_leads
+      });
+
+      // Check if offer has already been shown in this session
+      if (hasOfferBeenShown(offer.offer_id)) {
+        console.log("🚫 Offer already shown in this session, skipping:", offer.offer_name);
+        return;
+      }
+
+      // Check if current lead ID is in the targeted leads list
+      const isLeadTargeted = offer.targeted_leads && offer.targeted_leads.includes(currentLeadId);
+      console.log("🎯 Lead targeting check:", {
+        currentLeadId: currentLeadId,
+        targetedLeads: offer.targeted_leads,
+        isTargeted: isLeadTargeted
+      });
+
+      if (!isLeadTargeted) {
+        console.log("❌ Current lead not in targeted list, skipping:", offer.offer_name);
+        return;
+      }
+
+      // For targeted leads, we skip traffic and location checks as requested
+      const scheduleCheck = checkScheduleType(offer);
+      const triggerCheck = checkTriggerType(offer);
+      const pageCheck = checkPageUrl(offer);
+
+      console.log("✅ Condition checks for targeted lead:", {
+        schedule: scheduleCheck,
+        trigger: triggerCheck,
+        page: pageCheck,
+        note: "Traffic and location checks skipped for targeted leads"
+      });
+
+      // For immediate triggers, all conditions must be true (except traffic/location)
+      if (triggerCheck === true && scheduleCheck && pageCheck) {
+        console.log("🎉 All conditions met! Showing targeted offer immediately:", offer.offer_name);
+        showOfferUI(offer);
+      } else if (triggerCheck === 'scroll' || triggerCheck === 'time_spend') {
+        // For scroll/time triggers, only check other conditions (trigger is handled separately)
+        if (scheduleCheck && pageCheck) {
+          console.log("⏳ Conditions met for delayed trigger, setting up trigger:", offer.offer_name);
+          // Set up the appropriate trigger
+          if (triggerCheck === 'scroll') {
+            setupScrollTrigger(offer);
+          } else if (triggerCheck === 'time_spend') {
+            setupTimeSpendTrigger(offer);
+          }
+        } else {
+          console.log("❌ Offer conditions not met for delayed trigger, skipping:", offer.offer_name);
+        }
+      } else {
+        console.log("❌ Offer conditions not met, skipping:", offer.offer_name);
+      }
+    });
   }
 
 
@@ -1815,10 +1936,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
-              <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);max-width:${isMobile ? '280px' : '320px'}">
+              <img src="${config.imageUrl}" style="width:200px;height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
               <div id="text-area">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;text-align:center">${config.text}</div>
               </div>
             </div>
           `;
@@ -2053,8 +2174,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}`;
             showChatWindow();
           } else if (format === "pageVisit") {
+          
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, "_blank");
           } else if (ctaItem.format === "chat") {
             sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
             showChatWindow();
@@ -2221,8 +2343,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, "_blank");
           }
+
         });
         ctaContainer.appendChild(btn);
       });
