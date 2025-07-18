@@ -65,8 +65,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const BASE_MODEL = {
@@ -1313,22 +1313,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       offers = await response.json();
-      console.log("Fetched offers:", offers);
       findAudienceType();
       return offers;
 
     } catch (error) {
-      console.error("Failed to get offers:", error);
       return [];
     }
   }
   getOffersData();
 
   function findAudienceType () {
-    const filteredGeneralVisitorsOffers = offers.filter((offer) => offer.audience_type === "general_visitors");
-    const filteredTargetedOffers = offers.filter((offer) => offer.audience_type === "target_leads");
-    findOfferForGeneralVisitors(filteredGeneralVisitorsOffers);
-    findOfferForTargetedLeads(filteredTargetedOffers);
+    const generalVisitors = offers.filter(offer => offer.audience_type === "general_visitors");
+    const targetedLeads = offers.filter(offer => offer.audience_type === "target_leads");
+    findOfferForGeneralVisitors(generalVisitors);
+    findOfferForTargetedLeads(targetedLeads);
   }
 
   // Helper functions for offer session tracking
@@ -1342,396 +1340,166 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (!shownOffers.includes(offerId)) {
       shownOffers.push(offerId);
       sessionStorage.setItem('shownOffers', JSON.stringify(shownOffers));
-      console.log("📝 Marked offer as shown in session:", offerId);
     }
   }
 
   function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
-    console.log("🔍 Starting offer evaluation for general visitors");
-    console.log("📊 Total offers to check:", filteredGeneralVisitorsOffers.length);
-    console.log("📋 Offers data:", filteredGeneralVisitorsOffers);
-
-    // Check each offer against current conditions
-    filteredGeneralVisitorsOffers.forEach((offer, index) => {
-      console.log(`\n🎯 Checking offer ${index + 1}: ${offer.offer_name || 'Unnamed Offer'}`);
-      console.log("📄 Offer details:", {
-        id: offer.offer_id,
-        name: offer.offer_name,
-        message: offer.offer_message,
-        trigger: offer.offer_trigger_type,
-        page: offer.page_url,
-        schedule: { start: offer.start_date, end: offer.end_date }
-      });
-
-      // Check if offer has already been shown in this session
-      if (hasOfferBeenShown(offer.offer_id)) {
-        console.log("🚫 Offer already shown in this session, skipping:", offer.offer_name);
-        return;
-      }
-
-      const scheduleCheck = checkScheduleType(offer);
-      const trafficCheck = checkTrafficSource(offer);
-      const locationCheck = checkLocation(offer);
-      const triggerCheck = checkTriggerType(offer);
-      const pageCheck = checkPageUrl(offer);
-
-      console.log("✅ Condition checks:", {
-        schedule: scheduleCheck,
-        traffic: trafficCheck,
-        location: locationCheck,
-        trigger: triggerCheck,
-        page: pageCheck
-      });
-
-      // For immediate triggers, all conditions must be true
-      if (triggerCheck === true && scheduleCheck && trafficCheck && locationCheck && pageCheck) {
-        console.log("🎉 All conditions met! Showing offer immediately:", offer.offer_name);
-        showOfferUI(offer);
-      } else if (triggerCheck === 'scroll' || triggerCheck === 'time_spend') {
-        // For scroll/time triggers, only check other conditions (trigger is handled separately)
-        if (scheduleCheck && trafficCheck && locationCheck && pageCheck) {
-          console.log("⏳ Conditions met for delayed trigger, setting up trigger:", offer.offer_name);
-          // Set up the appropriate trigger
-          if (triggerCheck === 'scroll') {
-            setupScrollTrigger(offer);
-          } else if (triggerCheck === 'time_spend') {
-            setupTimeSpendTrigger(offer);
-          }
-        } else {
-          console.log("❌ Offer conditions not met for delayed trigger, skipping:", offer.offer_name);
-        }
-      } else {
-        console.log("❌ Offer conditions not met, skipping:", offer.offer_name);
-      }
+    filteredGeneralVisitorsOffers.forEach(offer => {
+      if (hasOfferBeenShown(offer.offer_id)) return;
+      
+      const conditions = {
+        schedule: checkScheduleType(offer),
+        traffic: checkTrafficSource(offer),
+        location: checkLocation(offer),
+        trigger: checkTriggerType(offer),
+        page: checkPageUrl(offer)
+      };
+      
+      processOffer(offer, conditions, true);
     });
+  }
+
+  function processOffer(offer, conditions, includeTrafficLocation = true) {
+    const allConditionsMet = includeTrafficLocation 
+      ? conditions.schedule && conditions.traffic && conditions.location && conditions.page
+      : conditions.schedule && conditions.page;
+    
+    if (conditions.trigger === true && allConditionsMet) {
+      showOfferUI(offer);
+    } else if ((conditions.trigger === 'scroll' || conditions.trigger === 'time_spend') && allConditionsMet) {
+      conditions.trigger === 'scroll' ? setupScrollTrigger(offer) : setupTimeSpendTrigger(offer);
+    }
   }
 
   function checkScheduleType(offer) {
     const now = new Date();
     const startDate = new Date(offer.start_date);
-    
-    console.log("📅 Schedule check for:", offer.offer_name);
-    console.log("   Schedule type:", offer.schedule_type);
-    console.log("   Current time:", now.toISOString());
-    console.log("   Start date:", startDate.toISOString());
-    
-    // Check if current time is after or equal to start date
     const isAfterStart = now >= startDate;
     
-    if (offer.schedule_type === "start") {
-      // Only start date - offer is valid from start date onwards
-      console.log("   Schedule type: start only");
-      console.log("   Is after start date:", isAfterStart);
+    if (offer.schedule_type === "start" || (!offer.schedule_type && !offer.end_date)) {
       return isAfterStart;
-    } else if (offer.schedule_type === "range") {
-      // Both start and end date - offer is valid within the range
-      const endDate = new Date(offer.end_date);
-      console.log("   End date:", endDate.toISOString());
-      console.log("   Is within range:", isAfterStart && now <= endDate);
-      return isAfterStart && now <= endDate;
-    } else {
-      // Default behavior - treat as range if end_date exists, otherwise as start
-      if (offer.end_date) {
-        const endDate = new Date(offer.end_date);
-        console.log("   End date (default):", endDate.toISOString());
-        console.log("   Is within range (default):", isAfterStart && now <= endDate);
-        return isAfterStart && now <= endDate;
-      } else {
-        console.log("   Schedule type: start only (default)");
-        console.log("   Is after start date (default):", isAfterStart);
-        return isAfterStart;
-      }
     }
+    
+    if (offer.schedule_type === "range" || offer.end_date) {
+      const endDate = new Date(offer.end_date);
+      return isAfterStart && now <= endDate;
+    }
+    
+    return isAfterStart;
   }
 
   function checkTrafficSource(offer) {
-    console.log("🌐 Traffic source check for:", offer.offer_name);
-    console.log("   Allowed sources:", offer.traffic_source);
-    
-    if (!offer.traffic_source || offer.traffic_source.length === 0) {
-      console.log("   No traffic source restrictions - allowing all");
-      return true; // No traffic source restrictions
-    }
-
-    const currentSource = getSource();
-    console.log("   Current source:", currentSource);
-    console.log("   Source allowed:", offer.traffic_source.includes(currentSource));
-    
-    return offer.traffic_source.includes(currentSource);
+    return !offer.traffic_source?.length || offer.traffic_source.includes(getSource());
   }
 
   function checkLocation(offer) {
-    console.log("📍 Location check for:", offer.offer_name);
-    console.log("   Allowed locations:", offer.source_location);
-    
-    if (!offer.source_location || offer.source_location.length === 0) {
-      console.log("   No location restrictions - allowing all");
-      return true; // No location restrictions
-    }
-
-    const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("   Current timezone:", currentTimezone);
-    console.log("   Location allowed:", offer.source_location.includes(currentTimezone));
-    
-    return offer.source_location.includes(currentTimezone);
+    return !offer.source_location?.length || offer.source_location.includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }
 
   function checkTriggerType(offer) {
-    console.log("⚡ Trigger type check for:", offer.offer_name);
-    console.log("   Trigger type:", offer.offer_trigger_type);
-    
-    if (offer.offer_trigger_type === 'scroll') {
-      console.log("   Scroll trigger detected - will set up later if conditions met");
-      return 'scroll'; // Return special value for scroll trigger
-    } else if (offer.offer_trigger_type === 'time_spend') {
-      console.log("   Time spend trigger detected - will set up later if conditions met");
-      return 'time_spend'; // Return special value for time trigger
-    }
-    
-    console.log("   Showing immediately (no special trigger)");
-    return true; // Show immediately for other trigger types
+    return offer.offer_trigger_type === 'scroll' ? 'scroll' : 
+           offer.offer_trigger_type === 'time_spend' ? 'time_spend' : true;
   }
 
   function checkPageUrl(offer) {
-    console.log("🌍 Page URL check for:", offer.offer_name);
-    console.log("   Required page:", offer.page_url);
+    if (!offer.page_url) return true;
     
-    if (!offer.page_url) {
-      console.log("   No page restriction - allowing all pages");
-      return true; // No page restriction
-    }
-
-    // Get current URL pathname (without query parameters, hash, etc.)
     const currentPathname = window.location.pathname;
-    const currentUrl = window.location.href;
-    
-    console.log("   Current full URL:", currentUrl);
-    console.log("   Current pathname:", currentPathname);
-    console.log("   Required page URL:", offer.page_url);
-    
-    // Extract pathname from the offer's page_url (remove protocol, domain, query params, hash)
     let offerPathname = offer.page_url;
     
     try {
-      // If it's a full URL, extract just the pathname
       if (offer.page_url.startsWith('http://') || offer.page_url.startsWith('https://')) {
-        const url = new URL(offer.page_url);
-        offerPathname = url.pathname;
-      } else if (offer.page_url.startsWith('/')) {
-        // It's already a pathname
-        offerPathname = offer.page_url;
-      } else {
-        // Assume it's a pathname without leading slash
+        offerPathname = new URL(offer.page_url).pathname;
+      } else if (!offer.page_url.startsWith('/')) {
         offerPathname = '/' + offer.page_url;
       }
     } catch (error) {
-      console.log("   Error parsing offer URL, using as-is:", offer.page_url);
       offerPathname = offer.page_url;
     }
-    
-    console.log("   Extracted offer pathname:", offerPathname);
-    console.log("   Strict path match:", currentPathname === offerPathname);
     
     return currentPathname === offerPathname;
   }
 
   function setupScrollTrigger(offer) {
-    console.log("📜 Setting up scroll trigger for:", offer.offer_name);
-    
     const scrollDepth = offer.scroll_depth;
-    if (!scrollDepth || !scrollDepth.is_scroll_enabled) {
-      console.log("   Scroll trigger disabled or not configured");
-      return;
-    }
+    if (!scrollDepth?.is_scroll_enabled) return;
 
     const minScroll = parseInt(scrollDepth.min) || 0;
     const maxScroll = parseInt(scrollDepth.max) || 100;
-    
-    console.log("   Scroll range:", `${minScroll}% - ${maxScroll}%`);
 
     const scrollHandler = () => {
-      const scrollTop = window.scrollY || window.pageYOffset;
-      const docHeight = document.documentElement.scrollHeight;
-      const winHeight = window.innerHeight;
-      const scrollPercent = (scrollTop / (docHeight - winHeight)) * 100;
-
-      console.log("   Current scroll:", `${scrollPercent.toFixed(1)}%`);
-
+      const scrollPercent = ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
       if (scrollPercent >= minScroll && scrollPercent <= maxScroll) {
-        console.log("   🎯 Scroll trigger activated for:", offer.offer_name);
-        // Remove the listener to prevent multiple triggers
         window.removeEventListener('scroll', scrollHandler);
         showOfferUI(offer);
       }
     };
 
     window.addEventListener('scroll', scrollHandler);
-    console.log("   Scroll listener attached");
   }
 
   function setupTimeSpendTrigger(offer) {
-    console.log("⏰ Setting up time spend trigger for:", offer.offer_name);
-    
     const timeSpend = offer.time_spend;
-    if (!timeSpend || !timeSpend.is_delay_enabled) {
-      console.log("   Time spend trigger disabled or not configured");
-      return;
-    }
+    if (!timeSpend?.is_delay_enabled) return;
 
     const triggerTime = parseInt(timeSpend.time_spend) || 0;
-    console.log("   Trigger time:", `${triggerTime}s`);
-    console.log("   Time spend config:", timeSpend);
-
     const pageLoadTime = Date.now();
     let hasTriggered = false;
     
-    const timeHandler = () => {
-      const timeSpent = (Date.now() - pageLoadTime) / 1000; // Convert to seconds
-      
-      console.log("   Time spent:", `${timeSpent.toFixed(1)}s (trigger at: ${triggerTime}s)`);
-      
-      // Check if we've reached or exceeded the trigger time
-      const shouldTrigger = timeSpent >= triggerTime;
-      console.log("   Should trigger:", shouldTrigger);
-      
-      if (shouldTrigger && !hasTriggered) {
-        console.log("   🎯 Time spend trigger activated for:", offer.offer_name);
+    const timeInterval = setInterval(() => {
+      if (hasTriggered) return;
+      const timeSpent = (Date.now() - pageLoadTime) / 1000;
+      if (timeSpent >= triggerTime) {
         hasTriggered = true;
-        // Remove the interval to prevent multiple triggers
         clearInterval(timeInterval);
         showOfferUI(offer);
       }
-    };
-
-    const timeInterval = setInterval(timeHandler, 1000); // Check every second
-    console.log("   Time interval started");
+    }, 1000);
   }
 
   function showOfferUI(offer) {
-    console.log("🎨 Showing offer UI for:", offer.offer_name);
-    console.log("   Message:", offer.offer_message);
-    console.log("   Button:", offer.button_label);
-    console.log("   Colors:", { bg: offer.button_color, text: offer.button_label_color });
-    console.log("   Objective:", offer.offer_objective);
-    console.log("   Action URL:", offer.action_url);
-    console.log("   Format:", offer.offer_format);
-    console.log("   Image URL:", offer.offer_image);
-    
-    // Mark offer as shown in session
     markOfferAsShown(offer.offer_id);
     
-    // Create CTA button based on offer data
-    const ctaButton = {
-      text: offer.button_label || "Click",
-      bg: offer.button_color || "#007AFF",
-      color: offer.button_label_color || "#ffffff",
-      format: offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit",
-      destination_page: offer.action_url || ""
-    };
-
-    console.log("   CTA Button config:", ctaButton);
-
-    // Prepare the config for showUIAnimation
+    const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
     const animationConfig = {
       text: offer.offer_message || "Special offer for you!",
       time: offer.offer_timeout || 10,
       hasClose: true,
       animation: offer.animation || "offer",
-      cta: [ctaButton],
+      cta: [{
+        text: offer.button_label || "Click",
+        bg: offer.button_color || "#007AFF",
+        color: offer.button_label_color || "#ffffff",
+        format,
+        destination_page: offer.action_url || ""
+      }],
       id: offer.offer_id,
-      format: offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit",
+      format,
       destination_page: offer.action_url || ""
     };
 
-    // Add image URL if it's an image-based offer
     if (offer.offer_format === "image_based" && offer.offer_image) {
       animationConfig.imageUrl = offer.offer_image;
-      console.log("   📸 Image-based offer detected, adding image URL:", offer.offer_image);
     }
 
     showUIAnimation(animationConfig);
-    
-    console.log("   ✅ Offer UI triggered successfully");
   }
 
   function findOfferForTargetedLeads (filteredTargetedOffers) {
-    console.log("🎯 Starting offer evaluation for targeted leads");
-    console.log("📊 Total targeted offers to check:", filteredTargetedOffers.length);
-    console.log("📋 Targeted offers data:", filteredTargetedOffers);
-
-    // Get current lead ID from localStorage
     const currentLeadId = localStorage.getItem("leadId");
-    console.log("👤 Current lead ID:", currentLeadId);
+    if (!currentLeadId) return;
 
-    if (!currentLeadId) {
-      console.log("❌ No lead ID found in localStorage, skipping targeted offers");
-      return;
-    }
-
-    // Check each offer against current conditions
-    filteredTargetedOffers.forEach((offer, index) => {
-      console.log(`\n🎯 Checking targeted offer ${index + 1}: ${offer.offer_name || 'Unnamed Offer'}`);
-      console.log("📄 Offer details:", {
-        id: offer.offer_id,
-        name: offer.offer_name,
-        message: offer.offer_message,
-        trigger: offer.offer_trigger_type,
-        page: offer.page_url,
-        schedule: { start: offer.start_date, end: offer.end_date },
-        targeted_leads: offer.targeted_leads
-      });
-
-      // Check if offer has already been shown in this session
-      if (hasOfferBeenShown(offer.offer_id)) {
-        console.log("🚫 Offer already shown in this session, skipping:", offer.offer_name);
-        return;
-      }
-
-      // Check if current lead ID is in the targeted leads list
-      const isLeadTargeted = offer.targeted_leads && offer.targeted_leads.includes(currentLeadId);
-      console.log("🎯 Lead targeting check:", {
-        currentLeadId: currentLeadId,
-        targetedLeads: offer.targeted_leads,
-        isTargeted: isLeadTargeted
-      });
-
-      if (!isLeadTargeted) {
-        console.log("❌ Current lead not in targeted list, skipping:", offer.offer_name);
-        return;
-      }
-
-      // For targeted leads, we skip traffic and location checks as requested
-      const scheduleCheck = checkScheduleType(offer);
-      const triggerCheck = checkTriggerType(offer);
-      const pageCheck = checkPageUrl(offer);
-
-      console.log("✅ Condition checks for targeted lead:", {
-        schedule: scheduleCheck,
-        trigger: triggerCheck,
-        page: pageCheck,
-        note: "Traffic and location checks skipped for targeted leads"
-      });
-
-      // For immediate triggers, all conditions must be true (except traffic/location)
-      if (triggerCheck === true && scheduleCheck && pageCheck) {
-        console.log("🎉 All conditions met! Showing targeted offer immediately:", offer.offer_name);
-        showOfferUI(offer);
-      } else if (triggerCheck === 'scroll' || triggerCheck === 'time_spend') {
-        // For scroll/time triggers, only check other conditions (trigger is handled separately)
-        if (scheduleCheck && pageCheck) {
-          console.log("⏳ Conditions met for delayed trigger, setting up trigger:", offer.offer_name);
-          // Set up the appropriate trigger
-          if (triggerCheck === 'scroll') {
-            setupScrollTrigger(offer);
-          } else if (triggerCheck === 'time_spend') {
-            setupTimeSpendTrigger(offer);
-          }
-        } else {
-          console.log("❌ Offer conditions not met for delayed trigger, skipping:", offer.offer_name);
-        }
-      } else {
-        console.log("❌ Offer conditions not met, skipping:", offer.offer_name);
-      }
+    filteredTargetedOffers.forEach(offer => {
+      if (hasOfferBeenShown(offer.offer_id)) return;
+      if (!offer.targeted_leads?.includes(currentLeadId)) return;
+      
+      const conditions = {
+        schedule: checkScheduleType(offer),
+        trigger: checkTriggerType(offer),
+        page: checkPageUrl(offer)
+      };
+      
+      processOffer(offer, conditions, false);
     });
   }
 
@@ -1936,10 +1704,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);max-width:${isMobile ? '280px' : '320px'}">
-              <img src="${config.imageUrl}" style="width:200px;height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px"/>
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding: 15px 13px;border-radius:16px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);max-width:${isMobile ? '280px' : '320px'}">
+              <img src="${config.imageUrl}" style="width:200px;height:200px;object-fit:cover;border-radius:8px;margin:auto"/>
               <div id="text-area">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;text-align:center">${config.text}</div>
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;text-align:left; font-family: Inter, sans-serif;font-weight: 400; margin-top: 6px;">${config.text}</div>
               </div>
             </div>
           `;
@@ -2221,7 +1989,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
+    tooltipContainer.style.maxWidth = isMobile ? "230px" : "236px";
 
     tooltipContainer.style.fontSize = isMobile ? "14px" : "16px";
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
@@ -2255,7 +2023,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.alignItems = "center";
       closeBtn.style.zIndex = "99";
       closeBtn.style.cursor = "pointer";
-      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.1)";
 
       const closeImageIcon = document.createElement("img");
       closeImageIcon.src =
@@ -2356,8 +2124,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(tooltipContainer);
     const canvas = document.getElementById("threejs-canvas");
     const canvasBounds = canvas.getBoundingClientRect();
-    tooltipContainer.style.right = isMobile ? "90px" : "120px";
-    tooltipContainer.style.bottom = isMobile ? "12px" : "20px";
+    tooltipContainer.style.right = isMobile ? "90px" : "160px";
+    tooltipContainer.style.bottom = isMobile ? "12px" : "100px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -3302,7 +3070,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       setTimeout(() => {
         showUIAnimation({
           text: newVisitorInteraction?.message,
-          time: 1500000,
+          time: 15,
           interactionAudio: newVisitorInteraction?.audio_url || "",
           hasClose: true,
           animation: "wave",
