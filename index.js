@@ -3309,44 +3309,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
       updateInteractionImpression(avoidBounceInteraction.id);
       document.removeEventListener("mousemove", this.handleMouseMovement);
-
-      // Follow-up interactions after 8 seconds (after no_no animation)
-      setTimeout(() => {
-        // Find dance animation and get its duration
-        const danceAnim = possibleAnims.find((anim) => anim.name === "dance");
-        const danceDuration = danceAnim
-          ? danceAnim.bodyClip._clip.duration * 1000
-          : 6000;
-
-        showUIAnimation({
-          animation: "dance",
-          time: 0,
-          hasClose: false,
-        });
-
-        // Show casual talk 2 seconds after dance ends
-        setTimeout(() => {
-          showUIAnimation({
-            text: "Liked my dance? Let me help you with something!",
-            time: 15,
-            hasClose: false,
-            animation: "casual_talk_2",
-            cta: [
-              {
-                text: "Ask me anything!",
-                bg: "#007AFF",
-                color: "#fff",
-                format: "chat",
-              },
-            ],
-          });
-
-          // Switch back to idle after 15 seconds
-          setTimeout(() => {
-            playModifierAnimation(idle, 1, idle, 1.5);
-          }, 15000);
-        }, danceDuration + 2000); // Show casual talk 2s after dance animation ends
-      }, 8000); // Start dance after 8s no_no animation
     }
   }
 
