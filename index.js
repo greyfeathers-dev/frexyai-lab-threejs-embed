@@ -1343,34 +1343,83 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
 
+  /**
+   * Processes offers for general visitors (non-targeted leads)
+   * Filters and evaluates each offer based on conditions
+   */
   function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
     filteredGeneralVisitorsOffers.forEach(offer => {
       if (hasOfferBeenShown(offer.offer_id)) return;
       
-      const conditions = {
-        schedule: checkScheduleType(offer),
-        traffic: checkTrafficSource(offer),
-        location: checkLocation(offer),
-        trigger: checkTriggerType(offer),
-        page: checkPageUrl(offer)
-      };
-      
+      const conditions = buildOfferConditions(offer, true);
       processOffer(offer, conditions, true);
     });
   }
 
-  function processOffer(offer, conditions, includeTrafficLocation = true) {
-    const allConditionsMet = includeTrafficLocation 
-      ? conditions.schedule && conditions.traffic && conditions.location && conditions.page
-      : conditions.schedule && conditions.page;
+  /**
+   * Builds offer conditions object for evaluation
+   */
+  function buildOfferConditions(offer, includeTrafficLocation = true) {
+    const conditions = {
+      schedule: checkScheduleType(offer),
+      trigger: checkTriggerType(offer),
+      page: checkPageUrl(offer)
+    };
     
-    if (conditions.trigger === true && allConditionsMet) {
-      showOfferUI(offer);
-    } else if ((conditions.trigger === 'scroll' || conditions.trigger === 'time_spend') && allConditionsMet) {
-      conditions.trigger === 'scroll' ? setupScrollTrigger(offer) : setupTimeSpendTrigger(offer);
+    if (includeTrafficLocation) {
+      conditions.traffic = checkTrafficSource(offer);
+      conditions.location = checkLocation(offer);
+    }
+    
+    return conditions;
+  }
+
+  /**
+   * Main offer processing function - evaluates conditions and sets up appropriate triggers
+   */
+  function processOffer(offer, conditions, includeTrafficLocation = true) {
+    const allConditionsMet = evaluateAllConditions(conditions, includeTrafficLocation);
+    console.log(conditions.trigger, conditions.schedule, conditions.traffic, conditions.location, conditions.page, allConditionsMet, "allConditionsMet");
+    
+    if (!allConditionsMet) return;
+    
+    handleOfferTrigger(offer, conditions.trigger);
+  }
+
+  /**
+   * Evaluates if all offer conditions are met
+   */
+  function evaluateAllConditions(conditions, includeTrafficLocation) {
+    if (includeTrafficLocation) {
+      return conditions.schedule && conditions.traffic && conditions.location && conditions.page;
+    }
+    return conditions.schedule && conditions.page;
+  }
+
+  /**
+   * Routes offer to appropriate trigger setup based on trigger type
+   */
+  function handleOfferTrigger(offer, triggerType) {
+    switch (triggerType) {
+      case true:
+        showOfferUI(offer);
+        break;
+      case 'both':
+        setupBothTrigger(offer);
+        break;
+      case 'scroll':
+        setupScrollTrigger(offer);
+        break;
+      case 'time_spend':
+        setupTimeSpendTrigger(offer);
+        break;
     }
   }
 
+  /**
+   * Checks if offer is within its scheduled time window
+   * Supports start-only and range-based scheduling
+   */
   function checkScheduleType(offer) {
     const now = new Date();
     const startDate = new Date(offer.start_date);
@@ -1388,19 +1437,35 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     return isAfterStart;
   }
 
+  /**
+   * Checks if current traffic source matches offer's allowed sources
+   */
   function checkTrafficSource(offer) {
     return !offer.traffic_source?.length || offer.traffic_source.includes(getSource());
   }
 
+  /**
+   * Checks if user's timezone matches offer's target locations
+   */
   function checkLocation(offer) {
     return !offer.source_location?.length || offer.source_location.includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }
 
+  /**
+   * Determines the trigger type for the offer
+   * Returns: 'both', 'scroll', 'time_spend', or true (immediate)
+   */
   function checkTriggerType(offer) {
-    return offer.offer_trigger_type === 'scroll' ? 'scroll' : 
-           offer.offer_trigger_type === 'time_spend' ? 'time_spend' : true;
+    if (offer.offer_trigger_type === 'both') return 'both';
+    if (offer.offer_trigger_type === 'scroll') return 'scroll';
+    if (offer.offer_trigger_type === 'time_spend') return 'time_spend';
+    return true;
   }
 
+  /**
+   * Checks if current page URL matches offer's target page
+   * Handles full URLs, relative paths, and pathname extraction
+   */
   function checkPageUrl(offer) {
     if (!offer.page_url) return true;
     
@@ -1420,48 +1485,312 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     return currentPathname === offerPathname;
   }
 
+  /**
+   * Sets up scroll-based trigger for offer display
+   * Supports 'between' and 'above' scroll depth types
+   */
   function setupScrollTrigger(offer) {
-    const scrollDepth = offer.scroll_depth;
-    if (!scrollDepth?.is_scroll_enabled) return;
+    const scrollConfig = extractScrollConfig(offer);
+    if (!scrollConfig.isEnabled) return;
 
-    const minScroll = parseInt(scrollDepth.min) || 0;
-    const maxScroll = parseInt(scrollDepth.max) || 100;
-
-    const scrollHandler = () => {
-      const scrollPercent = ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-      if (scrollPercent >= minScroll && scrollPercent <= maxScroll) {
-        window.removeEventListener('scroll', scrollHandler);
-        showOfferUI(offer);
-      }
-    };
-
+    const scrollHandler = createScrollHandler(offer, scrollConfig);
     window.addEventListener('scroll', scrollHandler);
   }
 
-  function setupTimeSpendTrigger(offer) {
-    const timeSpend = offer.time_spend;
-    if (!timeSpend?.is_delay_enabled) return;
+  /**
+   * Extracts and validates scroll configuration from offer
+   */
+  function extractScrollConfig(offer) {
+    const scrollDepth = offer.scroll_depth;
+    return {
+      isEnabled: scrollDepth?.is_scroll_enabled,
+      min: parseInt(scrollDepth?.min) || 0,
+      max: parseInt(scrollDepth?.max) || 100,
+      type: scrollDepth?.scroll_depth || 'between'
+    };
+  }
 
-    const triggerTime = parseInt(timeSpend.time_spend) || 0;
+  /**
+   * Creates scroll event handler for offer triggering
+   */
+  function createScrollHandler(offer, scrollConfig) {
+    const handler = () => {
+      const scrollPercent = calculateScrollPercentage();
+      const shouldTrigger = evaluateScrollCondition(scrollPercent, scrollConfig);
+      
+      if (shouldTrigger) {
+        window.removeEventListener('scroll', handler);
+        showOfferUI(offer);
+      }
+    };
+    
+    return handler;
+  }
+
+  /**
+   * Calculates current scroll percentage of the page
+   */
+  function calculateScrollPercentage() {
+    return ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+  }
+
+  /**
+   * Evaluates if scroll condition is met based on scroll depth type
+   */
+  function evaluateScrollCondition(scrollPercent, scrollConfig) {
+    if (scrollConfig.type === 'between') {
+      return scrollPercent >= scrollConfig.min && scrollPercent <= scrollConfig.max;
+    } else if (scrollConfig.type === 'above') {
+      return scrollPercent >= scrollConfig.min;
+    }
+    return false;
+  }
+
+  /**
+   * Sets up time-based trigger for offer display
+   * Triggers offer after specified time has been spent on page
+   */
+  function setupTimeSpendTrigger(offer) {
+    const timeConfig = extractTimeConfig(offer);
+    if (!timeConfig.isEnabled) return;
+
+    const timeInterval = createTimeHandler(offer, timeConfig);
+  }
+
+  /**
+   * Extracts and validates time configuration from offer
+   */
+  function extractTimeConfig(offer) {
+    const timeSpend = offer.time_spend;
+    return {
+      isEnabled: timeSpend?.is_delay_enabled,
+      triggerTime: parseInt(timeSpend?.time_spend) || 0
+    };
+  }
+
+  /**
+   * Creates time interval handler for offer triggering
+   */
+  function createTimeHandler(offer, timeConfig) {
     const pageLoadTime = Date.now();
     let hasTriggered = false;
     
-    const timeInterval = setInterval(() => {
+    return setInterval(() => {
       if (hasTriggered) return;
       const timeSpent = (Date.now() - pageLoadTime) / 1000;
-      if (timeSpent >= triggerTime) {
+      if (timeSpent >= timeConfig.triggerTime) {
         hasTriggered = true;
-        clearInterval(timeInterval);
+        clearInterval(arguments.callee);
         showOfferUI(offer);
       }
     }, 1000);
   }
 
+  /**
+   * Sets up combined scroll and time-based trigger for offer display
+   * Time tracking only starts when scroll condition is met
+   */
+  function setupBothTrigger(offer) {
+    const config = extractBothTriggerConfig(offer);
+    if (!config.isScrollEnabled && !config.isTimeEnabled) return;
+
+    const state = initializeTriggerState();
+    const handlers = createBothTriggerHandlers(offer, config, state);
+    
+    setupEventListeners(config, handlers, offer, state);
+  }
+
+  /**
+   * Extracts configuration for both scroll and time triggers
+   */
+  function extractBothTriggerConfig(offer) {
+    const scrollDepth = offer.scroll_depth;
+    const timeSpend = offer.time_spend;
+    
+    return {
+      isScrollEnabled: scrollDepth?.is_scroll_enabled,
+      isTimeEnabled: timeSpend?.is_delay_enabled,
+      scroll: {
+        min: parseInt(scrollDepth?.min) || 0,
+        max: parseInt(scrollDepth?.max) || 100,
+        type: scrollDepth?.scroll_depth || 'between'
+      },
+      time: {
+        triggerTime: parseInt(timeSpend?.time_spend) || 0
+      }
+    };
+  }
+
+  /**
+   * Initializes state variables for both trigger tracking
+   */
+  function initializeTriggerState() {
+    return {
+      hasTriggered: false,
+      scrollConditionMet: false,
+      timeConditionMet: false,
+      timeTrackingStarted: false,
+      timeStartTime: null,
+      timeInterval: null
+    };
+  }
+
+  /**
+   * Creates scroll and time handlers for both trigger
+   */
+  function createBothTriggerHandlers(offer, config, state) {
+    const scrollHandler = createBothScrollHandler(offer, config, state);
+    const timeHandler = createBothTimeHandler(offer, config, state);
+    
+    return { scrollHandler, timeHandler };
+  }
+
+  /**
+   * Creates scroll handler for both trigger scenario
+   */
+  function createBothScrollHandler(offer, config, state) {
+    const scrollHandler = () => {
+      if (state.hasTriggered) return;
+      
+      const scrollPercent = calculateScrollPercentage();
+      const scrollMet = evaluateScrollCondition(scrollPercent, config.scroll);
+      
+      handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler);
+    };
+    
+    return scrollHandler;
+  }
+
+  /**
+   * Handles changes in scroll condition for both trigger
+   */
+  function handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler) {
+    if (scrollMet && !state.scrollConditionMet) {
+      // User entered scroll range
+      state.scrollConditionMet = true;
+      startTimeTrackingIfNeeded(offer, config, state, scrollHandler);
+      
+      if (config.isScrollEnabled && !config.isTimeEnabled) {
+        triggerOffer(offer, state, scrollHandler);
+      }
+    } else if (!scrollMet && state.scrollConditionMet) {
+      // User left scroll range
+      state.scrollConditionMet = false;
+      resetTimeTracking(state);
+    }
+  }
+
+  /**
+   * Starts time tracking when scroll condition is met
+   */
+  function startTimeTrackingIfNeeded(offer, config, state, scrollHandler) {
+    if (config.isTimeEnabled && !state.timeTrackingStarted) {
+      state.timeTrackingStarted = true;
+      state.timeStartTime = Date.now();
+      
+      state.timeInterval = setInterval(() => {
+        if (state.hasTriggered) return;
+        const timeSpent = (Date.now() - state.timeStartTime) / 1000;
+        if (timeSpent >= config.time.triggerTime) {
+          state.timeConditionMet = true;
+          checkBothConditions(offer, config, state, scrollHandler);
+        }
+      }, 1000);
+    }
+  }
+
+  /**
+   * Resets time tracking when user scrolls out of range
+   */
+  function resetTimeTracking(state) {
+    if (state.timeInterval) {
+      clearInterval(state.timeInterval);
+      state.timeInterval = null;
+      state.timeTrackingStarted = false;
+      state.timeConditionMet = false;
+    }
+  }
+
+  /**
+   * Creates time handler for both trigger scenario
+   */
+  function createBothTimeHandler(offer, config, state) {
+    return () => {
+      if (state.hasTriggered) return;
+      const timeSpent = (Date.now() - state.timeStartTime) / 1000;
+      if (timeSpent >= config.time.triggerTime) {
+        state.timeConditionMet = true;
+        triggerOffer(offer, state);
+      }
+    };
+  }
+
+  /**
+   * Checks if both scroll and time conditions are met
+   */
+  function checkBothConditions(offer, config, state, scrollHandler) {
+    if (config.isScrollEnabled && config.isTimeEnabled && 
+        state.scrollConditionMet && state.timeConditionMet) {
+      triggerOffer(offer, state, scrollHandler);
+    }
+  }
+
+  /**
+   * Triggers the offer and cleans up event listeners
+   */
+  function triggerOffer(offer, state, scrollHandler) {
+    if (state.hasTriggered) return;
+    state.hasTriggered = true;
+    
+    if (state.timeInterval) {
+      clearInterval(state.timeInterval);
+    }
+    
+    if (scrollHandler) {
+      window.removeEventListener('scroll', scrollHandler);
+    }
+    
+    showOfferUI(offer);
+  }
+
+  /**
+   * Sets up event listeners for both trigger scenario
+   */
+  function setupEventListeners(config, handlers, offer, state) {
+    if (config.isScrollEnabled) {
+      window.addEventListener('scroll', handlers.scrollHandler);
+    }
+    
+    // If only time is enabled, start timer immediately
+    if (config.isTimeEnabled && !config.isScrollEnabled) {
+      state.timeStartTime = Date.now();
+      state.timeInterval = setInterval(() => {
+        handlers.timeHandler();
+        if (state.timeConditionMet) {
+          triggerOffer(offer, state, null);
+        }
+      }, 1000);
+    }
+  }
+
+  /**
+   * Displays the offer UI with configured animation and settings
+   * Marks offer as shown to prevent duplicate displays
+   */
   function showOfferUI(offer) {
     markOfferAsShown(offer.offer_id);
     
     const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
-    const animationConfig = {
+    const animationConfig = buildAnimationConfig(offer, format);
+
+    showUIAnimation(animationConfig);
+  }
+
+  /**
+   * Builds animation configuration object for offer display
+   */
+  function buildAnimationConfig(offer, format) {
+    const config = {
       text: offer.offer_message || "Special offer for you!",
       time: offer.offer_timeout || 10,
       hasClose: true,
@@ -1481,10 +1810,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     };
 
     if (offer.offer_format === "image_based" && offer.offer_image) {
-      animationConfig.imageUrl = offer.offer_image;
+      config.imageUrl = offer.offer_image;
     }
 
-    showUIAnimation(animationConfig);
+    return config;
   }
 
   function findOfferForTargetedLeads (filteredTargetedOffers) {
