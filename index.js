@@ -54,11 +54,15 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
 
-const MODEL_TEXTURE =
+const STEVE_MODEL_TEXTURE =
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
 
-// const MODEL_TEXTURE =
-//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+const GIRL_MODEL_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/body_texture.jpg";
+const GIRL_MODEL_HAIR_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_base.jpg";
+const GIRL_MODEL_HAIR_OPACITY_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_opacity.jpg";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
@@ -69,19 +73,20 @@ const user_id = localStorage.getItem("merchantId");
 // const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
-const BASE_MODEL = {
+const STEVE_BASE_MODEL = {
   model_url:
     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
-// const BASE_MODEL = {
-//   model_url:
-//     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-//   animation: "idle",
-// };
+const GIRL_BASE_MODEL = {
+  model_url:
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/relaxed_grip.glb",
+  animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
+};
 
-const ANIMATION_LIST = [
+
+const STEVE_ANIMATION_LIST = [
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
@@ -144,6 +149,76 @@ const ANIMATION_LIST = [
   },
 ];
 
+const GIRL_ANIMATION_LIST = [
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/relaxed_grip.glb",
+    animation: "relaxed_grip",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/dance.glb",
+    animation: "dance",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_1.glb",
+    animation: "casual_talk_1",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_2.glb",
+    animation: "casual_talk_2",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_3.glb",
+    animation: "casual_talk_3",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/victory_vibes.glb",
+    animation: "celebration",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/dissapointed.glb",
+    animation: "disappointed",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/no_no.glb",
+    animation: "no_no",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/offer_promotion.glb",
+    animation: "offer",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/thumbs_up.glb",
+    animation: "thumbs_up",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/waving.glb",
+    animation: "wave",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/wait_up.glb",
+    animation: "wait_up",
+  },
+];
+
+// Global state variables - declare at top level to avoid scope issues
+let currentlyAnimating = false;
+let currentAnimationID = null;
+let timeoutDisappear = null;
+let isInteractionActive = false;
+let isFirstLandTriggered = false;
+
 // ********************************************************************************* SVG ICONS *********************************************************************************
 function getMuteIcon() {
   return `
@@ -162,6 +237,35 @@ function getUnmuteIcon() {
   `;
 }
 // ************************************************************************************************************************************************************************
+const getAvatarData = async () => {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/avatar?user_id=eq.${user_id}`,
+      {
+        method: "GET",
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    let currentAvatar = null;
+    const avatarData = await response.json();
+    currentAvatar = avatarData[0];
+    console.log(currentAvatar, "avatarData in getAvatarData");
+    return avatarData;
+  } catch (error) {
+    console.error("Failed to get interactions:", error);
+    return [];
+  }
+};
+getAvatarData();
+
 
 // ***************************************************************AUDIO API CALLS************************************************************************************
 
@@ -365,20 +469,46 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ************************************************************************************************************************************************************************
 
-  init();
+  // Initialize the application
+  init().catch(error => {
+    console.error("Failed to initialize:", error);
+  });
+  
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
-  function init() {
+  async function init() {
     fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source = getSource();
-    const MODEL_PATH = BASE_MODEL.model_url;
+    
+    // Get avatar data to determine which model to load
+    const avatarData = await getAvatarData();
+    let currentAvatar = avatarData && avatarData.length > 0 ? avatarData[0] : null;
+    
+    console.log("Avatar data received:", avatarData);
+    console.log("Current avatar:", currentAvatar);
+    
+    // Determine model and texture based on avatar_name
+    let MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST;
+    
+    if (currentAvatar && currentAvatar.avatar_name === "Girl") {
+      MODEL_PATH = GIRL_BASE_MODEL.model_url;
+      TEXTURE_PATH = GIRL_MODEL_TEXTURE;
+      ANIMATION_LIST = GIRL_ANIMATION_LIST;
+      console.log("Loading Girl avatar with:", { MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST });
+    } else {
+      // Default to Steve
+      MODEL_PATH = STEVE_BASE_MODEL.model_url;
+      TEXTURE_PATH = STEVE_MODEL_TEXTURE;
+      ANIMATION_LIST = STEVE_ANIMATION_LIST;
+      console.log("Loading Steve avatar with:", { MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST });
+    }
 
     // Initialize possibleAnims array
     possibleAnims = [];
@@ -491,7 +621,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     camera.position.y = -3;
 
     let stacy_txt = new THREE.TextureLoader().load(
-      MODEL_TEXTURE,
+      TEXTURE_PATH,
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
       },
@@ -499,6 +629,45 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       (error) => console.error("Error loading texture:", error)
     );
     stacy_txt.flipY = false;
+
+    // Load hair textures if Girl avatar
+    let hair_texture = null;
+    let hair_opacity_texture = null;
+    let hair_material = null;
+    
+    if (currentAvatar && currentAvatar.avatar_name === "Girl") {
+      hair_texture = new THREE.TextureLoader().load(
+        GIRL_MODEL_HAIR_TEXTURE,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+        },
+        undefined,
+        (error) => console.error("Error loading hair texture:", error)
+      );
+      hair_texture.flipY = false;
+      
+      hair_opacity_texture = new THREE.TextureLoader().load(
+        GIRL_MODEL_HAIR_OPACITY_TEXTURE,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+        },
+        undefined,
+        (error) => console.error("Error loading hair opacity texture:", error)
+      );
+      hair_opacity_texture.flipY = false;
+      
+      hair_material = new THREE.MeshStandardMaterial({
+        map: hair_texture,
+        alphaMap: hair_opacity_texture,
+        transparent: true,
+        skinning: true,
+        metalness: 0.1,
+        roughness: 0.8,
+        color: new THREE.Color(0xffffff),
+        emissive: new THREE.Color(0x000000),
+        envMapIntensity: 1.0,
+      });
+    }
 
     const stacy_mtl = new THREE.MeshStandardMaterial({
       map: stacy_txt,
@@ -533,7 +702,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
               o.receiveShadow = false;
             }
 
-            o.material = stacy_mtl.clone();
+            // Apply hair material to hair meshes if Girl avatar
+            if (currentAvatar && currentAvatar.avatar_name === "Girl" && hair_material) {
+              // Check if this mesh is hair (common hair mesh names)
+              const isHairMesh = 
+                o.name.toLowerCase().includes("hair") ||
+                o.name.toLowerCase().includes("cc_base_hair") ||
+                o.name.toLowerCase().includes("hair_") ||
+                o.parent?.name?.toLowerCase().includes("hair");
+              
+              if (isHairMesh) {
+                o.material = hair_material.clone();
+                console.log("Applied hair material to mesh:", o.name);
+              } else {
+                o.material = stacy_mtl.clone();
+              }
+            } else {
+              o.material = stacy_mtl.clone();
+            }
 
             // Enhance material colors
             if (o.material instanceof THREE.MeshStandardMaterial) {
@@ -624,6 +810,82 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         console.error("Error loading model:", error);
       }
     );
+
+    // ============================================= ANIMATION LOADING FUNCTIONS =================================================================
+
+    // Define loadAdditionalAnimations function inside init to access ANIMATION_LIST
+    function loadAdditionalAnimations(gltf) {
+      const loader = new THREE.GLTFLoader();
+
+      ANIMATION_LIST.forEach((animationItem, index) => {
+        loader.load(
+          animationItem.model_url,
+          function (newGLTF) {
+            if (!newGLTF.animations || newGLTF.animations.length === 0) {
+              console.error(
+                `No animations found in the loaded GLTF file for ${animationItem.animation}.`
+              );
+              return;
+            }
+
+            // Add new animations to the existing GLTF animations
+            newGLTF.animations.forEach((anim) => {
+              // Clone the animation and filter tracks
+              let clonedAnim = anim.clone();
+
+              // Create separate tracks for body and head/jaw
+              const bodyTracks = clonedAnim.tracks.filter(
+                (track) =>
+                  !track.name.includes("CC_Base_JawRoot") &&
+                  !track.name.includes("CC_Base_Head") &&
+                  !track.name.includes("neckbone")
+              );
+
+              const headTracks = clonedAnim.tracks.filter(
+                (track) =>
+                  track.name.includes("CC_Base_JawRoot") ||
+                  track.name.includes("CC_Base_Head") ||
+                  track.name.includes("neckbone")
+              );
+
+              // Create two separate animations
+              const bodyAnim = clonedAnim.clone();
+              bodyAnim.tracks = bodyTracks;
+              bodyAnim.name = `${animationItem.animation}_body`;
+
+              const headAnim = clonedAnim.clone();
+              headAnim.tracks = headTracks;
+              headAnim.name = `${animationItem.animation}_head`;
+
+              // Add both animations to the mixer
+              gltf.animations.push(bodyAnim);
+              gltf.animations.push(headAnim);
+
+              // Create actions for both animations
+              const bodyAction = mixer.clipAction(bodyAnim);
+              const headAction = mixer.clipAction(headAnim);
+
+              // Store both actions in possibleAnims
+              if (!possibleAnims) {
+                possibleAnims = [];
+              }
+              possibleAnims.push({
+                name: animationItem.animation,
+                bodyClip: bodyAction,
+                headClip: headAction,
+              });
+            });
+          },
+          undefined,
+          function (error) {
+            console.error(
+              `Error loading GLTF for ${animationItem.animation}:`,
+              error
+            );
+          }
+        );
+      });
+    }
 
     //====================================================Model Click Event Listener====================================================
 
@@ -752,82 +1014,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     floor.receiveShadow = true;
     floor.position.y = -12; // Adjusted floor position to match model
     scene.add(floor);
+
+    // Start the render loop after everything is initialized
+    update();
   }
 
-  // ============================================= ANIMATION LOADING FUNCTIONS =================================================================
 
-  function loadAdditionalAnimations(gltf) {
-    const loader = new THREE.GLTFLoader();
-
-    ANIMATION_LIST.forEach((animationItem, index) => {
-      loader.load(
-        animationItem.model_url,
-        function (newGLTF) {
-          if (!newGLTF.animations || newGLTF.animations.length === 0) {
-            console.error(
-              `No animations found in the loaded GLB file for ${animationItem.animation}.`
-            );
-            return;
-          }
-
-          // Add new animations to the existing GLTF animations
-          newGLTF.animations.forEach((anim) => {
-            // Clone the animation and filter tracks
-            let clonedAnim = anim.clone();
-
-            // Create separate tracks for body and head/jaw
-            const bodyTracks = clonedAnim.tracks.filter(
-              (track) =>
-                !track.name.includes("CC_Base_JawRoot") &&
-                !track.name.includes("CC_Base_Head") &&
-                !track.name.includes("neckbone")
-            );
-
-            const headTracks = clonedAnim.tracks.filter(
-              (track) =>
-                track.name.includes("CC_Base_JawRoot") ||
-                track.name.includes("CC_Base_Head") ||
-                track.name.includes("neckbone")
-            );
-
-            // Create two separate animations
-            const bodyAnim = clonedAnim.clone();
-            bodyAnim.tracks = bodyTracks;
-            bodyAnim.name = `${animationItem.animation}_body`;
-
-            const headAnim = clonedAnim.clone();
-            headAnim.tracks = headTracks;
-            headAnim.name = `${animationItem.animation}_head`;
-
-            // Add both animations to the mixer
-            gltf.animations.push(bodyAnim);
-            gltf.animations.push(headAnim);
-
-            // Create actions for both animations
-            const bodyAction = mixer.clipAction(bodyAnim);
-            const headAction = mixer.clipAction(headAnim);
-
-            // Store both actions in possibleAnims
-            if (!possibleAnims) {
-              possibleAnims = [];
-            }
-            possibleAnims.push({
-              name: animationItem.animation,
-              bodyClip: bodyAction,
-              headClip: headAction,
-            });
-          });
-        },
-        undefined,
-        function (error) {
-          console.error(
-            `Error loading GLTF for ${animationItem.animation}:`,
-            error
-          );
-        }
-      );
-    });
-  }
 
   // ============================================= SOURCE DETECTION FUNCTIONS =============================================
 
@@ -997,15 +1189,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (mixer) {
       mixer.update(clock.getDelta());
     }
-    if (resizeRendererToDisplaySize(renderer)) {
+    if (renderer && resizeRendererToDisplaySize(renderer)) {
       const canvas = renderer.domElement;
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
-    renderer.render(scene, camera);
+    if (renderer && scene && camera) {
+      renderer.render(scene, camera);
+    }
     requestAnimationFrame(update);
   }
-  update();
 
   // ============================================= RESIZE RENDERER TO DISPLAY SIZE FUNCTIONS =============================================
 
@@ -1024,11 +1217,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     return needResize;
   }
 
-  let isFirstLandTriggered = false;
-  let currentlyAnimating = false;
-  let currentAnimationID = null;
-  let timeoutDisappear = null;
-  let isInteractionActive = false; // Add this flag at the top with other state variables
+
 
   // ============================================= PATH CHANGE EVENT FUNCTIONS =============================================
 
@@ -3190,7 +3379,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           "Leaving already? If you ever need help, I'm always here!",
         time: 8,
         hasClose: false,
-        animation: "casual_talk_2",
+        animation: "casual_talk_2", 
         interactionAudio: normalExitIntentInteraction?.audio_url || "",
         audioDuration: normalExitIntentInteraction?.audio_duration || 0,
         cta: [
