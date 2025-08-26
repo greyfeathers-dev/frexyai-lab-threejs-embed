@@ -81,7 +81,7 @@ const STEVE_BASE_MODEL = {
 
 const GIRL_BASE_MODEL = {
   model_url:
-    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/relaxed_grip.glb",
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/breathing_idle.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
