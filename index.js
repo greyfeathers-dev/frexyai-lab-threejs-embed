@@ -804,6 +804,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           type: "pageVisit",
           source: getSource(),
         });
+
+        // Mark model as fully loaded and ready
+        window.modelFullyLoaded = true;
       },
       undefined,
       function (error) {
@@ -2725,26 +2728,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         });
       };
 
-      // Call initializeHeadTracking 3 seconds after the page is fully loaded
-      if (model) {
-        window.addEventListener("load", () => {
+      // Only initialize head tracking after model is fully loaded
+      const initializeHeadTrackingAfterModelLoad = () => {
+        // Check if model is loaded, has bones, and is fully ready
+        if (model && neck && window.modelFullyLoaded) {
           setTimeout(() => {
             initializeHeadTracking();
-          }, 3000);
-        });
-      } else {
-        // If model isn't loaded yet, wait for it
-        const checkModelInterval = setInterval(() => {
-          if (model) {
-            clearInterval(checkModelInterval);
-            window.addEventListener("load", () => {
-              setTimeout(() => {
-                initializeHeadTracking();
-              }, 3000);
-            });
-          }
-        }, 100);
-      }
+          }, 1000); // Small delay to ensure everything is settled
+        } else {
+          console.log("⏳ Waiting for model to be fully loaded...", {
+            model: !!model,
+            neck: !!neck,
+            modelFullyLoaded: !!window.modelFullyLoaded
+          });
+          // Check again in 500ms
+          setTimeout(initializeHeadTrackingAfterModelLoad, 500);
+        }
+      };
+
+      // Start checking for model readiness
+      initializeHeadTrackingAfterModelLoad();
     }
 
     // Initialize other interactions
