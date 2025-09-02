@@ -57,7 +57,7 @@ loadScript("https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js")
     )
   )
   .then(() =>
-    loadScript("https://frexyai-lab-threejs-embed-staging.vercel.app/index.js")
+    loadScript("https://frexyai-lab-threejs-embed-development.vercel.app/index.js")
   )
   .then(() => console.log("All scripts loaded successfully!"))
   .catch((error) => console.error("Error loading scripts:", error));
