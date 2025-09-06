@@ -421,6 +421,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   getLeadsData();
 
   const updateLeadIntentType = async (intentType) => {
+    console.log(leadIdLocal, "leadIdLocal in updateLeadIntentType");
+    
     try {
       const response = await fetch(`${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`, {
         method: "PATCH",
