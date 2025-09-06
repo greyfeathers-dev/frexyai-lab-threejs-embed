@@ -420,6 +420,91 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   };
   getLeadsData();
 
+  const updateLeadIntentType = async (intentType) => {
+    const leadId =localStorage.getItem("leadId");
+    
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, {
+        method: "PATCH",
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          intent: intentType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Failed to update lead intent type:", error);
+      return null;
+    }
+  };
+
+  // Route change listener for high-intent pages
+  const setupHighIntentRouteListener = () => {
+    const highIntentRoutes = ['/pricing', '/signup', '/demo'];
+    let lastPath = window.location.pathname;
+
+    const checkHighIntentRoute = (currentPath) => {
+      const isHighIntentRoute = highIntentRoutes.some(route => 
+        currentPath.includes(route) || currentPath.endsWith(route)
+      );
+      
+      if (isHighIntentRoute) {
+        console.log(`High intent route detected: ${currentPath}, updating lead intent to "high"`);
+        updateLeadIntentType("high");
+      }
+    };
+
+    // Check current route on initialization
+    checkHighIntentRoute(lastPath);
+
+    // Set up route change observer
+    const routeObserver = new MutationObserver(() => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== lastPath) {
+        lastPath = currentPath;
+        checkHighIntentRoute(currentPath);
+      }
+    });
+
+    // Start observing
+    routeObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    // Also listen for popstate events (browser back/forward)
+    window.addEventListener('popstate', () => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== lastPath) {
+        lastPath = currentPath;
+        checkHighIntentRoute(currentPath);
+      }
+    });
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', () => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== lastPath) {
+        lastPath = currentPath;
+        checkHighIntentRoute(currentPath);
+      }
+    });
+
+    console.log("High intent route listener initialized");
+  };
+
+  // Initialize the route listener
+  setupHighIntentRouteListener();
+
   const UpdateLeadsData = async (name, audioBlob, message) => {
     try {
       // Upload audio to storage using interaction name
@@ -3931,6 +4016,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       });
     }
   }
+
+  
 
   //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
