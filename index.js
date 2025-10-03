@@ -1925,18 +1925,21 @@ function extractBothTriggerConfig(offer) {
    }
  }
 
- /**
-  * Displays the offer UI with configured animation and settings
-  * Marks offer as shown to prevent duplicate displays
-  */
- function showOfferUI(offer) {
-   markOfferAsShown(offer.offer_id);
-   
-   const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
-   const animationConfig = buildAnimationConfig(offer, format);
+  /**
+   * Displays the offer UI with configured animation and settings
+   * Marks offer as shown to prevent duplicate displays
+   */
+  function showOfferUI(offer) {
+    markOfferAsShown(offer.offer_id);
+    
+    // Track impression
+    updateOfferImpression(offer.offer_id);
+    
+    const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
+    const animationConfig = buildAnimationConfig(offer, format);
 
-   showUIAnimation(animationConfig);
- }
+    showUIAnimation(animationConfig);
+  }
 
  /**
   * Builds animation configuration object for offer display
@@ -1987,7 +1990,119 @@ function extractBothTriggerConfig(offer) {
  }
 
 
- // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
+  // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
+  
+  // ============================================= OFFER TRACKING FUNCTIONS =============================================
+  
+  /**
+   * Updates impression count for an offer in the database
+   */
+  async function updateOfferImpression(offerId) {
+    try {
+      // First get the current impression count
+      const getResponse = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?offer_id=eq.${offerId}&select=impressions`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (!getResponse.ok) {
+        console.error(`Failed to get current impression count for offer ${offerId}`);
+        return;
+      }
+
+      const data = await getResponse.json();
+      const currentImpressions = data[0]?.impressions || 0;
+      const newImpressions = currentImpressions + 1;
+
+      // Update with incremented count
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?offer_id=eq.${offerId}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({
+            impressions: newImpressions
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`Failed to update impression for offer ${offerId}:`, response.status);
+      } else {
+        console.log(`Impression tracked for offer ${offerId}: ${newImpressions}`);
+      }
+    } catch (error) {
+      console.error("Error updating offer impression:", error);
+    }
+  }
+
+  /**
+   * Updates click count for an offer in the database
+   */
+  async function updateOfferClick(offerId) {
+    try {
+      // First get the current click count
+      const getResponse = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?offer_id=eq.${offerId}&select=clicks`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (!getResponse.ok) {
+        console.error(`Failed to get current click count for offer ${offerId}`);
+        return;
+      }
+
+      const data = await getResponse.json();
+      const currentClicks = data[0]?.clicks || 0;
+      const newClicks = currentClicks + 1;
+
+      // Update with incremented count
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/all_offers?offer_id=eq.${offerId}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({
+            clicks: newClicks
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`Failed to update click for offer ${offerId}:`, response.status);
+      } else {
+        console.log(`Click tracked for offer ${offerId}: ${newClicks}`);
+      }
+    } catch (error) {
+      console.error("Error updating offer click:", error);
+    }
+  }
+
+  // ============================================= END OF OFFER TRACKING FUNCTIONS =============================================
 
   // Global variable to store current frequency data
   let currentFrequencyData = {
@@ -2418,6 +2533,8 @@ function extractBothTriggerConfig(offer) {
         btn.style.letterSpacing = "0.02em";
         btn.addEventListener("click", () => {
           incrementClick(id);
+          // Track offer click
+          updateOfferClick(id);
           closeUI();
           if (format === "leadGen") {
             const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
@@ -2586,6 +2703,8 @@ function extractBothTriggerConfig(offer) {
         btn.style.cursor = "pointer";
         btn.addEventListener("click", () => {
           incrementClick(id);
+          // Track offer click
+          updateOfferClick(id);
           closeUI();
           if (format === "leadGen") {
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;

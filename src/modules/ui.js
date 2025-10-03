@@ -358,6 +358,11 @@ class UIController {
 	}
 
 	handleCTAClick(config) {
+		// Track offer click
+		if (typeof updateOfferClick === 'function') {
+			updateOfferClick(config.id);
+		}
+		
 		if (config.format === 'leadGen') {
 			this.sourceLink = `${CHATBOT_PAGE}/form/${config.id}`;
 			this.showChatWindow();
