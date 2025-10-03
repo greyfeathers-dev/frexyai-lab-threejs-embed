@@ -54,34 +54,39 @@ const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
 
-const MODEL_TEXTURE =
+const STEVE_MODEL_TEXTURE =
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Texture/model_texture.png";
 
-// const MODEL_TEXTURE =
-//   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/base%20colour%20(1).png";
+const GIRL_MODEL_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/body_texture.jpg";
+const GIRL_MODEL_HAIR_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_base.jpg";
+const GIRL_MODEL_HAIR_OPACITY_TEXTURE =
+  "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Texture/hair_opacity.jpg";
 
 const TOOLTIP_BG = "#fff";
 const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
-const BASE_MODEL = {
+const STEVE_BASE_MODEL = {
   model_url:
     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/breathing_idle.glb",
   animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
 };
 
-// const BASE_MODEL = {
-//   model_url:
-//     "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/idle.glb",
-//   animation: "idle",
-// };
+const GIRL_BASE_MODEL = {
+  model_url:
+    "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/breathing_idle.glb",
+  animation: "relaxed_grip", // Changed from 'idle' to match the actual animation name
+};
 
-const ANIMATION_LIST = [
+
+const STEVE_ANIMATION_LIST = [
   {
     model_url:
       "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/Steve/Models/relaxed_grip.glb",
@@ -144,6 +149,76 @@ const ANIMATION_LIST = [
   },
 ];
 
+const GIRL_ANIMATION_LIST = [
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/relaxed_grip.glb",
+    animation: "relaxed_grip",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/dance.glb",
+    animation: "dance",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_1.glb",
+    animation: "casual_talk_1",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_2.glb",
+    animation: "casual_talk_2",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/casual_talking_3.glb",
+    animation: "casual_talk_3",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/victory_vibes.glb",
+    animation: "celebration",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/dissapointed.glb",
+    animation: "disappointed",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/no_no.glb",
+    animation: "no_no",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/offer_promotion.glb",
+    animation: "offer",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/thumbs_up.glb",
+    animation: "thumbs_up",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/waving.glb",
+    animation: "wave",
+  },
+  {
+    model_url:
+      "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/GirlModel/Models/wait_up.glb",
+    animation: "wait_up",
+  },
+];
+
+// Global state variables - declare at top level to avoid scope issues
+let currentlyAnimating = false;
+let currentAnimationID = null;
+let timeoutDisappear = null;
+let isInteractionActive = false;
+let isFirstLandTriggered = false;
+
 // ********************************************************************************* SVG ICONS *********************************************************************************
 function getMuteIcon() {
   return `
@@ -162,6 +237,35 @@ function getUnmuteIcon() {
   `;
 }
 // ************************************************************************************************************************************************************************
+const getAvatarData = async () => {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/avatar?user_id=eq.${user_id}`,
+      {
+        method: "GET",
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    let currentAvatar = null;
+    const avatarData = await response.json();
+    currentAvatar = avatarData[0];
+    console.log(currentAvatar, "avatarData in getAvatarData");
+    return avatarData;
+  } catch (error) {
+    console.error("Failed to get interactions:", error);
+    return [];
+  }
+};
+getAvatarData();
+
 
 // ***************************************************************AUDIO API CALLS************************************************************************************
 
@@ -365,22 +469,46 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ************************************************************************************************************************************************************************
 
-  init();
+  // Initialize the application
+  init().catch(error => {
+    console.error("Failed to initialize:", error);
+  });
+  
   const isMobile = window.matchMedia("(max-width: 767px)").matches;
   let CONFIG = [];
   let INTERACTION_DATA = [];
 
   // ============================================= MODEL INITIALIZATION AND CONFIGURATION FUNCTIONS =============================================
 
-  function init() {
-    // Set lead ID first before using it in sourceLink
-    setLeadId();
-    
+  async function init() {
+    fetchConfig();
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     firstPageVisited = window.location.href;
     country = Intl.DateTimeFormat().resolvedOptions().timeZone;
     source = getSource();
-    const MODEL_PATH = BASE_MODEL.model_url;
+    
+    // Get avatar data to determine which model to load
+    const avatarData = await getAvatarData();
+    let currentAvatar = avatarData && avatarData.length > 0 ? avatarData[0] : null;
+    
+    console.log("Avatar data received:", avatarData);
+    console.log("Current avatar:", currentAvatar);
+    
+    // Determine model and texture based on avatar_name
+    let MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST;
+    
+    if (currentAvatar && currentAvatar.avatar_name === "Girl") {
+      MODEL_PATH = GIRL_BASE_MODEL.model_url;
+      TEXTURE_PATH = GIRL_MODEL_TEXTURE;
+      ANIMATION_LIST = GIRL_ANIMATION_LIST;
+      console.log("Loading Girl avatar with:", { MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST });
+    } else {
+      // Default to Steve
+      MODEL_PATH = STEVE_BASE_MODEL.model_url;
+      TEXTURE_PATH = STEVE_MODEL_TEXTURE;
+      ANIMATION_LIST = STEVE_ANIMATION_LIST;
+      console.log("Loading Steve avatar with:", { MODEL_PATH, TEXTURE_PATH, ANIMATION_LIST });
+    }
 
     // Initialize possibleAnims array
     possibleAnims = [];
@@ -390,11 +518,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
     sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
-    // sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=82408252-28a4-422d-94be-e1c5fba157d0&parentSiteUrl=${parentSiteUrl}`;
-    
-    // Now fetch config after leadId is set and sourceLink is constructed
-    fetchConfig();
-    
     if (document.body) {
       document.body.appendChild(fallbackLoader);
     } else {
@@ -498,7 +621,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     camera.position.y = -3;
 
     let stacy_txt = new THREE.TextureLoader().load(
-      MODEL_TEXTURE,
+      TEXTURE_PATH,
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
       },
@@ -506,6 +629,45 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       (error) => console.error("Error loading texture:", error)
     );
     stacy_txt.flipY = false;
+
+    // Load hair textures if Girl avatar
+    let hair_texture = null;
+    let hair_opacity_texture = null;
+    let hair_material = null;
+    
+    if (currentAvatar && currentAvatar.avatar_name === "Girl") {
+      hair_texture = new THREE.TextureLoader().load(
+        GIRL_MODEL_HAIR_TEXTURE,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+        },
+        undefined,
+        (error) => console.error("Error loading hair texture:", error)
+      );
+      hair_texture.flipY = false;
+      
+      hair_opacity_texture = new THREE.TextureLoader().load(
+        GIRL_MODEL_HAIR_OPACITY_TEXTURE,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+        },
+        undefined,
+        (error) => console.error("Error loading hair opacity texture:", error)
+      );
+      hair_opacity_texture.flipY = false;
+      
+      hair_material = new THREE.MeshStandardMaterial({
+        map: hair_texture,
+        alphaMap: hair_opacity_texture,
+        transparent: true,
+        skinning: true,
+        metalness: 0.1,
+        roughness: 0.8,
+        color: new THREE.Color(0xffffff),
+        emissive: new THREE.Color(0x000000),
+        envMapIntensity: 1.0,
+      });
+    }
 
     const stacy_mtl = new THREE.MeshStandardMaterial({
       map: stacy_txt,
@@ -540,7 +702,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
               o.receiveShadow = false;
             }
 
-            o.material = stacy_mtl.clone();
+            // Apply hair material to hair meshes if Girl avatar
+            if (currentAvatar && currentAvatar.avatar_name === "Girl" && hair_material) {
+              // Check if this mesh is hair (common hair mesh names)
+              const isHairMesh = 
+                o.name.toLowerCase().includes("hair") ||
+                o.name.toLowerCase().includes("cc_base_hair") ||
+                o.name.toLowerCase().includes("hair_") ||
+                o.parent?.name?.toLowerCase().includes("hair");
+              
+              if (isHairMesh) {
+                o.material = hair_material.clone();
+                console.log("Applied hair material to mesh:", o.name);
+              } else {
+                o.material = stacy_mtl.clone();
+              }
+            } else {
+              o.material = stacy_mtl.clone();
+            }
 
             // Enhance material colors
             if (o.material instanceof THREE.MeshStandardMaterial) {
@@ -625,12 +804,91 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           type: "pageVisit",
           source: getSource(),
         });
+
+        // Mark model as fully loaded and ready
+        window.modelFullyLoaded = true;
       },
       undefined,
       function (error) {
         console.error("Error loading model:", error);
       }
     );
+
+    // ============================================= ANIMATION LOADING FUNCTIONS =================================================================
+
+    // Define loadAdditionalAnimations function inside init to access ANIMATION_LIST
+    function loadAdditionalAnimations(gltf) {
+      const loader = new THREE.GLTFLoader();
+
+      ANIMATION_LIST.forEach((animationItem, index) => {
+        loader.load(
+          animationItem.model_url,
+          function (newGLTF) {
+            if (!newGLTF.animations || newGLTF.animations.length === 0) {
+              console.error(
+                `No animations found in the loaded GLTF file for ${animationItem.animation}.`
+              );
+              return;
+            }
+
+            // Add new animations to the existing GLTF animations
+            newGLTF.animations.forEach((anim) => {
+              // Clone the animation and filter tracks
+              let clonedAnim = anim.clone();
+
+              // Create separate tracks for body and head/jaw
+              const bodyTracks = clonedAnim.tracks.filter(
+                (track) =>
+                  !track.name.includes("CC_Base_JawRoot") &&
+                  !track.name.includes("CC_Base_Head") &&
+                  !track.name.includes("neckbone")
+              );
+
+              const headTracks = clonedAnim.tracks.filter(
+                (track) =>
+                  track.name.includes("CC_Base_JawRoot") ||
+                  track.name.includes("CC_Base_Head") ||
+                  track.name.includes("neckbone")
+              );
+
+              // Create two separate animations
+              const bodyAnim = clonedAnim.clone();
+              bodyAnim.tracks = bodyTracks;
+              bodyAnim.name = `${animationItem.animation}_body`;
+
+              const headAnim = clonedAnim.clone();
+              headAnim.tracks = headTracks;
+              headAnim.name = `${animationItem.animation}_head`;
+
+              // Add both animations to the mixer
+              gltf.animations.push(bodyAnim);
+              gltf.animations.push(headAnim);
+
+              // Create actions for both animations
+              const bodyAction = mixer.clipAction(bodyAnim);
+              const headAction = mixer.clipAction(headAnim);
+
+              // Store both actions in possibleAnims
+              if (!possibleAnims) {
+                possibleAnims = [];
+              }
+              possibleAnims.push({
+                name: animationItem.animation,
+                bodyClip: bodyAction,
+                headClip: headAction,
+              });
+            });
+          },
+          undefined,
+          function (error) {
+            console.error(
+              `Error loading GLTF for ${animationItem.animation}:`,
+              error
+            );
+          }
+        );
+      });
+    }
 
     //====================================================Model Click Event Listener====================================================
 
@@ -759,148 +1017,37 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     floor.receiveShadow = true;
     floor.position.y = -12; // Adjusted floor position to match model
     scene.add(floor);
+
+    // Start the render loop after everything is initialized
+    update();
   }
 
-  // ============================================= ANIMATION LOADING FUNCTIONS =================================================================
 
-  function loadAdditionalAnimations(gltf) {
-    const loader = new THREE.GLTFLoader();
-
-    ANIMATION_LIST.forEach((animationItem, index) => {
-      loader.load(
-        animationItem.model_url,
-        function (newGLTF) {
-          if (!newGLTF.animations || newGLTF.animations.length === 0) {
-            console.error(
-              `No animations found in the loaded GLB file for ${animationItem.animation}.`
-            );
-            return;
-          }
-
-          // Add new animations to the existing GLTF animations
-          newGLTF.animations.forEach((anim) => {
-            // Clone the animation and filter tracks
-            let clonedAnim = anim.clone();
-
-            // Create separate tracks for body and head/jaw
-            const bodyTracks = clonedAnim.tracks.filter(
-              (track) =>
-                !track.name.includes("CC_Base_JawRoot") &&
-                !track.name.includes("CC_Base_Head") &&
-                !track.name.includes("neckbone")
-            );
-
-            const headTracks = clonedAnim.tracks.filter(
-              (track) =>
-                track.name.includes("CC_Base_JawRoot") ||
-                track.name.includes("CC_Base_Head") ||
-                track.name.includes("neckbone")
-            );
-
-            // Create two separate animations
-            const bodyAnim = clonedAnim.clone();
-            bodyAnim.tracks = bodyTracks;
-            bodyAnim.name = `${animationItem.animation}_body`;
-
-            const headAnim = clonedAnim.clone();
-            headAnim.tracks = headTracks;
-            headAnim.name = `${animationItem.animation}_head`;
-
-            // Add both animations to the mixer
-            gltf.animations.push(bodyAnim);
-            gltf.animations.push(headAnim);
-
-            // Create actions for both animations
-            const bodyAction = mixer.clipAction(bodyAnim);
-            const headAction = mixer.clipAction(headAnim);
-
-            // Store both actions in possibleAnims
-            if (!possibleAnims) {
-              possibleAnims = [];
-            }
-            possibleAnims.push({
-              name: animationItem.animation,
-              bodyClip: bodyAction,
-              headClip: headAction,
-            });
-          });
-        },
-        undefined,
-        function (error) {
-          console.error(
-            `Error loading GLTF for ${animationItem.animation}:`,
-            error
-          );
-        }
-      );
-    });
-  }
 
   // ============================================= SOURCE DETECTION FUNCTIONS =============================================
 
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
-    const url = new URL(path);
-    
-    // Check UTM parameters first
-    const utmSource = url.searchParams.get('utm_source');
-    const utmMedium = url.searchParams.get('utm_medium');
-    
-    console.log("🔍 Source detection debug:", {
-      referrer: referrer,
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      fullUrl: path
-    });
-    
-    // Handle UTM parameters
-    if (utmSource) {
-      const source = utmSource.toLowerCase();
-      const medium = utmMedium ? utmMedium.toLowerCase() : '';
-      
-      // Check for paid campaigns
-      if (medium.includes('paid') || medium.includes('cpc') || medium.includes('ppc')) {
-        if (source === 'google') return "paid_google";
-        if (source === 'bing') return "paid_bing";
-        if (source === 'linkedin') return "paid_linkedin";
-        if (source === 'facebook' || source === 'instagram') return "paid_meta";
-        if (source === 'youtube') return "paid_youtube";
-        if (source === 'reddit') return "paid_reddit";
-      }
-      
-      // Check for organic traffic
-      if (source === 'google') return "google";
-      if (source === 'yahoo') return "yahoo";
-      if (source === 'bing') return "bing";
-      if (source === 'youtube') return "youtube";
-      if (source === 'linkedin') return "linkedin";
-      if (source === 'reddit') return "reddit";
-    }
-    
-    // Check referrer
     if (referrer === "https://www.google.com/") return "google";
     else if (referrer === "https://www.yahoo.com/") return "yahoo";
     else if (referrer === "https://www.bing.com/") return "bing";
     else if (referrer === "https://www.youtube.com/") return "youtube";
     else if (referrer === "https://www.linkedin.com/") return "linkedin";
     else if (referrer === "https://www.reddit.com/") return "reddit";
-    
-    // Check for other tracking parameters
     else if (path.includes("gclid")) return "paid_google";
     else if (path.includes("msclkid")) return "paid_bing";
     else if (path.includes("li_fat_id")) return "paid_linkedin";
     else if (path.includes("fbclid")) return "paid_meta";
     else if (path.includes("wbraid")) return "paid_youtube";
     else if (path.includes("cid")) return "paid_reddit";
-    
-    // Default to direct
     else return "direct";
   }
 
   // ============================================= CONFIG FETCHING FUNCTIONS =============================================
 
   async function fetchConfig() {
+    setLeadId();
     try {
       const response = await fetch(
         `${ENDPOINT}/api/get-interaction?id=${leadId}`,
@@ -1045,15 +1192,16 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (mixer) {
       mixer.update(clock.getDelta());
     }
-    if (resizeRendererToDisplaySize(renderer)) {
+    if (renderer && resizeRendererToDisplaySize(renderer)) {
       const canvas = renderer.domElement;
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
-    renderer.render(scene, camera);
+    if (renderer && scene && camera) {
+      renderer.render(scene, camera);
+    }
     requestAnimationFrame(update);
   }
-  update();
 
   // ============================================= RESIZE RENDERER TO DISPLAY SIZE FUNCTIONS =============================================
 
@@ -1072,11 +1220,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     return needResize;
   }
 
-  let isFirstLandTriggered = false;
-  let currentlyAnimating = false;
-  let currentAnimationID = null;
-  let timeoutDisappear = null;
-  let isInteractionActive = false; // Add this flag at the top with other state variables
+
 
   // ============================================= PATH CHANGE EVENT FUNCTIONS =============================================
 
@@ -1292,550 +1436,559 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   }
 
   // ============================================= UI ANIMATION FUNCTIONS =============================================
-  // ============================================= OFFERS DATA FETCHING FUNCTIONS =============================================
-  let offers = [];
-  async function getOffersData () {
-    try {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/all_offers?user_id=eq.${user_id}`,
-        {
-          method: "GET",
-          headers: {
-            apikey: supabaseAnonKey,
-            Authorization: `Bearer ${supabaseAnonKey}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+ // ============================================= OFFERS DATA FETCHING FUNCTIONS =============================================
+ let offers = [];
+ async function getOffersData () {
+   try {
+     const response = await fetch(
+       `${supabaseUrl}/rest/v1/all_offers?user_id=eq.${user_id}`,
+       {
+         method: "GET",
+         headers: {
+           apikey: supabaseAnonKey,
+           Authorization: `Bearer ${supabaseAnonKey}`,
+           "Content-Type": "application/json",
+         },
+       }
+     );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+     if (!response.ok) {
+       throw new Error(`HTTP error! status: ${response.status}`);
+     }
 
-      offers = await response.json();
-      findAudienceType();
-      return offers;
+     offers = await response.json();
+     findAudienceType();
+     return offers;
 
-    } catch (error) {
-      return [];
-    }
+   } catch (error) {
+     return [];
+   }
+ }
+ getOffersData();
+
+ function findAudienceType () {
+   const generalVisitors = offers.filter(offer => offer.audience_type === "general_visitors");
+   const targetedLeads = offers.filter(offer => offer.audience_type === "target_leads");
+   findOfferForGeneralVisitors(generalVisitors);
+   findOfferForTargetedLeads(targetedLeads);
+ }
+
+ // Helper functions for offer session tracking
+ function hasOfferBeenShown(offerId) {
+   const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+   return shownOffers.includes(offerId);
+ }
+
+ function markOfferAsShown(offerId) {
+   const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
+   if (!shownOffers.includes(offerId)) {
+     shownOffers.push(offerId);
+     sessionStorage.setItem('shownOffers', JSON.stringify(shownOffers));
+   }
+ }
+
+ /**
+  * Processes offers for general visitors (non-targeted leads)
+  * Filters and evaluates each offer based on conditions
+  */
+ function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
+   filteredGeneralVisitorsOffers.forEach(offer => {
+     if (hasOfferBeenShown(offer.offer_id)) return;
+     
+     const conditions = buildOfferConditions(offer, true);
+     processOffer(offer, conditions, true);
+   });
+ }
+
+ /**
+  * Builds offer conditions object for evaluation
+  */
+ function buildOfferConditions(offer, includeTrafficLocation = true) {
+   const conditions = {
+     schedule: checkScheduleType(offer),
+     trigger: checkTriggerType(offer),
+     page: checkPageUrl(offer)
+   };
+   
+   if (includeTrafficLocation) {
+     conditions.traffic = checkTrafficSource(offer);
+     conditions.location = checkLocation(offer);
+   }
+   
+   return conditions;
+ }
+
+ /**
+  * Main offer processing function - evaluates conditions and sets up appropriate triggers
+  */
+ function processOffer(offer, conditions, includeTrafficLocation = true) {
+   const allConditionsMet = evaluateAllConditions(conditions, includeTrafficLocation);
+   console.log(conditions.trigger, conditions.schedule, conditions.traffic, conditions.location, conditions.page, allConditionsMet, "allConditionsMet");
+   
+   if (!allConditionsMet) return;
+   
+   handleOfferTrigger(offer, conditions.trigger);
+ }
+
+ /**
+  * Evaluates if all offer conditions are met
+  */
+ function evaluateAllConditions(conditions, includeTrafficLocation) {
+   if (includeTrafficLocation) {
+     return conditions.schedule && conditions.traffic && conditions.location && conditions.page;
+   }
+   return conditions.schedule && conditions.page;
+ }
+
+ /**
+  * Routes offer to appropriate trigger setup based on trigger type
+  */
+ function handleOfferTrigger(offer, triggerType) {
+   switch (triggerType) {
+     case true:
+       showOfferUI(offer);
+       break;
+     case 'both':
+       setupBothTrigger(offer);
+       break;
+     case 'scroll':
+       setupScrollTrigger(offer);
+       break;
+     case 'time_spend':
+       setupTimeSpendTrigger(offer);
+       break;
+   }
+ }
+
+ /**
+  * Checks if offer is within its scheduled time window
+  * Supports start-only and range-based scheduling
+  */
+ function checkScheduleType(offer) {
+   const now = new Date();
+   const startDate = new Date(offer.start_date);
+   const isAfterStart = now >= startDate;
+   
+   if (offer.schedule_type === "start" || (!offer.schedule_type && !offer.end_date)) {
+     return isAfterStart;
+   }
+   
+   if (offer.schedule_type === "range" || offer.end_date) {
+     const endDate = new Date(offer.end_date);
+     return isAfterStart && now <= endDate;
+   }
+   
+   return isAfterStart;
+ }
+
+ /**
+  * Checks if current traffic source matches offer's allowed sources
+  */
+ function checkTrafficSource(offer) {
+   return !offer.traffic_source?.length || offer.traffic_source.includes(getSource());
+ }
+
+ /**
+  * Checks if user's timezone matches offer's target locations
+  */
+ function checkLocation(offer) {
+   return !offer.source_location?.length || offer.source_location.includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
+ }
+
+/**
+ * Determines the trigger type for the offer
+ * Returns: 'both', 'scroll', 'time_spend', or true (immediate)
+ */
+function checkTriggerType(offer) {
+  // Check if both scroll and time conditions are present
+  const hasScrollCondition = offer.scroll_depth?.is_scroll_enabled;
+  const hasTimeCondition = offer.time_spend?.time_spend && parseInt(offer.time_spend.time_spend) > 0;
+  
+  if (hasScrollCondition && hasTimeCondition) {
+    return 'both';
   }
-  getOffersData();
+  
+  if (offer.offer_trigger_type === 'both') return 'both';
+  if (offer.offer_trigger_type === 'scroll') return 'scroll';
+  if (offer.offer_trigger_type === 'time_spend') return 'time_spend';
+  return true;
+}
 
-  function findAudienceType () {
-    const generalVisitors = offers.filter(offer => offer.audience_type === "general_visitors");
-    const targetedLeads = offers.filter(offer => offer.audience_type === "target_leads");
-    findOfferForGeneralVisitors(generalVisitors);
-    findOfferForTargetedLeads(targetedLeads);
+ /**
+  * Checks if current page URL matches offer's target page
+  * Handles full URLs, relative paths, and pathname extraction
+  */
+ function checkPageUrl(offer) {
+   if (!offer.page_url) return true;
+   
+   const currentPathname = window.location.pathname;
+   let offerPathname = offer.page_url;
+   
+   try {
+     if (offer.page_url.startsWith('http://') || offer.page_url.startsWith('https://')) {
+       offerPathname = new URL(offer.page_url).pathname;
+     } else if (!offer.page_url.startsWith('/')) {
+       offerPathname = '/' + offer.page_url;
+     }
+   } catch (error) {
+     offerPathname = offer.page_url;
+   }
+   
+   return currentPathname === offerPathname;
+ }
+
+ /**
+  * Sets up scroll-based trigger for offer display
+  * Supports 'between' and 'above' scroll depth types
+  */
+ function setupScrollTrigger(offer) {
+   const scrollConfig = extractScrollConfig(offer);
+   if (!scrollConfig.isEnabled) return;
+
+   const scrollHandler = createScrollHandler(offer, scrollConfig);
+   window.addEventListener('scroll', scrollHandler);
+ }
+
+ /**
+  * Extracts and validates scroll configuration from offer
+  */
+ function extractScrollConfig(offer) {
+   const scrollDepth = offer.scroll_depth;
+   return {
+     isEnabled: scrollDepth?.is_scroll_enabled,
+     min: parseInt(scrollDepth?.min) || 0,
+     max: parseInt(scrollDepth?.max) || 100,
+     type: scrollDepth?.scroll_depth || 'between'
+   };
+ }
+
+ /**
+  * Creates scroll event handler for offer triggering
+  */
+ function createScrollHandler(offer, scrollConfig) {
+   const handler = () => {
+     const scrollPercent = calculateScrollPercentage();
+     const shouldTrigger = evaluateScrollCondition(scrollPercent, scrollConfig);
+     
+     if (shouldTrigger) {
+       window.removeEventListener('scroll', handler);
+       showOfferUI(offer);
+     }
+   };
+   
+   return handler;
+ }
+
+ /**
+  * Calculates current scroll percentage of the page
+  */
+ function calculateScrollPercentage() {
+   return ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+ }
+
+/**
+ * Evaluates if scroll condition is met based on scroll depth type
+ */
+function evaluateScrollCondition(scrollPercent, scrollConfig) {
+  if (scrollConfig.type === 'between') {
+    return scrollPercent >= scrollConfig.min && scrollPercent <= scrollConfig.max;
+  } else if (scrollConfig.type === 'above') {
+    return scrollPercent >= scrollConfig.max;
   }
+  return false;
+}
 
-  // Helper functions for offer session tracking
-  function hasOfferBeenShown(offerId) {
-    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
-    return shownOffers.includes(offerId);
-  }
+ /**
+  * Sets up time-based trigger for offer display
+  * Triggers offer after specified time has been spent on page
+  */
+ function setupTimeSpendTrigger(offer) {
+   const timeConfig = extractTimeConfig(offer);
+   if (!timeConfig.isEnabled) return;
 
-  function markOfferAsShown(offerId) {
-    const shownOffers = JSON.parse(sessionStorage.getItem('shownOffers') || '[]');
-    if (!shownOffers.includes(offerId)) {
-      shownOffers.push(offerId);
-      sessionStorage.setItem('shownOffers', JSON.stringify(shownOffers));
-    }
-  }
+   const timeInterval = createTimeHandler(offer, timeConfig);
+ }
 
-  /**
-   * Processes offers for general visitors (non-targeted leads)
-   * Filters and evaluates each offer based on conditions
-   */
-  function findOfferForGeneralVisitors (filteredGeneralVisitorsOffers) {
-    filteredGeneralVisitorsOffers.forEach(offer => {
-      if (hasOfferBeenShown(offer.offer_id)) return;
-      
-      const conditions = buildOfferConditions(offer, true);
-      processOffer(offer, conditions, true);
-    });
-  }
+/**
+ * Extracts and validates time configuration from offer
+ */
+function extractTimeConfig(offer) {
+  const timeSpend = offer.time_spend;
+  return {
+    isEnabled: timeSpend?.time_spend && parseInt(timeSpend.time_spend) > 0,
+    triggerTime: parseInt(timeSpend?.time_spend) || 0
+  };
+}
 
-  /**
-   * Builds offer conditions object for evaluation
-   */
-  function buildOfferConditions(offer, includeTrafficLocation = true) {
-    const conditions = {
-      schedule: checkScheduleType(offer),
-      trigger: checkTriggerType(offer),
-      page: checkPageUrl(offer)
-    };
-    
-    if (includeTrafficLocation) {
-      conditions.traffic = checkTrafficSource(offer);
-      conditions.location = checkLocation(offer);
-    }
-    
-    return conditions;
-  }
+ /**
+  * Creates time interval handler for offer triggering
+  */
+ function createTimeHandler(offer, timeConfig) {
+   const pageLoadTime = Date.now();
+   let hasTriggered = false;
+   
+   return setInterval(() => {
+     if (hasTriggered) return;
+     const timeSpent = (Date.now() - pageLoadTime) / 1000;
+     if (timeSpent >= timeConfig.triggerTime) {
+       hasTriggered = true;
+       clearInterval(arguments.callee);
+       showOfferUI(offer);
+     }
+   }, 1000);
+ }
 
-  /**
-   * Main offer processing function - evaluates conditions and sets up appropriate triggers
-   */
-  function processOffer(offer, conditions, includeTrafficLocation = true) {
-    const allConditionsMet = evaluateAllConditions(conditions, includeTrafficLocation);
-    console.log(conditions.trigger, conditions.schedule, conditions.traffic, conditions.location, conditions.page, allConditionsMet, "allConditionsMet");
-    
-    if (!allConditionsMet) return;
-    
-    handleOfferTrigger(offer, conditions.trigger);
-  }
+ /**
+  * Sets up combined scroll and time-based trigger for offer display
+  * Time tracking only starts when scroll condition is met
+  */
+ function setupBothTrigger(offer) {
+   const config = extractBothTriggerConfig(offer);
+   if (!config.isScrollEnabled && !config.isTimeEnabled) return;
 
-  /**
-   * Evaluates if all offer conditions are met
-   */
-  function evaluateAllConditions(conditions, includeTrafficLocation) {
-    if (includeTrafficLocation) {
-      return conditions.schedule && conditions.traffic && conditions.location && conditions.page;
-    }
-    return conditions.schedule && conditions.page;
-  }
+   const state = initializeTriggerState();
+   const handlers = createBothTriggerHandlers(offer, config, state);
+   
+   setupEventListeners(config, handlers, offer, state);
+ }
 
-  /**
-   * Routes offer to appropriate trigger setup based on trigger type
-   */
-  function handleOfferTrigger(offer, triggerType) {
-    switch (triggerType) {
-      case true:
-        showOfferUI(offer);
-        break;
-      case 'both':
-        setupBothTrigger(offer);
-        break;
-      case 'scroll':
-        setupScrollTrigger(offer);
-        break;
-      case 'time_spend':
-        setupTimeSpendTrigger(offer);
-        break;
-    }
-  }
-
-  /**
-   * Checks if offer is within its scheduled time window
-   * Supports start-only and range-based scheduling
-   */
-  function checkScheduleType(offer) {
-    const now = new Date();
-    const startDate = new Date(offer.start_date);
-    const isAfterStart = now >= startDate;
-    
-    if (offer.schedule_type === "start" || (!offer.schedule_type && !offer.end_date)) {
-      return isAfterStart;
-    }
-    
-    if (offer.schedule_type === "range" || offer.end_date) {
-      const endDate = new Date(offer.end_date);
-      return isAfterStart && now <= endDate;
-    }
-    
-    return isAfterStart;
-  }
-
-  /**
-   * Checks if current traffic source matches offer's allowed sources
-   */
-  function checkTrafficSource(offer) {
-    return !offer.traffic_source?.length || offer.traffic_source.includes(getSource());
-  }
-
-  /**
-   * Checks if user's timezone matches offer's target locations
-   */
-  function checkLocation(offer) {
-    return !offer.source_location?.length || offer.source_location.includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  }
-
-  /**
-   * Determines the trigger type for the offer
-   * Returns: 'both', 'scroll', 'time_spend', or true (immediate)
-   */
-  function checkTriggerType(offer) {
-    if (offer.offer_trigger_type === 'both') return 'both';
-    if (offer.offer_trigger_type === 'scroll') return 'scroll';
-    if (offer.offer_trigger_type === 'time_spend') return 'time_spend';
-    return true;
-  }
-
-  /**
-   * Checks if current page URL matches offer's target page
-   * Handles full URLs, relative paths, and pathname extraction
-   */
-  function checkPageUrl(offer) {
-    if (!offer.page_url) return true;
-    
-    const currentPathname = window.location.pathname;
-    let offerPathname = offer.page_url;
-    
-    try {
-      if (offer.page_url.startsWith('http://') || offer.page_url.startsWith('https://')) {
-        offerPathname = new URL(offer.page_url).pathname;
-      } else if (!offer.page_url.startsWith('/')) {
-        offerPathname = '/' + offer.page_url;
-      }
-    } catch (error) {
-      offerPathname = offer.page_url;
-    }
-    
-    return currentPathname === offerPathname;
-  }
-
-  /**
-   * Sets up scroll-based trigger for offer display
-   * Supports 'between' and 'above' scroll depth types
-   */
-  function setupScrollTrigger(offer) {
-    const scrollConfig = extractScrollConfig(offer);
-    if (!scrollConfig.isEnabled) return;
-
-    const scrollHandler = createScrollHandler(offer, scrollConfig);
-    window.addEventListener('scroll', scrollHandler);
-  }
-
-  /**
-   * Extracts and validates scroll configuration from offer
-   */
-  function extractScrollConfig(offer) {
-    const scrollDepth = offer.scroll_depth;
-    return {
-      isEnabled: scrollDepth?.is_scroll_enabled,
+/**
+ * Extracts configuration for both scroll and time triggers
+ */
+function extractBothTriggerConfig(offer) {
+  const scrollDepth = offer.scroll_depth;
+  const timeSpend = offer.time_spend;
+  
+  return {
+    isScrollEnabled: scrollDepth?.is_scroll_enabled,
+    isTimeEnabled: timeSpend?.time_spend && parseInt(timeSpend.time_spend) > 0,
+    scroll: {
       min: parseInt(scrollDepth?.min) || 0,
       max: parseInt(scrollDepth?.max) || 100,
       type: scrollDepth?.scroll_depth || 'between'
-    };
-  }
-
-  /**
-   * Creates scroll event handler for offer triggering
-   */
-  function createScrollHandler(offer, scrollConfig) {
-    const handler = () => {
-      const scrollPercent = calculateScrollPercentage();
-      const shouldTrigger = evaluateScrollCondition(scrollPercent, scrollConfig);
-      
-      if (shouldTrigger) {
-        window.removeEventListener('scroll', handler);
-        showOfferUI(offer);
-      }
-    };
-    
-    return handler;
-  }
-
-  /**
-   * Calculates current scroll percentage of the page
-   */
-  function calculateScrollPercentage() {
-    return ((window.scrollY || window.pageYOffset) / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-  }
-
-  /**
-   * Evaluates if scroll condition is met based on scroll depth type
-   */
-  function evaluateScrollCondition(scrollPercent, scrollConfig) {
-    if (scrollConfig.type === 'between') {
-      return scrollPercent >= scrollConfig.min && scrollPercent <= scrollConfig.max;
-    } else if (scrollConfig.type === 'above') {
-      return scrollPercent >= scrollConfig.min;
-    }
-    return false;
-  }
-
-  /**
-   * Sets up time-based trigger for offer display
-   * Triggers offer after specified time has been spent on page
-   */
-  function setupTimeSpendTrigger(offer) {
-    const timeConfig = extractTimeConfig(offer);
-    if (!timeConfig.isEnabled) return;
-
-    const timeInterval = createTimeHandler(offer, timeConfig);
-  }
-
-  /**
-   * Extracts and validates time configuration from offer
-   */
-  function extractTimeConfig(offer) {
-    const timeSpend = offer.time_spend;
-    return {
-      isEnabled: timeSpend?.is_delay_enabled,
+    },
+    time: {
       triggerTime: parseInt(timeSpend?.time_spend) || 0
-    };
-  }
-
-  /**
-   * Creates time interval handler for offer triggering
-   */
-  function createTimeHandler(offer, timeConfig) {
-    const pageLoadTime = Date.now();
-    let hasTriggered = false;
-    
-    return setInterval(() => {
-      if (hasTriggered) return;
-      const timeSpent = (Date.now() - pageLoadTime) / 1000;
-      if (timeSpent >= timeConfig.triggerTime) {
-        hasTriggered = true;
-        clearInterval(arguments.callee);
-        showOfferUI(offer);
-      }
-    }, 1000);
-  }
-
-  /**
-   * Sets up combined scroll and time-based trigger for offer display
-   * Time tracking only starts when scroll condition is met
-   */
-  function setupBothTrigger(offer) {
-    const config = extractBothTriggerConfig(offer);
-    if (!config.isScrollEnabled && !config.isTimeEnabled) return;
-
-    const state = initializeTriggerState();
-    const handlers = createBothTriggerHandlers(offer, config, state);
-    
-    setupEventListeners(config, handlers, offer, state);
-  }
-
-  /**
-   * Extracts configuration for both scroll and time triggers
-   */
-  function extractBothTriggerConfig(offer) {
-    const scrollDepth = offer.scroll_depth;
-    const timeSpend = offer.time_spend;
-    
-    return {
-      isScrollEnabled: scrollDepth?.is_scroll_enabled,
-      isTimeEnabled: timeSpend?.is_delay_enabled,
-      scroll: {
-        min: parseInt(scrollDepth?.min) || 0,
-        max: parseInt(scrollDepth?.max) || 100,
-        type: scrollDepth?.scroll_depth || 'between'
-      },
-      time: {
-        triggerTime: parseInt(timeSpend?.time_spend) || 0
-      }
-    };
-  }
-
-  /**
-   * Initializes state variables for both trigger tracking
-   */
-  function initializeTriggerState() {
-    return {
-      hasTriggered: false,
-      scrollConditionMet: false,
-      timeConditionMet: false,
-      timeTrackingStarted: false,
-      timeStartTime: null,
-      timeInterval: null
-    };
-  }
-
-  /**
-   * Creates scroll and time handlers for both trigger
-   */
-  function createBothTriggerHandlers(offer, config, state) {
-    const scrollHandler = createBothScrollHandler(offer, config, state);
-    const timeHandler = createBothTimeHandler(offer, config, state);
-    
-    return { scrollHandler, timeHandler };
-  }
-
-  /**
-   * Creates scroll handler for both trigger scenario
-   */
-  function createBothScrollHandler(offer, config, state) {
-    const scrollHandler = () => {
-      if (state.hasTriggered) return;
-      
-      const scrollPercent = calculateScrollPercentage();
-      const scrollMet = evaluateScrollCondition(scrollPercent, config.scroll);
-      
-      handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler);
-    };
-    
-    return scrollHandler;
-  }
-
-  /**
-   * Handles changes in scroll condition for both trigger
-   */
-  function handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler) {
-    if (scrollMet && !state.scrollConditionMet) {
-      // User entered scroll range
-      state.scrollConditionMet = true;
-      startTimeTrackingIfNeeded(offer, config, state, scrollHandler);
-      
-      if (config.isScrollEnabled && !config.isTimeEnabled) {
-        triggerOffer(offer, state, scrollHandler);
-      }
-    } else if (!scrollMet && state.scrollConditionMet) {
-      // User left scroll range
-      state.scrollConditionMet = false;
-      resetTimeTracking(state);
     }
-  }
+  };
+}
 
-  /**
-   * Starts time tracking when scroll condition is met
-   */
-  function startTimeTrackingIfNeeded(offer, config, state, scrollHandler) {
-    if (config.isTimeEnabled && !state.timeTrackingStarted) {
-      state.timeTrackingStarted = true;
-      state.timeStartTime = Date.now();
-      
-      state.timeInterval = setInterval(() => {
-        if (state.hasTriggered) return;
-        const timeSpent = (Date.now() - state.timeStartTime) / 1000;
-        if (timeSpent >= config.time.triggerTime) {
-          state.timeConditionMet = true;
-          checkBothConditions(offer, config, state, scrollHandler);
-        }
-      }, 1000);
-    }
-  }
+ /**
+  * Initializes state variables for both trigger tracking
+  */
+ function initializeTriggerState() {
+   return {
+     hasTriggered: false,
+     scrollConditionMet: false,
+     timeConditionMet: false,
+     timeTrackingStarted: false,
+     timeStartTime: null,
+     timeInterval: null
+   };
+ }
 
-  /**
-   * Resets time tracking when user scrolls out of range
-   */
-  function resetTimeTracking(state) {
-    if (state.timeInterval) {
-      clearInterval(state.timeInterval);
-      state.timeInterval = null;
-      state.timeTrackingStarted = false;
-      state.timeConditionMet = false;
-    }
-  }
+ /**id
+  * Creates scroll and time handlers for both trigger
+  */
+ function createBothTriggerHandlers(offer, config, state) {
+   const scrollHandler = createBothScrollHandler(offer, config, state);
+   const timeHandler = createBothTimeHandler(offer, config, state);
+   
+   return { scrollHandler, timeHandler };
+ }
 
-  /**
-   * Creates time handler for both trigger scenario
-   */
-  function createBothTimeHandler(offer, config, state) {
-    return () => {
-      if (state.hasTriggered) return;
-      const timeSpent = (Date.now() - state.timeStartTime) / 1000;
-      if (timeSpent >= config.time.triggerTime) {
-        state.timeConditionMet = true;
-        triggerOffer(offer, state);
-      }
-    };
-  }
+ /**
+  * Creates scroll handler for both trigger scenario
+  */
+ function createBothScrollHandler(offer, config, state) {
+   const scrollHandler = () => {
+     if (state.hasTriggered) return;
+     
+     const scrollPercent = calculateScrollPercentage();
+     const scrollMet = evaluateScrollCondition(scrollPercent, config.scroll);
+     
+     handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler);
+   };
+   
+   return scrollHandler;
+ }
 
-  /**
-   * Checks if both scroll and time conditions are met
-   */
-  function checkBothConditions(offer, config, state, scrollHandler) {
-    if (config.isScrollEnabled && config.isTimeEnabled && 
-        state.scrollConditionMet && state.timeConditionMet) {
-      triggerOffer(offer, state, scrollHandler);
-    }
-  }
+ /**
+  * Handles changes in scroll condition for both trigger
+  */
+ function handleScrollConditionChange(offer, config, state, scrollMet, scrollHandler) {
+   if (scrollMet && !state.scrollConditionMet) {
+     // User entered scroll range
+     state.scrollConditionMet = true;
+     startTimeTrackingIfNeeded(offer, config, state, scrollHandler);
+     
+     if (config.isScrollEnabled && !config.isTimeEnabled) {
+       triggerOffer(offer, state, scrollHandler);
+     }
+   } else if (!scrollMet && state.scrollConditionMet) {
+     // User left scroll range
+     state.scrollConditionMet = false;
+     resetTimeTracking(state);
+   }
+ }
 
-  /**
-   * Triggers the offer and cleans up event listeners
-   */
-  function triggerOffer(offer, state, scrollHandler) {
-    if (state.hasTriggered) return;
-    state.hasTriggered = true;
-    
-    if (state.timeInterval) {
-      clearInterval(state.timeInterval);
-    }
-    
-    if (scrollHandler) {
-      window.removeEventListener('scroll', scrollHandler);
-    }
-    
-    showOfferUI(offer);
-  }
+ /**
+  * Starts time tracking when scroll condition is met
+  */
+ function startTimeTrackingIfNeeded(offer, config, state, scrollHandler) {
+   if (config.isTimeEnabled && !state.timeTrackingStarted) {
+     state.timeTrackingStarted = true;
+     state.timeStartTime = Date.now();
+     
+     state.timeInterval = setInterval(() => {
+       if (state.hasTriggered) return;
+       const timeSpent = (Date.now() - state.timeStartTime) / 1000;
+       if (timeSpent >= config.time.triggerTime) {
+         state.timeConditionMet = true;
+         checkBothConditions(offer, config, state, scrollHandler);
+       }
+     }, 1000);
+   }
+ }
 
-  /**
-   * Sets up event listeners for both trigger scenario
-   */
-  function setupEventListeners(config, handlers, offer, state) {
-    if (config.isScrollEnabled) {
-      window.addEventListener('scroll', handlers.scrollHandler);
-    }
-    
-    // If only time is enabled, start timer immediately
-    if (config.isTimeEnabled && !config.isScrollEnabled) {
-      state.timeStartTime = Date.now();
-      state.timeInterval = setInterval(() => {
-        handlers.timeHandler();
-        if (state.timeConditionMet) {
-          triggerOffer(offer, state, null);
-        }
-      }, 1000);
-    }
-  }
+ /**
+  * Resets time tracking when user scrolls out of range
+  */
+ function resetTimeTracking(state) {
+   if (state.timeInterval) {
+     clearInterval(state.timeInterval);
+     state.timeInterval = null;
+     state.timeTrackingStarted = false;
+     state.timeConditionMet = false;
+   }
+ }
 
-  /**
-   * Displays the offer UI with configured animation and settings
-   * Marks offer as shown to prevent duplicate displays
-   */
-  function showOfferUI(offer) {
-    markOfferAsShown(offer.offer_id);
-    
-    const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
-    const animationConfig = buildAnimationConfig(offer, format);
+ /**
+  * Creates time handler for both trigger scenario
+  */
+ function createBothTimeHandler(offer, config, state) {
+   return () => {
+     if (state.hasTriggered) return;
+     const timeSpent = (Date.now() - state.timeStartTime) / 1000;
+     if (timeSpent >= config.time.triggerTime) {
+       state.timeConditionMet = true;
+       triggerOffer(offer, state);
+     }
+   };
+ }
 
-    showUIAnimation(animationConfig);
-  }
+ /**
+  * Checks if both scroll and time conditions are met
+  */
+ function checkBothConditions(offer, config, state, scrollHandler) {
+   if (config.isScrollEnabled && config.isTimeEnabled && 
+       state.scrollConditionMet && state.timeConditionMet) {
+     triggerOffer(offer, state, scrollHandler);
+   }
+ }
 
-  /**
-   * Builds animation configuration object for offer display
-   */
-  function buildAnimationConfig(offer, format) {
-    const config = {
-      text: offer.offer_message || "Special offer for you!",
-      time: offer.offer_timeout || 10,
-      hasClose: true,
-      animation: offer.animation || "offer",
-      cta: [{
-        text: offer.button_label || "Click",
-        bg: offer.button_color || "#007AFF",
-        color: offer.button_label_color || "#ffffff",
-        format,
-        destination_page: offer.action_url || ""
-      }],
-      id: offer.offer_id,
-      format,
-      destination_page: offer.action_url || "",
-      audioDuration: offer.duration || 0,
-      interactionAudio: offer.audio_url || ""
-    };
+ /**
+  * Triggers the offer and cleans up event listeners
+  */
+ function triggerOffer(offer, state, scrollHandler) {
+   if (state.hasTriggered) return;
+   state.hasTriggered = true;
+   
+   if (state.timeInterval) {
+     clearInterval(state.timeInterval);
+   }
+   
+   if (scrollHandler) {
+     window.removeEventListener('scroll', scrollHandler);
+   }
+   
+   showOfferUI(offer);
+ }
 
-    if (offer.offer_format === "image_based" && offer.offer_image) {
-      config.imageUrl = offer.offer_image;
-    }
+ /**
+  * Sets up event listeners for both trigger scenario
+  */
+ function setupEventListeners(config, handlers, offer, state) {
+   if (config.isScrollEnabled) {
+     window.addEventListener('scroll', handlers.scrollHandler);
+   }
+   
+   // If only time is enabled, start timer immediately
+   if (config.isTimeEnabled && !config.isScrollEnabled) {
+     state.timeStartTime = Date.now();
+     state.timeInterval = setInterval(() => {
+       handlers.timeHandler();
+       if (state.timeConditionMet) {
+         triggerOffer(offer, state, null);
+       }
+     }, 1000);
+   }
+ }
 
-    return config;
-  }
+ /**
+  * Displays the offer UI with configured animation and settings
+  * Marks offer as shown to prevent duplicate displays
+  */
+ function showOfferUI(offer) {
+   markOfferAsShown(offer.offer_id);
+   
+   const format = offer.offer_objective === "lead_generation" ? "leadGen" : "pageVisit";
+   const animationConfig = buildAnimationConfig(offer, format);
 
-  function findOfferForTargetedLeads (filteredTargetedOffers) {
-    const currentLeadId = localStorage.getItem("leadId");
-    if (!currentLeadId) return;
+   showUIAnimation(animationConfig);
+ }
 
-    filteredTargetedOffers.forEach(offer => {
-      if (hasOfferBeenShown(offer.offer_id)) return;
-      if (!offer.targeted_leads?.includes(currentLeadId)) return;
-      
-      const conditions = {
-        schedule: checkScheduleType(offer),
-        trigger: checkTriggerType(offer),
-        page: checkPageUrl(offer)
-      };
-      
-      processOffer(offer, conditions, false);
-    });
-  }
+ /**
+  * Builds animation configuration object for offer display
+  */
+ function buildAnimationConfig(offer, format) {
+   const config = {
+     text: offer.offer_message || "Special offer for you!",
+     time: offer.offer_timeout || 10,
+     hasClose: true,
+     animation: offer.animation || "offer",
+     cta: [{
+       text: offer.button_label || "Click",
+       bg: offer.button_color || "#007AFF",
+       color: offer.button_label_color || "#ffffff",
+       format,
+       destination_page: offer.action_url || ""
+     }],
+     id: offer.offer_id,
+     format,
+     destination_page: offer.action_url || "",
+     audioDuration: offer.duration || 0,
+     interactionAudio: offer.audio_url || ""
+   };
+
+   if (offer.offer_format === "image_based" && offer.offer_image) {
+     config.imageUrl = offer.offer_image;
+   }
+
+   return config;
+ }
+
+ function findOfferForTargetedLeads (filteredTargetedOffers) {
+   const currentLeadId = localStorage.getItem("leadId");
+   if (!currentLeadId) return;
+
+   filteredTargetedOffers.forEach(offer => {
+     if (hasOfferBeenShown(offer.offer_id)) return;
+     if (!offer.targeted_leads?.includes(currentLeadId)) return;
+     
+     const conditions = {
+       schedule: checkScheduleType(offer),
+       trigger: checkTriggerType(offer),
+       page: checkPageUrl(offer)
+     };
+     
+     processOffer(offer, conditions, false);
+   });
+ }
 
 
-  // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
+ // ============================================= END OF OFFERS DATA FETCHING FUNCTIONS =============================================
+
   // Global variable to store current frequency data
   let currentFrequencyData = {
     average: 0,
@@ -1843,7 +1996,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     min: 0,
     normalized: 0,
   };
-
 
   // Global audio context
   let audioContext = null;
@@ -2035,10 +2187,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding: 15px 13px;border-radius:16px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);max-width:${isMobile ? '280px' : '320px'}">
-              <img src="${config.imageUrl}" style="width:200px;height:200px;object-fit:cover;border-radius:8px;margin:auto"/>
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3)">
+              <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
               <div id="text-area">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;text-align:left; font-family: Inter, sans-serif;font-weight: 400; margin-top: 6px;">${config.text}</div>
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
               </div>
             </div>
           `;
@@ -2165,8 +2317,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.padding = "4px";
       closeBtn.style.border = "0";
       closeBtn.style.position = "absolute";
-      closeBtn.style.top = "-32px";
-      closeBtn.style.right = "-22px";
+      closeBtn.style.top = "-6px";
+      closeBtn.style.left = "-12px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -2273,9 +2425,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}`;
             showChatWindow();
           } else if (format === "pageVisit") {
-          
             if (destination_page)
-              window.open(`https://${destination_page}`, "_blank");
+              window.location.href = `https://${destination_page}`;
           } else if (ctaItem.format === "chat") {
             sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
             showChatWindow();
@@ -2290,7 +2441,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltipContainer.style.right = isMobile ? "100px" : "180px";
     tooltipContainer.style.bottom = isMobile ? "50px" : "120px";
     tooltipContainer.style.display = "block";
-    tooltipContainer.style.zIndex = "11";
 
     if (time) {
       timeoutDisappear = setTimeout(() => {
@@ -2320,7 +2470,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "230px" : "236px";
+    tooltipContainer.style.maxWidth = isMobile ? "260px" : "310px";
 
     tooltipContainer.style.fontSize = isMobile ? "14px" : "16px";
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
@@ -2354,7 +2504,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.alignItems = "center";
       closeBtn.style.zIndex = "99";
       closeBtn.style.cursor = "pointer";
-      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.1)";
+      closeBtn.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.3)";
 
       const closeImageIcon = document.createElement("img");
       closeImageIcon.src =
@@ -2442,9 +2592,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
-              window.open(`https://${destination_page}`, "_blank");
+              window.location.href = `https://${destination_page}`;
           }
-
         });
         ctaContainer.appendChild(btn);
       });
@@ -2455,8 +2604,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(tooltipContainer);
     const canvas = document.getElementById("threejs-canvas");
     const canvasBounds = canvas.getBoundingClientRect();
-    tooltipContainer.style.right = isMobile ? "90px" : "160px";
-    tooltipContainer.style.bottom = isMobile ? "12px" : "100px";
+    tooltipContainer.style.right = isMobile ? "90px" : "120px";
+    tooltipContainer.style.bottom = isMobile ? "12px" : "20px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -3131,26 +3280,26 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         });
       };
 
-      // Call initializeHeadTracking 3 seconds after the page is fully loaded
-      if (model) {
-        window.addEventListener("load", () => {
+      // Only initialize head tracking after model is fully loaded
+      const initializeHeadTrackingAfterModelLoad = () => {
+        // Check if model is loaded, has bones, and is fully ready
+        if (model && neck && window.modelFullyLoaded) {
           setTimeout(() => {
             initializeHeadTracking();
-          }, 3000);
-        });
-      } else {
-        // If model isn't loaded yet, wait for it
-        const checkModelInterval = setInterval(() => {
-          if (model) {
-            clearInterval(checkModelInterval);
-            window.addEventListener("load", () => {
-              setTimeout(() => {
-                initializeHeadTracking();
-              }, 3000);
-            });
-          }
-        }, 100);
-      }
+          }, 1000); // Small delay to ensure everything is settled
+        } else {
+          console.log("⏳ Waiting for model to be fully loaded...", {
+            model: !!model,
+            neck: !!neck,
+            modelFullyLoaded: !!window.modelFullyLoaded
+          });
+          // Check again in 500ms
+          setTimeout(initializeHeadTrackingAfterModelLoad, 500);
+        }
+      };
+
+      // Start checking for model readiness
+      initializeHeadTrackingAfterModelLoad();
     }
 
     // Initialize other interactions
@@ -3403,7 +3552,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           text: newVisitorInteraction?.message,
           time: 15,
           interactionAudio: newVisitorInteraction?.audio_url || "",
-          hasClose: true,
+          hasClose: false,
           animation: "wave",
           audioDuration: newVisitorInteraction?.audio_duration || 0,
           cta: [
