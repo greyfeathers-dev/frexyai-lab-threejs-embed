@@ -49,7 +49,8 @@ const ELEVENLABS_API_KEY =
 const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
-const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-staging.vercel.app";
+// const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-development.vercel.app";
+const CHATBOT_PAGE = "http://localhost:3000";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
@@ -69,8 +70,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -517,7 +518,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     fallbackLoader.id = "loader";
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
-    sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
+    sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
     if (document.body) {
       document.body.appendChild(fallbackLoader);
     } else {
@@ -2018,7 +2019,7 @@ function extractBothTriggerConfig(offer) {
       }
 
       const data = await getResponse.json();
-      const currentImpressions = data[0]?.impressions || 0;
+      const currentImpressions = Number(data[0]?.impressions) || 0;
       const newImpressions = currentImpressions + 1;
 
       // Update with incremented count
@@ -2072,7 +2073,7 @@ function extractBothTriggerConfig(offer) {
       }
 
       const data = await getResponse.json();
-      const currentClicks = data[0]?.clicks || 0;
+      const currentClicks = Number(data[0]?.clicks) || 0;
       const newClicks = currentClicks + 1;
 
       // Update with incremented count
@@ -2543,9 +2544,9 @@ function extractBothTriggerConfig(offer) {
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, '_blank');
           } else if (ctaItem.format === "chat") {
-            sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+            sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
             showChatWindow();
           }
         });
@@ -2711,7 +2712,7 @@ function extractBothTriggerConfig(offer) {
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
-              window.location.href = `https://${destination_page}`;
+              window.open(`https://${destination_page}`, '_blank');
           }
         });
         ctaContainer.appendChild(btn);
@@ -2858,7 +2859,7 @@ function extractBothTriggerConfig(offer) {
     }
     input.addEventListener("click", (e) => {
       e.preventDefault();
-      sourceLink = `${CHATBOT_PAGE}/chat?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+      sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
       showChatWindow();
     });
   }
@@ -2937,6 +2938,7 @@ function extractBothTriggerConfig(offer) {
   function showChatWindow() {
     const chat = document.getElementById("chatWindow");
     const chatbot = document.getElementById("chatbot-iframe");
+    localStorage.setItem('chatbotOpenKey', true);
 
     // Check if we have the data
     if (!INTERACTION_DATA || INTERACTION_DATA.length === 0) {
@@ -3537,7 +3539,7 @@ function extractBothTriggerConfig(offer) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            total_impressions: Number(interaction.total_impressions) + 1 || 0,
+            total_impressions: (Number(interaction.total_impressions) || 0) + 1,
           }),
         }
       );
