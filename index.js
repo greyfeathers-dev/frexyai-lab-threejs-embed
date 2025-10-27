@@ -50,7 +50,8 @@ const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
 // const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-development.vercel.app";
-const CHATBOT_PAGE = "http://localhost:3000";
+// const CHATBOT_PAGE = "http://localhost:3000";
+const CHATBOT_PAGE = "frexyai-lab-saas-dashboard-staging-new.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
