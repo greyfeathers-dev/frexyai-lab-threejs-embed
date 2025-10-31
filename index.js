@@ -50,9 +50,9 @@ const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
 // const CHATBOT_PAGE = "https://frexyai-lab-saas-dashboard-development.vercel.app";
-// const CHATBOT_PAGE = "http://localhost:3000";
-const CHATBOT_PAGE =
-  "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
+const CHATBOT_PAGE = "http://localhost:3000";
+// const CHATBOT_PAGE =
+//   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
@@ -72,8 +72,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -616,7 +616,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     fallbackLoader.id = "loader";
     const merchantId = localStorage.getItem("merchantId");
     const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
-    sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${merchantId}&parentSiteUrl=${parentSiteUrl}`;
+    sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${user_id}&parentSiteUrl=${parentSiteUrl}`;
     if (document.body) {
       document.body.appendChild(fallbackLoader);
     } else {
@@ -1264,23 +1264,28 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (!leadId) return;
 
     try {
-      const response = await fetch(`${ENDPOINT}/api/add-activity`, {
-        method: "POST",
-        body: JSON.stringify({
-          id: leadId,
-          activity: {
-            ...activity,
-            page_source: window.location.href,
-            created_at: Date.now(),
+      const response = await fetch(
+       `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            id: leadId,
+            activity: {
+              ...activity,
+              page_source: window.location.href,
+              created_at: Date.now(),
+            },
+          }),
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
           },
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+        }
+      );
 
       if (!response.ok) {
-        // throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
     } catch (error) {
       console.error("Error fetching config:", error);
@@ -2713,14 +2718,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           closeUI();
           if (format === "leadGen") {
             const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
-            console.log(parentSiteUrl, "parentSiteUrl");
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}`;
+            sourceLink = `${CHATBOT_PAGE}/chatbot?offerId=${id}&lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&parentSiteUrl=${parentSiteUrl}&mode=lead_generation&merchantId=${user_id}`;
+
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
               window.open(`https://${destination_page}`, "_blank");
           } else if (ctaItem.format === "chat") {
-            sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+            sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${user_id}`;
             showChatWindow();
           }
         });
@@ -2882,7 +2887,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           updateOfferClick(id);
           closeUI();
           if (format === "leadGen") {
-            sourceLink = `${CHATBOT_PAGE}/form/${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+            sourceLink = `${CHATBOT_PAGE}/chatbot?offerId=${id}?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&mode=lead_generation&merchantId=${user_id}`;
             showChatWindow();
           } else if (format === "pageVisit") {
             if (destination_page)
@@ -3033,7 +3038,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
     input.addEventListener("click", (e) => {
       e.preventDefault();
-      sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}`;
+      sourceLink = `${CHATBOT_PAGE}/chatbot?lead=${leadId}&source=${source}&country=${country}&firstPageVisited=${firstPageVisited}&conversion_page=${window.location.href}&merchantId=${user_id}`;
       showChatWindow();
     });
   }
