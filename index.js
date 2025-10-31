@@ -72,8 +72,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -553,7 +553,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // Initialize the application only if URL matches
   (async () => {
     const currentUrl = window.location.href;
-    if (await shouldRenderScript()) {
+    // if (await shouldRenderScript()) {
+    if (true) {
       init().catch((error) => {
         console.error("Failed to initialize:", error);
       });
