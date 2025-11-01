@@ -1280,12 +1280,29 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    // ============================================= LEAD ID SETTING FUNCTIONS =============================================
 
+   /**
+    * Generates a UUID v4 (random UUID)
+    * Uses crypto.randomUUID() if available, otherwise falls back to manual implementation
+    */
+   function generateUUID() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+         return crypto.randomUUID();
+      }
+
+      // Fallback UUID v4 implementation
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+         const r = (Math.random() * 16) | 0;
+         const v = c === "x" ? r : (r & 0x3) | 0x8;
+         return v.toString(16);
+      });
+   }
+
    function setLeadId() {
       const id = localStorage.getItem("leadId");
       if (id) {
          leadId = id;
       } else {
-         const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+         const uniqueId = generateUUID();
          leadId = uniqueId;
          localStorage.setItem("leadId", uniqueId);
       }

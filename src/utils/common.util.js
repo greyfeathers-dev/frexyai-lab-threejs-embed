@@ -2,12 +2,29 @@
 
 const { CHATBOT_PAGE } = require("../constants/definitions");
 
+/**
+ * Generates a UUID v4 (random UUID)
+ * Uses crypto.randomUUID() if available, otherwise falls back to manual implementation
+ */
+const generateUUID = () => {
+   if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+   }
+
+   // Fallback UUID v4 implementation
+   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+   });
+};
+
 const getLeadId = () => {
    let leadId = localStorage.getItem("leadId");
    console.log("Getting lead id here !!!!");
 
    if (!leadId) {
-      leadId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      leadId = generateUUID();
       localStorage.setItem("leadId", leadId);
    }
    return leadId;
