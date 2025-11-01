@@ -1259,6 +1259,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    const observer = new MutationObserver(() => {
       if (window.location.href !== previousPathname) {
+         console.log("Route changed to:", window.location.href);
          previousPathname = window.location.href;
          const tooltipContainer = document.getElementById("tooltipContainer");
          if (tooltipContainer) {
