@@ -4390,3 +4390,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    //*************************************************END OF INTERACTION HANDLER*****************************************************
 })(); // Don't add anything below this line
+
+// Self-calling function to print current location
+(function printCurrentLocation() {
+   console.log("Current location:", window.location.href);
+})();
