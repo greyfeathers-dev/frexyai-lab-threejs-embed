@@ -19,11 +19,19 @@ const generateUUID = () => {
    });
 };
 
+const isValidUUID = (str) => {
+   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+   return uuidRegex.test(str);
+};
+
 const getLeadId = () => {
    let leadId = localStorage.getItem("leadId");
    console.log("Getting lead id here !!!!");
 
-   if (!leadId) {
+   if (!leadId || !isValidUUID(leadId)) {
+      if (leadId && !isValidUUID(leadId)) {
+         localStorage.removeItem("leadId");
+      }
       leadId = generateUUID();
       localStorage.setItem("leadId", leadId);
    }
