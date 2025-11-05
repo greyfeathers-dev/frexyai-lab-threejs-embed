@@ -1299,12 +1299,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    function setLeadId() {
       const id = localStorage.getItem("leadId");
-      if (id) {
+      if (id && isValidUUID(id)) {
          leadId = id;
       } else {
          const uniqueId = generateUUID();
-         leadId = uniqueId;
          localStorage.setItem("leadId", uniqueId);
+         leadId = uniqueId;
       }
    }
 
