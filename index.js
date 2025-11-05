@@ -1308,8 +1308,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       alert("setLeadId");
       const id = localStorage.getItem("leadId");
       alert(id);
+      alert("This is the id in setLeadId");
       alert(isValidUUID(id) + "isValidUUID");
       if (id && isValidUUID(id)) {
+         alert("This is the id in setLeadId if condition");
          leadId = id;
       } else {
          const uniqueId = generateUUID();
