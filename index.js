@@ -1299,6 +1299,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    const isValidUUID = (str) => {
       alert("isValidUUID");
+      if (!str || typeof str !== "string") {
+         alert(str + "str is null or not a string");
+         return false;
+      }
       alert(str + "str");
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       return uuidRegex.test(str);
@@ -1309,11 +1313,15 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const id = localStorage.getItem("leadId");
       alert(id);
       alert("This is the id in setLeadId");
-      alert(isValidUUID(id) + "isValidUUID");
-      if (id && isValidUUID(id)) {
+      const isValid = isValidUUID(id);
+      alert(isValid + "isValidUUID");
+      if (id && isValid) {
          alert("This is the id in setLeadId if condition");
          leadId = id;
       } else {
+         if (id && !isValid) {
+            localStorage.removeItem("leadId");
+         }
          const uniqueId = generateUUID();
          localStorage.setItem("leadId", uniqueId);
          leadId = uniqueId;
