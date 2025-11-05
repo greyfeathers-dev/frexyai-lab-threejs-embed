@@ -1298,7 +1298,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    }
 
    function setLeadId() {
+      alert("setLeadId");
       const id = localStorage.getItem("leadId");
+      alert(id);
+      alert(isValidUUID(id) + "isValidUUID");
       if (id && isValidUUID(id)) {
          leadId = id;
       } else {
