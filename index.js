@@ -259,8 +259,6 @@ const getUserData = async () => {
 getUserData();
 
 window.addEventListener("message", (event) => {
-   alert(event.origin);
-   alert("Triggering window.addEventListener tp listen for event");
    if (event.origin !== "https://frexy-embed-script-test.vercel.app") return; // safety check
 
    const { type, key, value } = event.data;
@@ -3528,7 +3526,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          // Wait for animations to be loaded
          if (!possibleAnims || possibleAnims.length === 0) {
             console.log("Waiting for animations to load...");
-            // alert("Waiting for animations to load...");
             await new Promise((resolve) => {
                const checkAnimations = setInterval(() => {
                   if (possibleAnims && possibleAnims.length > 0) {
