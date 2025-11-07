@@ -7,7 +7,6 @@ const { CHATBOT_PAGE } = require("../constants/definitions");
  * Uses crypto.randomUUID() if available, otherwise falls back to manual implementation
  */
 const generateUUID = () => {
-   alert("generateUUID");
    if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
    }
@@ -26,10 +25,7 @@ const isValidUUID = (str) => {
 };
 
 const getLeadId = () => {
-   alert("getLeadId");
    let leadId = localStorage.getItem("leadId");
-   alert(leadId + "leadId");
-   alert(isValidUUID(leadId) + "isValidUUID");
    console.log("Getting lead id here !!!!");
 
    if (!leadId || !isValidUUID(leadId)) {
