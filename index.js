@@ -2862,22 +2862,25 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       chatWindow.appendChild(iframeContainer);
 
-      // Create a close button inside the chat header
-      const closeButton = document.createElement("span");
-      closeButton.innerHTML = "×";
-      closeButton.id = "embed-close-button"; // Yes, this id is correct for the close button of the embedded chat window
-      closeButton.style.cursor = "pointer";
-      closeButton.style.position = "absolute";
-      closeButton.style.right = "16px";
-      closeButton.style.top = "8px";
-      closeButton.style.fontSize = "24px";
-      closeButton.style.color = "#fff";
+      const shouldShowCloseButton = !window.location.pathname.startsWith("/user-chat");
+      if (shouldShowCloseButton) {
+         // Create a close button inside the chat header
+         const closeButton = document.createElement("span");
+         closeButton.innerHTML = "×";
+         closeButton.id = "embed-close-button"; // Yes, this id is correct for the close button of the embedded chat window
+         closeButton.style.cursor = "pointer";
+         closeButton.style.position = "absolute";
+         closeButton.style.right = "16px";
+         closeButton.style.top = "8px";
+         closeButton.style.fontSize = "24px";
+         closeButton.style.color = "#fff";
 
-      closeButton.onclick = function () {
-         hideChatWindow();
-      };
+         closeButton.onclick = function () {
+            hideChatWindow();
+         };
 
-      chatWindow.appendChild(closeButton);
+         chatWindow.appendChild(closeButton);
+      }
       document.body.appendChild(chatWindow);
 
       chatWindow.style.display = "block";
