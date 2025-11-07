@@ -2865,6 +2865,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Create a close button inside the chat header
       const closeButton = document.createElement("span");
       closeButton.innerHTML = "×";
+      closeButton.id = "embed-close-button"; // Yes, this id is correct for the close button of the embedded chat window
       closeButton.style.cursor = "pointer";
       closeButton.style.position = "absolute";
       closeButton.style.right = "16px";
