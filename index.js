@@ -2850,6 +2850,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    function hideInput() {
       const input = document.getElementById("input");
+      if (!input) return;
       input.style.display = "none";
    }
 
@@ -2915,6 +2916,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    function showChatWindow() {
       const chat = document.getElementById("chatWindow");
       const chatbot = document.getElementById("chatbot-iframe");
+      hideInput();
       isChatbotOpen = true;
       localStorage.setItem("chatbotOpenKey", "true");
 
@@ -2967,6 +2969,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             chat.style.transform = "translateY(100%)";
             chat.style.opacity = "0";
          }, 300); // Match the transition duration
+      }
+      if (!currentlyAnimating) {
+         setTimeout(() => {
+            showInput();
+         }, 320);
       }
    }
 
