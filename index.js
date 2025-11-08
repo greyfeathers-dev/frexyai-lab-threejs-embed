@@ -259,8 +259,6 @@ const getUserData = async () => {
 getUserData();
 
 window.addEventListener("message", (event) => {
-   alert(event.origin);
-   alert("Triggering window.addEventListener tp listen for event");
    if (event.origin !== "https://frexy-embed-script-test.vercel.app") return; // safety check
 
    const { type, key, value } = event.data;
@@ -388,6 +386,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    let leadData = null;
 
    let isMuted = true;
+   let isChatbotOpen = false;
+   const areInteractionsBlocked = () => isChatbotOpen;
 
    function enableAudioOnUserInteraction() {
       const unmute = () => {
@@ -1422,7 +1422,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                   const path = window.location.href;
 
                   if ((config.match === "equals" ? path === config.pagePath : path.includes(config.pagePath)) && Number(scrollPercent) > Number(config.scrollValue)) {
-                     if (displayState[config.id]) return;
+                     if (displayState[config.id] || areInteractionsBlocked()) return;
                      displayState[config.id] = true;
                      showUIAnimation(config);
                   }
@@ -1437,13 +1437,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                   const pagePath = window.location.href;
                   if (config.match === "equals" ? pagePath === config.pagePath : pagePath.includes(config.pagePath)) {
                      if (config.delay) {
-                        if (displayState[config.id]) return;
+                        if (displayState[config.id] || areInteractionsBlocked()) return;
                         setTimeout(() => {
                            displayState[config.id] = true;
                            // showUIAnimation(config), config.delay;
                         });
                      } else {
-                        if (displayState[config.id]) return;
+                        if (displayState[config.id] || areInteractionsBlocked()) return;
                         displayState[config.id] = true;
                         showUIAnimation(config);
                      }
@@ -1561,6 +1561,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    function handleOfferTrigger(offer, triggerType) {
       switch (triggerType) {
          case true:
+            if (areInteractionsBlocked()) {
+               console.log("Skipping immediate offer interaction while chatbot is open.");
+               return;
+            }
             showOfferUI(offer);
             break;
          case "both":
@@ -1686,6 +1690,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          const shouldTrigger = evaluateScrollCondition(scrollPercent, scrollConfig);
 
          if (shouldTrigger) {
+            if (areInteractionsBlocked()) {
+               console.log("Skipping scroll-triggered offer interaction while chatbot is open.");
+               return;
+            }
             window.removeEventListener("scroll", handler);
             showOfferUI(offer);
          }
@@ -1740,17 +1748,19 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     */
    function createTimeHandler(offer, timeConfig) {
       const pageLoadTime = Date.now();
-      let hasTriggered = false;
-
-      return setInterval(() => {
-         if (hasTriggered) return;
+      const intervalId = setInterval(() => {
          const timeSpent = (Date.now() - pageLoadTime) / 1000;
          if (timeSpent >= timeConfig.triggerTime) {
-            hasTriggered = true;
-            clearInterval(arguments.callee);
+            if (areInteractionsBlocked()) {
+               console.log("Skipping time-triggered offer interaction while chatbot is open.");
+               return;
+            }
+            clearInterval(intervalId);
             showOfferUI(offer);
          }
       }, 1000);
+
+      return intervalId;
    }
 
    /**
@@ -1906,6 +1916,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     */
    function triggerOffer(offer, state, scrollHandler) {
       if (state.hasTriggered) return;
+      if (areInteractionsBlocked()) {
+         console.log("Skipping offer interaction while chatbot is open.");
+         return;
+      }
       state.hasTriggered = true;
 
       if (state.timeInterval) {
@@ -1944,6 +1958,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     * Marks offer as shown to prevent duplicate displays
     */
    function showOfferUI(offer) {
+      if (areInteractionsBlocked()) {
+         console.log("Skipping offer UI display while chatbot is open.");
+         return;
+      }
       markOfferAsShown(offer.offer_id);
 
       // Track impression
@@ -2214,6 +2232,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    function showUIAnimation(config) {
       console.log("showing ui animation", config);
+      if (areInteractionsBlocked()) {
+         console.log("Chatbot is open; skipping UI animation trigger.");
+         return;
+      }
       if (currentlyAnimating) return;
       resetHead();
       isInteractionActive = true;
@@ -2817,8 +2839,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    // ============================================= INPUT FUNCTIONS =============================================
 
    function showInput() {
-      if (currentlyAnimating) return;
       const input = document.getElementById("input");
+      if (!input) return;
+      if (currentlyAnimating || areInteractionsBlocked()) {
+         input.style.display = "none";
+         return;
+      }
       input.style.display = "block";
    }
 
@@ -2867,6 +2893,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Create a close button inside the chat header
       const closeButton = document.createElement("span");
       closeButton.innerHTML = "×";
+      closeButton.id = "embed-close-button"; // Yes, this id is correct for the close button of the embedded chat window
       closeButton.style.cursor = "pointer";
       closeButton.style.position = "absolute";
       closeButton.style.right = "16px";
@@ -2888,7 +2915,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    function showChatWindow() {
       const chat = document.getElementById("chatWindow");
       const chatbot = document.getElementById("chatbot-iframe");
-      localStorage.setItem("chatbotOpenKey", true);
+      isChatbotOpen = true;
+      localStorage.setItem("chatbotOpenKey", "true");
 
       // Check if we have the data
       if (!INTERACTION_DATA || INTERACTION_DATA.length === 0) {
@@ -2924,6 +2952,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    // Add a new function to hide chat window with smooth animation
    function hideChatWindow() {
+      isChatbotOpen = false;
+      localStorage.setItem("chatbotOpenKey", "false");
       const chat = document.getElementById("chatWindow");
       if (chat) {
          // Animate the chat window out
@@ -3284,7 +3314,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                }
 
                // Skip if interaction is active or currently animating
-               if (currentlyAnimating || isInteractionActive) {
+               if (currentlyAnimating || isInteractionActive || areInteractionsBlocked()) {
                   return;
                }
 
@@ -3444,6 +3474,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
    // ***********************************************Function to update total_impression count*****************************************************
    async function updateInteractionImpression(interaction_id) {
+      if (areInteractionsBlocked()) {
+         console.log("Skipping interaction impression update while chatbot is open.");
+         return;
+      }
       try {
          const interaction = INTERACTION_DATA.find((i) => i.id === interaction_id);
          if (!interaction) return;
@@ -3528,7 +3562,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          // Wait for animations to be loaded
          if (!possibleAnims || possibleAnims.length === 0) {
             console.log("Waiting for animations to load...");
-            // alert("Waiting for animations to load...");
             await new Promise((resolve) => {
                const checkAnimations = setInterval(() => {
                   if (possibleAnims && possibleAnims.length > 0) {
@@ -3580,6 +3613,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          //   }
          // }
          setTimeout(() => {
+            if (areInteractionsBlocked()) {
+               console.log("Skipping new visitor message while chatbot is open.");
+               return;
+            }
             showUIAnimation({
                text: newVisitorInteraction?.message,
                time: 15,
@@ -3611,6 +3648,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          const message = replaceMessagePlaceholders(returningVisitorInteraction?.message, leadData);
 
          setTimeout(() => {
+            if (areInteractionsBlocked()) {
+               console.log("Skipping returning visitor message while chatbot is open.");
+               return;
+            }
             showUIAnimation({
                text: message,
                time: 8,
@@ -3777,6 +3818,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       triggerInteraction() {
+         if (areInteractionsBlocked()) {
+            console.log("Skipping avoid bounce interaction while chatbot is open.");
+            return;
+         }
          this.hasInteracted = true;
          const avoidBounceInteraction = INTERACTION_DATA.find((i) => i.key === "Avoid Bounce");
          showUIAnimation({
@@ -3913,6 +3958,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       normalExitIntentTriggerInteraction() {
+         if (areInteractionsBlocked()) {
+            console.log("Skipping normal exit intent interaction while chatbot is open.");
+            return;
+         }
          normalExitIntentMarkInteractionTriggered();
          const normalExitIntentInteraction = INTERACTION_DATA.find((i) => i.key === "Normal Exit Intent");
          showUIAnimation({
@@ -4089,6 +4138,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       }
 
       triggerInteraction() {
+         if (areInteractionsBlocked()) {
+            console.log("Skipping confused interaction while chatbot is open.");
+            return;
+         }
          markConfusedInteractionTriggered();
          const confusedInteraction = INTERACTION_DATA.find((i) => i.key === "Confused?");
          showUIAnimation({
@@ -4204,6 +4257,11 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
          const currentCount = this.getTriggerCount();
          if (currentCount >= 1) {
             console.log("Skipping message - already reached trigger limit");
+            return;
+         }
+
+         if (areInteractionsBlocked()) {
+            console.log("Skipping idle interaction while chatbot is open.");
             return;
          }
 
@@ -4338,6 +4396,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
                      this.hoverTimers.set(
                         element,
                         setTimeout(() => {
+                           if (areInteractionsBlocked()) {
+                              console.log("Skipping click assist interaction while chatbot is open.");
+                              return;
+                           }
                            if (!this.triggeredButtons.has(element) && this.triggerCount < 2) {
                               showUIAnimation({
                                  text: clickAssistInteraction?.message || "Great choice! No need to hesitate, go for it!",
