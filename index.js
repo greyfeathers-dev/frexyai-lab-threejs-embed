@@ -73,8 +73,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -2677,7 +2677,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     const tooltipContainer = document.createElement("div");
     tooltipContainer.id = "tooltipContainer";
     tooltipContainer.style.position = "fixed";
-    tooltipContainer.style.maxWidth = isMobile ? "265px" : "310px";
+    tooltipContainer.style.width = isMobile ? "265px" : "310px";
+    tooltipContainer.style.zIndex = "9999";
 
     const tooltip = document.createElement("div");
     tooltip.id = "tooltip";
@@ -2706,12 +2707,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.3)";
     tooltip.style.margin = "8px 0";
 
-    const controlsContainer = document.createElement("div");
-    controlsContainer.style.position = "absolute";
-    controlsContainer.style.top = isMobile ? "25px" : "27px";
-    controlsContainer.style.right = "13px";
-    controlsContainer.style.left = "auto";
-    controlsContainer.style.display = "flex";
+    const audioControlsContainer = document.createElement("div");
+    audioControlsContainer.style.position = "absolute";
+    audioControlsContainer.style.top = isMobile ? "25px" : "27px";
+    audioControlsContainer.style.right = "13px";
+    audioControlsContainer.style.left = "auto";
+    audioControlsContainer.style.display = "flex";
 
     // Add audio toggle button
     const audioToggleBtn = document.createElement("button");
@@ -2738,7 +2739,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       // Remove the silent audio play since it's not needed
     });
 
-    controlsContainer.appendChild(audioToggleBtn);
+    audioControlsContainer.appendChild(audioToggleBtn);
 
     function closeUI() {
       if (currentAnimationID !== id) return;
@@ -2754,9 +2755,6 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.background = "white";
       closeBtn.style.padding = "4px";
       closeBtn.style.border = "0";
-      closeBtn.style.position = "absolute";
-      closeBtn.style.top = "-6px";
-      closeBtn.style.left = "-12px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -2790,10 +2788,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         }
         closeUI();
       });
-      controlsContainer.appendChild(closeBtn);
+      const closeButtonContainer = document.createElement("div");
+      closeButtonContainer.style.position = "absolute";
+      closeButtonContainer.style.top = "-6px";
+      closeButtonContainer.style.right = "-12px";
+      closeButtonContainer.style.display = "flex";
+      closeButtonContainer.style.justifyContent = "center";
+      closeButtonContainer.style.alignItems = "center";
+      closeButtonContainer.style.zIndex = "99";
+
+      closeButtonContainer.appendChild(closeBtn);
+      tooltipContainer.appendChild(closeButtonContainer);
     }
 
-    tooltipContainer.appendChild(controlsContainer);
+    tooltipContainer.appendChild(audioControlsContainer);
 
     if (timerCountdown) {
       const timer = document.createElement("div");
