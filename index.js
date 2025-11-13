@@ -73,8 +73,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -1588,6 +1588,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // ============================================= UI ANIMATION FUNCTIONS =============================================
   // ============================================= OFFERS DATA FETCHING FUNCTIONS =============================================
   let offers = [];
+  const offerTriggerCleanups = [];
+
+  function registerOfferTriggerCleanup(cleanupFn) {
+    if (typeof cleanupFn === "function") {
+      offerTriggerCleanups.push(cleanupFn);
+    }
+  }
+
+  function resetOfferTriggers() {
+    while (offerTriggerCleanups.length) {
+      const cleanup = offerTriggerCleanups.pop();
+      try {
+        cleanup();
+      } catch (error) {
+        console.error("Error cleaning up offer trigger:", error);
+      }
+    }
+  }
   async function getOffersData() {
     try {
       const response = await fetch(
@@ -1637,6 +1655,13 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     findOfferForGeneralVisitors(generalVisitors);
     findOfferForTargetedLeads(targetedLeads);
   }
+
+  window.addEventListener("pathChange", () => {
+    resetOfferTriggers();
+    if (offers.length) {
+      findAudienceType();
+    }
+  });
 
   // Helper functions for offer session tracking
   function hasOfferBeenShown(offerId) {
@@ -1853,6 +1878,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     const scrollHandler = createScrollHandler(offer, scrollConfig);
     window.addEventListener("scroll", scrollHandler);
+    registerOfferTriggerCleanup(() => {
+      window.removeEventListener("scroll", scrollHandler);
+    });
   }
 
   /**
@@ -1959,6 +1987,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         showOfferUI(offer);
       }
     }, 1000);
+
+    registerOfferTriggerCleanup(() => {
+      clearInterval(intervalId);
+    });
 
     return intervalId;
   }
@@ -2086,6 +2118,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           checkBothConditions(offer, config, state, scrollHandler);
         }
       }, 1000);
+      registerOfferTriggerCleanup(() => {
+        if (state.timeInterval) {
+          clearInterval(state.timeInterval);
+          state.timeInterval = null;
+        }
+      });
     }
   }
 
@@ -2157,6 +2195,9 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function setupEventListeners(config, handlers, offer, state) {
     if (config.isScrollEnabled) {
       window.addEventListener("scroll", handlers.scrollHandler);
+      registerOfferTriggerCleanup(() => {
+        window.removeEventListener("scroll", handlers.scrollHandler);
+      });
     }
 
     // If only time is enabled, start timer immediately
@@ -2168,6 +2209,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           triggerOffer(offer, state, null);
         }
       }, 1000);
+      registerOfferTriggerCleanup(() => {
+        if (state.timeInterval) {
+          clearInterval(state.timeInterval);
+          state.timeInterval = null;
+        }
+      });
     }
   }
 
