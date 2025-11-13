@@ -1616,10 +1616,22 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   getOffersData();
 
   function findAudienceType() {
-    const generalVisitors = offers.filter(
+    const activeOffers = offers.filter((offer) => {
+      if (offer.is_active === undefined || offer.is_active === null) {
+        return true;
+      }
+
+      if (typeof offer.is_active === "string") {
+        return offer.is_active.toLowerCase() === "true";
+      }
+
+      return Boolean(offer.is_active);
+    });
+
+    const generalVisitors = activeOffers.filter(
       (offer) => offer.audience_type === "general_visitors"
     );
-    const targetedLeads = offers.filter(
+    const targetedLeads = activeOffers.filter(
       (offer) => offer.audience_type === "target_leads"
     );
     findOfferForGeneralVisitors(generalVisitors);
