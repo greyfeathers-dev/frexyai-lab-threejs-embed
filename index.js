@@ -1144,6 +1144,70 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
+    
+    // Valid traffic source IDs (matching TRAFFIC_SOURCES config)
+    const validTrafficSources = [
+      "direct", "google", "yahoo", "bing", "youtube", "linkedin", "reddit",
+      "paid_google", "paid_bing", "paid_linkedin", "paid_meta", "paid_youtube", "paid_reddit"
+    ];
+    
+    // First, check for UTM parameters in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get("utm_source");
+    if (utmSource) {
+      const utmSourceLower = utmSource.toLowerCase();
+      
+      // Map common UTM source values to valid traffic source IDs
+      const utmSourceMap = {
+        // Organic sources
+        "google": "google",
+        "yahoo": "yahoo",
+        "bing": "bing",
+        "youtube": "youtube",
+        "linkedin": "linkedin",
+        "reddit": "reddit",
+        // Paid Google variations
+        "google_ads": "paid_google",
+        "googleadwords": "paid_google",
+        "gclid": "paid_google",
+        "adwords": "paid_google",
+        // Paid Bing variations
+        "bing_ads": "paid_bing",
+        "msclkid": "paid_bing",
+        // Paid LinkedIn variations
+        "linkedin_ads": "paid_linkedin",
+        "li_fat_id": "paid_linkedin",
+        // Paid Meta variations
+        "facebook": "paid_meta",
+        "meta": "paid_meta",
+        "instagram": "paid_meta",
+        "fb": "paid_meta",
+        "fbclid": "paid_meta",
+        // Paid YouTube variations
+        "youtube_ads": "paid_youtube",
+        "wbraid": "paid_youtube",
+        // Paid Reddit variations
+        "reddit_ads": "paid_reddit",
+        "cid": "paid_reddit"
+      };
+      
+      // Check if UTM source is already a valid ID
+      if (validTrafficSources.includes(utmSourceLower)) {
+        return utmSourceLower;
+      }
+      
+      // Map to valid ID if mapping exists
+      const mappedSource = utmSourceMap[utmSourceLower];
+      if (mappedSource && validTrafficSources.includes(mappedSource)) {
+        return mappedSource;
+      }
+      
+      // If no mapping found and not a valid ID, treat as direct traffic
+      // (fallback to prevent breaking other code that uses getSource())
+      return "direct";
+    }
+    
+    // Fallback to referrer-based detection
     if (referrer === "https://www.google.com/") return "google";
     else if (referrer === "https://www.yahoo.com/") return "yahoo";
     else if (referrer === "https://www.bing.com/") return "bing";
@@ -1802,12 +1866,86 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   /**
    * Checks if current traffic source matches offer's allowed sources
+   * Only triggers if:
+   * - UTM source exists and matches traffic_source array, OR
+   * - No UTM source exists and detected source (direct/referrer-based) is in traffic_source array
    */
   function checkTrafficSource(offer) {
-    return (
-      !offer.traffic_source?.length ||
-      offer.traffic_source.includes(getSource())
-    );
+    // If no traffic_source restrictions, allow all
+    if (!offer.traffic_source?.length) {
+      return true;
+    }
+
+    // Valid traffic source IDs (matching TRAFFIC_SOURCES config)
+    const validTrafficSources = [
+      "direct", "google", "yahoo", "bing", "youtube", "linkedin", "reddit",
+      "paid_google", "paid_bing", "paid_linkedin", "paid_meta", "paid_youtube", "paid_reddit"
+    ];
+
+    // Check for UTM source first (highest priority)
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get("utm_source");
+    
+    if (utmSource) {
+      // UTM source exists - map it and check if it's in traffic_source
+      // Only trigger if UTM source matches, ignore referrer-based detection
+      const utmSourceLower = utmSource.toLowerCase();
+      
+      // Map common UTM source values to valid traffic source IDs
+      const utmSourceMap = {
+        // Organic sources
+        "google": "google",
+        "yahoo": "yahoo",
+        "bing": "bing",
+        "youtube": "youtube",
+        "linkedin": "linkedin",
+        "reddit": "reddit",
+        // Paid Google variations
+        "google_ads": "paid_google",
+        "googleadwords": "paid_google",
+        "gclid": "paid_google",
+        "adwords": "paid_google",
+        // Paid Bing variations
+        "bing_ads": "paid_bing",
+        "msclkid": "paid_bing",
+        // Paid LinkedIn variations
+        "linkedin_ads": "paid_linkedin",
+        "li_fat_id": "paid_linkedin",
+        // Paid Meta variations
+        "facebook": "paid_meta",
+        "meta": "paid_meta",
+        "instagram": "paid_meta",
+        "fb": "paid_meta",
+        "fbclid": "paid_meta",
+        // Paid YouTube variations
+        "youtube_ads": "paid_youtube",
+        "wbraid": "paid_youtube",
+        // Paid Reddit variations
+        "reddit_ads": "paid_reddit",
+        "cid": "paid_reddit"
+      };
+      
+      // Check if UTM source is already a valid ID
+      let mappedSource;
+      if (validTrafficSources.includes(utmSourceLower)) {
+        mappedSource = utmSourceLower;
+      } else {
+        // Map to valid ID if mapping exists
+        mappedSource = utmSourceMap[utmSourceLower];
+        if (!mappedSource || !validTrafficSources.includes(mappedSource)) {
+          // Invalid UTM source - don't trigger (treat as unmatched)
+          return false;
+        }
+      }
+      
+      return offer.traffic_source.includes(mappedSource);
+    } else {
+      // No UTM source - use referrer-based detection (getSource)
+      // This will return "direct" if no referrer matches, or the detected source
+      // Only triggers if the detected source is in traffic_source array
+      const detectedSource = getSource();
+      return offer.traffic_source.includes(detectedSource);
+    }
   }
 
   /**
