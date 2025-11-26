@@ -49,9 +49,9 @@ const ELEVENLABS_API_KEY =
 const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
-// const CHATBOT_PAGE =
-//   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
-const CHATBOT_PAGE = "http://localhost:3000";
+const CHATBOT_PAGE =
+  "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
+// const CHATBOT_PAGE = "http://localhost:3000";
 // const CHATBOT_PAGE =
 //   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
@@ -73,8 +73,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-// const user_id = localStorage.getItem("merchantId");
-const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+const user_id = localStorage.getItem("merchantId");
+// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
