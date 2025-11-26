@@ -1342,16 +1342,64 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (!leadId) return;
 
     try {
+      // First, fetch the existing lead data to get current activities
+      const getResponse = await fetch(
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!getResponse.ok) {
+        throw new Error(`HTTP error! Status: ${getResponse.status}`);
+      }
+
+      const leadData = await getResponse.json();
+      const existingLead = leadData && leadData.length > 0 ? leadData[0] : null;
+      
+      // Prepare the new activity object
+      const newActivity = {
+        ...activity,
+        page_source: window.location.href,
+        created_at: Date.now(),
+      };
+
+      // Initialize or get existing activities array
+      let activitiesArray = [];
+      
+      if (existingLead && existingLead.activity) {
+        // Check if activity is already in the correct format (with data array)
+        if (existingLead.activity.data && Array.isArray(existingLead.activity.data)) {
+          activitiesArray = existingLead.activity.data;
+        } 
+        // If it's an old format (single object), convert it to array format
+        else if (existingLead.activity.type || existingLead.activity.created_at) {
+          // It's a single activity object, convert to array format
+          activitiesArray = [existingLead.activity];
+        }
+        // If it's already an array (edge case), use it directly
+        else if (Array.isArray(existingLead.activity)) {
+          activitiesArray = existingLead.activity;
+        }
+      }
+
+      // Append the new activity to the array
+      activitiesArray.push(newActivity);
+
+      // Update Supabase with the complete activity structure
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
         {
           method: "PATCH",
           body: JSON.stringify({
             id: leadId,
             activity: {
-              ...activity,
-              page_source: window.location.href,
-              created_at: Date.now(),
+              data: activitiesArray,
             },
           }),
           headers: {
@@ -1366,7 +1414,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error fetching config:", error);
+      console.error("Error adding activity:", error);
     }
   }
 
