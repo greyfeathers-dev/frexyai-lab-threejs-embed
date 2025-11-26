@@ -49,9 +49,9 @@ const ELEVENLABS_API_KEY =
 const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
-const CHATBOT_PAGE =
-  "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
-// const CHATBOT_PAGE = "http://localhost:3000";
+// const CHATBOT_PAGE =
+//   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
+const CHATBOT_PAGE = "http://localhost:3000";
 // const CHATBOT_PAGE =
 //   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
@@ -73,8 +73,8 @@ const TOOLTIP_COLOR = "#0D1934";
 const audio = new Audio(
   "https://nbizksjfzehbiwmcipep.supabase.co/storage/v1/object/public/model/notification.mp3"
 );
-const user_id = localStorage.getItem("merchantId");
-// const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
+// const user_id = localStorage.getItem("merchantId");
+const user_id = "82408252-28a4-422d-94be-e1c5fba157d0";
 const leadIdLocal = localStorage.getItem("leadId");
 
 const STEVE_BASE_MODEL = {
@@ -1342,16 +1342,64 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     if (!leadId) return;
 
     try {
+      // First, fetch the existing lead data to get current activities
+      const getResponse = await fetch(
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!getResponse.ok) {
+        throw new Error(`HTTP error! Status: ${getResponse.status}`);
+      }
+
+      const leadData = await getResponse.json();
+      const existingLead = leadData && leadData.length > 0 ? leadData[0] : null;
+      
+      // Prepare the new activity object
+      const newActivity = {
+        ...activity,
+        page_source: window.location.href,
+        created_at: Date.now(),
+      };
+
+      // Initialize or get existing activities array
+      let activitiesArray = [];
+      
+      if (existingLead && existingLead.activity) {
+        // Check if activity is already in the correct format (with data array)
+        if (existingLead.activity.data && Array.isArray(existingLead.activity.data)) {
+          activitiesArray = existingLead.activity.data;
+        } 
+        // If it's an old format (single object), convert it to array format
+        else if (existingLead.activity.type || existingLead.activity.created_at) {
+          // It's a single activity object, convert to array format
+          activitiesArray = [existingLead.activity];
+        }
+        // If it's already an array (edge case), use it directly
+        else if (Array.isArray(existingLead.activity)) {
+          activitiesArray = existingLead.activity;
+        }
+      }
+
+      // Append the new activity to the array
+      activitiesArray.push(newActivity);
+
+      // Update Supabase with the complete activity structure
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/leads?id=eq.${leadIdLocal}`,
+        `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
         {
           method: "PATCH",
           body: JSON.stringify({
             id: leadId,
             activity: {
-              ...activity,
-              page_source: window.location.href,
-              created_at: Date.now(),
+              data: activitiesArray,
             },
           }),
           headers: {
@@ -1366,7 +1414,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error fetching config:", error);
+      console.error("Error adding activity:", error);
     }
   }
 
