@@ -49,11 +49,10 @@ const ELEVENLABS_API_KEY =
 const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
+
+// const CHATBOT_PAGE = "http://localhost:3000";
 const CHATBOT_PAGE =
   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
-// const CHATBOT_PAGE = "http://localhost:3000";
-// const CHATBOT_PAGE =
-//   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
 const ENDPOINT = "https://node-service-1e6u.onrender.com";
 
 // ***************************************************************************************************************************************************
@@ -3487,7 +3486,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     chatWindow.style.boxSizing = "border-box";
     chatWindow.style.border = isMobile ? 0 : "0.3px solid #8F8F8F";
     chatWindow.style.color = "#fff";
-    chatWindow.style.borderRadius = isMobile ? 0 : "16px";
+    chatWindow.style.borderRadius = isMobile ? 0 : "18px";
     chatWindow.style.background = "#fff";
     chatWindow.style.fontSize = "14px";
     chatWindow.style.width = isMobile ? "100%" : "390px";
@@ -3510,7 +3509,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     iframeContainer.style.width = "100%";
     iframeContainer.style.height = "100%";
     iframeContainer.style.border = 0;
-    iframeContainer.style.borderRadius = isMobile ? 0 : "16px";
+    iframeContainer.style.borderRadius = isMobile ? 0 : "18px";
 
     chatWindow.appendChild(iframeContainer);
 
