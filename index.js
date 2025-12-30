@@ -49,7 +49,6 @@ const ELEVENLABS_API_KEY =
 const ELEVENLABS_VOICE_ID = "CYw3kZ02Hs0563khs1Fj"; // Replace with your desired voice ID
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
-
 // const CHATBOT_PAGE = "http://localhost:3000";
 const CHATBOT_PAGE =
   "https://frexyai-lab-saas-dashboard-staging-new.vercel.app";
@@ -1143,69 +1142,80 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   function getSource() {
     const referrer = document.referrer;
     const path = window.location.href;
-    
+
     // Valid traffic source IDs (matching TRAFFIC_SOURCES config)
     const validTrafficSources = [
-      "direct", "google", "yahoo", "bing", "youtube", "linkedin", "reddit",
-      "paid_google", "paid_bing", "paid_linkedin", "paid_meta", "paid_youtube", "paid_reddit"
+      "direct",
+      "google",
+      "yahoo",
+      "bing",
+      "youtube",
+      "linkedin",
+      "reddit",
+      "paid_google",
+      "paid_bing",
+      "paid_linkedin",
+      "paid_meta",
+      "paid_youtube",
+      "paid_reddit",
     ];
-    
+
     // First, check for UTM parameters in the URL
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source");
     if (utmSource) {
       const utmSourceLower = utmSource.toLowerCase();
-      
+
       // Map common UTM source values to valid traffic source IDs
       const utmSourceMap = {
         // Organic sources
-        "google": "google",
-        "yahoo": "yahoo",
-        "bing": "bing",
-        "youtube": "youtube",
-        "linkedin": "linkedin",
-        "reddit": "reddit",
+        google: "google",
+        yahoo: "yahoo",
+        bing: "bing",
+        youtube: "youtube",
+        linkedin: "linkedin",
+        reddit: "reddit",
         // Paid Google variations
-        "google_ads": "paid_google",
-        "googleadwords": "paid_google",
-        "gclid": "paid_google",
-        "adwords": "paid_google",
+        google_ads: "paid_google",
+        googleadwords: "paid_google",
+        gclid: "paid_google",
+        adwords: "paid_google",
         // Paid Bing variations
-        "bing_ads": "paid_bing",
-        "msclkid": "paid_bing",
+        bing_ads: "paid_bing",
+        msclkid: "paid_bing",
         // Paid LinkedIn variations
-        "linkedin_ads": "paid_linkedin",
-        "li_fat_id": "paid_linkedin",
+        linkedin_ads: "paid_linkedin",
+        li_fat_id: "paid_linkedin",
         // Paid Meta variations
-        "facebook": "paid_meta",
-        "meta": "paid_meta",
-        "instagram": "paid_meta",
-        "fb": "paid_meta",
-        "fbclid": "paid_meta",
+        facebook: "paid_meta",
+        meta: "paid_meta",
+        instagram: "paid_meta",
+        fb: "paid_meta",
+        fbclid: "paid_meta",
         // Paid YouTube variations
-        "youtube_ads": "paid_youtube",
-        "wbraid": "paid_youtube",
+        youtube_ads: "paid_youtube",
+        wbraid: "paid_youtube",
         // Paid Reddit variations
-        "reddit_ads": "paid_reddit",
-        "cid": "paid_reddit"
+        reddit_ads: "paid_reddit",
+        cid: "paid_reddit",
       };
-      
+
       // Check if UTM source is already a valid ID
       if (validTrafficSources.includes(utmSourceLower)) {
         return utmSourceLower;
       }
-      
+
       // Map to valid ID if mapping exists
       const mappedSource = utmSourceMap[utmSourceLower];
       if (mappedSource && validTrafficSources.includes(mappedSource)) {
         return mappedSource;
       }
-      
+
       // If no mapping found and not a valid ID, treat as direct traffic
       // (fallback to prevent breaking other code that uses getSource())
       return "direct";
     }
-    
+
     // Fallback to referrer-based detection
     if (referrer === "https://www.google.com/") return "google";
     else if (referrer === "https://www.yahoo.com/") return "yahoo";
@@ -1360,7 +1370,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       const leadData = await getResponse.json();
       const existingLead = leadData && leadData.length > 0 ? leadData[0] : null;
-      
+
       // Prepare the new activity object
       const newActivity = {
         ...activity,
@@ -1370,14 +1380,20 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
       // Initialize or get existing activities array
       let activitiesArray = [];
-      
+
       if (existingLead && existingLead.activity) {
         // Check if activity is already in the correct format (with data array)
-        if (existingLead.activity.data && Array.isArray(existingLead.activity.data)) {
+        if (
+          existingLead.activity.data &&
+          Array.isArray(existingLead.activity.data)
+        ) {
           activitiesArray = existingLead.activity.data;
-        } 
+        }
         // If it's an old format (single object), convert it to array format
-        else if (existingLead.activity.type || existingLead.activity.created_at) {
+        else if (
+          existingLead.activity.type ||
+          existingLead.activity.created_at
+        ) {
           // It's a single activity object, convert to array format
           activitiesArray = [existingLead.activity];
         }
@@ -1925,53 +1941,64 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     // Valid traffic source IDs (matching TRAFFIC_SOURCES config)
     const validTrafficSources = [
-      "direct", "google", "yahoo", "bing", "youtube", "linkedin", "reddit",
-      "paid_google", "paid_bing", "paid_linkedin", "paid_meta", "paid_youtube", "paid_reddit"
+      "direct",
+      "google",
+      "yahoo",
+      "bing",
+      "youtube",
+      "linkedin",
+      "reddit",
+      "paid_google",
+      "paid_bing",
+      "paid_linkedin",
+      "paid_meta",
+      "paid_youtube",
+      "paid_reddit",
     ];
 
     // Check for UTM source first (highest priority)
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source");
-    
+
     if (utmSource) {
       // UTM source exists - map it and check if it's in traffic_source
       // Only trigger if UTM source matches, ignore referrer-based detection
       const utmSourceLower = utmSource.toLowerCase();
-      
+
       // Map common UTM source values to valid traffic source IDs
       const utmSourceMap = {
         // Organic sources
-        "google": "google",
-        "yahoo": "yahoo",
-        "bing": "bing",
-        "youtube": "youtube",
-        "linkedin": "linkedin",
-        "reddit": "reddit",
+        google: "google",
+        yahoo: "yahoo",
+        bing: "bing",
+        youtube: "youtube",
+        linkedin: "linkedin",
+        reddit: "reddit",
         // Paid Google variations
-        "google_ads": "paid_google",
-        "googleadwords": "paid_google",
-        "gclid": "paid_google",
-        "adwords": "paid_google",
+        google_ads: "paid_google",
+        googleadwords: "paid_google",
+        gclid: "paid_google",
+        adwords: "paid_google",
         // Paid Bing variations
-        "bing_ads": "paid_bing",
-        "msclkid": "paid_bing",
+        bing_ads: "paid_bing",
+        msclkid: "paid_bing",
         // Paid LinkedIn variations
-        "linkedin_ads": "paid_linkedin",
-        "li_fat_id": "paid_linkedin",
+        linkedin_ads: "paid_linkedin",
+        li_fat_id: "paid_linkedin",
         // Paid Meta variations
-        "facebook": "paid_meta",
-        "meta": "paid_meta",
-        "instagram": "paid_meta",
-        "fb": "paid_meta",
-        "fbclid": "paid_meta",
+        facebook: "paid_meta",
+        meta: "paid_meta",
+        instagram: "paid_meta",
+        fb: "paid_meta",
+        fbclid: "paid_meta",
         // Paid YouTube variations
-        "youtube_ads": "paid_youtube",
-        "wbraid": "paid_youtube",
+        youtube_ads: "paid_youtube",
+        wbraid: "paid_youtube",
         // Paid Reddit variations
-        "reddit_ads": "paid_reddit",
-        "cid": "paid_reddit"
+        reddit_ads: "paid_reddit",
+        cid: "paid_reddit",
       };
-      
+
       // Check if UTM source is already a valid ID
       let mappedSource;
       if (validTrafficSources.includes(utmSourceLower)) {
@@ -1984,7 +2011,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           return false;
         }
       }
-      
+
       return offer.traffic_source.includes(mappedSource);
     } else {
       // No UTM source - use referrer-based detection (getSource)
@@ -2031,26 +2058,118 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
    * Checks if current page URL matches offer's target page
    * Handles full URLs, relative paths, and pathname extraction
    */
+  /**
+   * Checks if current page URL matches offer's target page based on operator
+   *
+   * Equals Operator: Strict exact match (protocol, host, pathname - no query, no sub-paths)
+   * Contains Operator:
+   *   - Base URL: Match only base URL (query params allowed, no sub-paths)
+   *   - Path URL: Match path and sub-paths (query params allowed, no base route)
+   */
   function checkPageUrl(offer) {
     if (!offer.page_url) return true;
 
-    const currentPathname = window.location.pathname;
-    let offerPathname = offer.page_url;
+    const currentUrl = window.location.href;
+    const currentUrlObj = new URL(currentUrl);
+    const operator = offer.page_path_operator || "equals";
 
     try {
+      // Parse offer URL
+      let offerUrlObj;
       if (
         offer.page_url.startsWith("http://") ||
         offer.page_url.startsWith("https://")
       ) {
-        offerPathname = new URL(offer.page_url).pathname;
-      } else if (!offer.page_url.startsWith("/")) {
-        offerPathname = "/" + offer.page_url;
+        // Full URL provided
+        offerUrlObj = new URL(offer.page_url);
+      } else if (offer.page_url.includes("://")) {
+        // Has protocol but not http/https - try parsing as-is
+        offerUrlObj = new URL(offer.page_url);
+      } else if (offer.page_url.startsWith("/")) {
+        // Relative path starting with / - use current origin
+        const baseUrl = `${currentUrlObj.protocol}//${currentUrlObj.host}`;
+        offerUrlObj = new URL(offer.page_url, baseUrl);
+      } else {
+        // Likely a hostname (with or without path) like "localhost:3001" or "localhost:3001/pricing"
+        // Add protocol and parse
+        offerUrlObj = new URL(`http://${offer.page_url}`);
       }
-    } catch (error) {
-      offerPathname = offer.page_url;
-    }
 
-    return currentPathname === offerPathname;
+      if (operator === "equals") {
+        // EQUALS: Strict exact match - protocol, host, pathname, hash (no query, no sub-paths)
+        // For equals, trailing slash and hash fragments matter - compare exactly
+        const offerUrlStr = offer.page_url;
+        const offerHasTrailingSlash =
+          offerUrlStr.endsWith("/") &&
+          !offerUrlStr.includes("?") &&
+          !offerUrlStr.includes("#");
+
+        // Reconstruct base URLs for comparison (protocol + host + pathname)
+        let offerBaseUrl = `${offerUrlObj.protocol}//${offerUrlObj.host}${offerUrlObj.pathname}`;
+        let currentBaseUrl = `${currentUrlObj.protocol}//${currentUrlObj.host}${currentUrlObj.pathname}`;
+
+        // For base URLs, handle trailing slash from original offer URL
+        if (offerUrlObj.pathname === "/") {
+          // Base URL case - preserve trailing slash from original
+          if (!offerHasTrailingSlash) {
+            // Remove trailing slash for comparison if original didn't have it
+            offerBaseUrl = offerBaseUrl.replace(/\/$/, "");
+            currentBaseUrl = currentBaseUrl.replace(/\/$/, "");
+          }
+        }
+
+        // Compare base URLs
+        if (offerBaseUrl !== currentBaseUrl) {
+          return false;
+        }
+
+        // For equals, hash fragments must also match exactly
+        const offerHash = offerUrlObj.hash || "";
+        const currentHash = currentUrlObj.hash || "";
+
+        return offerHash === currentHash;
+      }
+
+      // CONTAINS: Normalize pathnames (remove trailing slashes for comparison)
+      const normalizePathname = (pathname) => {
+        return pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+      };
+
+      const currentPath = normalizePathname(currentUrlObj.pathname);
+      const offerPath = normalizePathname(offerUrlObj.pathname);
+
+      if (operator === "contains") {
+        // CONTAINS: Controlled partial matching
+        const isBaseUrl = offerPath === "/" || offerPath === "";
+
+        if (isBaseUrl) {
+          // Condition A: Base URL - match only base URL itself (query params allowed, NO sub-paths)
+          return (
+            currentUrlObj.protocol === offerUrlObj.protocol &&
+            currentUrlObj.host === offerUrlObj.host &&
+            currentPath === "/"
+          );
+        } else {
+          // Condition B: URL with path - match path and sub-paths (query params allowed, NO base route)
+          // Ensure current path is not base route ("/")
+          if (currentPath === "/") {
+            return false;
+          }
+          return (
+            currentUrlObj.protocol === offerUrlObj.protocol &&
+            currentUrlObj.host === offerUrlObj.host &&
+            (currentPath.startsWith(offerPath + "/") ||
+              currentPath === offerPath)
+          );
+        }
+      }
+
+      return false;
+    } catch (error) {
+      // Fallback: if URL parsing fails, try simple string comparison
+      console.error("Error parsing URL in checkPageUrl:", error);
+      return false;
+    }
   }
 
   /**
@@ -2458,14 +2577,18 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       type: "primary",
     };
 
-      if (format === "chat") {
-         primaryCTA.format = "chat";
-         // Build chatbot URL with chat_card_id if available for conversation triggers
-         if (offer.chat_card_id) {
-            primaryCTA.chatbotUrl = buildChatbotLink({ format: "chat", offerId: offer.offer_id, chatCardId: offer.chat_card_id });
-         } else {
-            primaryCTA.chatbotUrl = null; // will be built at runtime to include context
-         }
+    if (format === "chat") {
+      primaryCTA.format = "chat";
+      // Build chatbot URL with chat_card_id if available for conversation triggers
+      if (offer.chat_card_id) {
+        primaryCTA.chatbotUrl = buildChatbotLink({
+          format: "chat",
+          offerId: offer.offer_id,
+          chatCardId: offer.chat_card_id,
+        });
+      } else {
+        primaryCTA.chatbotUrl = null; // will be built at runtime to include context
+      }
     }
 
     config.cta.push(primaryCTA);
@@ -2829,7 +2952,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:fit-content;">
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:200px;">
               <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
               <div id="text-area">
                 <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
@@ -2861,7 +2984,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ============================================= TOOLTIP FUNCTIONS =============================================
 
-   function openExternalLink(url) {
+  function openExternalLink(url) {
     if (!url) return;
     const trimmedUrl = url.trim();
     if (!trimmedUrl) return;
@@ -2875,7 +2998,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       if (window.audioQueue && Array.isArray(window.audioQueue)) {
         window.audioQueue.length = 0;
       }
-      if (window.currentlyPlayingAudio && typeof window.currentlyPlayingAudio.pause === "function") {
+      if (
+        window.currentlyPlayingAudio &&
+        typeof window.currentlyPlayingAudio.pause === "function"
+      ) {
         window.currentlyPlayingAudio.pause();
       }
     } catch (error) {
@@ -2883,30 +3009,30 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     }
   }
 
-   function buildChatbotLink({ format, offerId, chatCardId } = {}) {
-      const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
-      const params = new URLSearchParams({
-         lead: leadId || "",
-         source: source || "",
-         country: country || "",
-         firstPageVisited: firstPageVisited || "",
-         conversion_page: window.location.href,
-         parentSiteUrl,
-         merchantId: user_id || "",
-      });
+  function buildChatbotLink({ format, offerId, chatCardId } = {}) {
+    const parentSiteUrl = `${window.location.protocol}//${window.location.host}`;
+    const params = new URLSearchParams({
+      lead: leadId || "",
+      source: source || "",
+      country: country || "",
+      firstPageVisited: firstPageVisited || "",
+      conversion_page: window.location.href,
+      parentSiteUrl,
+      merchantId: user_id || "",
+    });
 
-      if (format === "leadGen") {
-         if (offerId) params.set("offerId", offerId);
-         params.set("mode", "lead_generation");
-      } else if (format === "chat") {
-         params.set("mode", "chat");
-         if (offerId) params.set("offerId", offerId);
-         if(chatCardId) params.set("mode", "view");
-         if (chatCardId) params.set("chatCardId", chatCardId);
-      }
+    if (format === "leadGen") {
+      if (offerId) params.set("offerId", offerId);
+      params.set("mode", "lead_generation");
+    } else if (format === "chat") {
+      params.set("mode", "chat");
+      if (offerId) params.set("offerId", offerId);
+      if (chatCardId) params.set("mode", "view");
+      if (chatCardId) params.set("chatCardId", chatCardId);
+    }
 
-      return `${CHATBOT_PAGE}/chatbot?${params.toString()}`;
-   }
+    return `${CHATBOT_PAGE}/chatbot?${params.toString()}`;
+  }
 
   function showTooltip(
     id,
@@ -3124,13 +3250,15 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
           // Track offer click
           updateOfferClick(id);
           closeUI();
-               if (format === "leadGen") {
-                  sourceLink = buildChatbotLink({ format: "leadGen", offerId: id });
-                  showChatWindow();
-               } else if (format === "pageVisit") {
+          if (format === "leadGen") {
+            sourceLink = buildChatbotLink({ format: "leadGen", offerId: id });
+            showChatWindow();
+          } else if (format === "pageVisit") {
             openExternalLink(destination_page);
-               } else if (ctaItem.format === "chat" || format === "chat") {
-                  sourceLink = ctaItem.chatbotUrl || buildChatbotLink({ format: "chat", offerId: id });
+          } else if (ctaItem.format === "chat" || format === "chat") {
+            sourceLink =
+              ctaItem.chatbotUrl ||
+              buildChatbotLink({ format: "chat", offerId: id });
             showChatWindow();
           }
         });
@@ -3179,6 +3307,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltipContainer.style.fontFamily = "sans-serif";
     tooltipContainer.innerHTML = innerHTML;
 
+    // Get the inner div (the one with the image and content) and make it position relative
+    const innerDiv = tooltipContainer.querySelector("div");
+    if (innerDiv) {
+      innerDiv.style.position = "relative";
+    }
+
     function closeUI() {
       if (currentAnimationID !== id) return;
       tooltipContainer.remove();
@@ -3196,7 +3330,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.border = "none";
       closeBtn.style.position = "absolute";
       closeBtn.style.top = "-12px";
-      closeBtn.style.left = "-12px";
+      closeBtn.style.right = "-12px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -3230,7 +3364,12 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
         }
         closeUI();
       });
-      tooltipContainer.appendChild(closeBtn);
+      // Append close button to the inner div if it exists, otherwise to container
+      if (innerDiv) {
+        innerDiv.appendChild(closeBtn);
+      } else {
+        tooltipContainer.appendChild(closeBtn);
+      }
     }
 
     if (timerCountdown) {
@@ -3304,7 +3443,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
             openExternalLink(destination_page);
           } else if (ctaItem.format === "chat" || format === "chat") {
             sourceLink =
-              ctaItem.chatbotUrl || buildChatbotLink({ format: "chat", offerId: id });
+              ctaItem.chatbotUrl ||
+              buildChatbotLink({ format: "chat", offerId: id });
             showChatWindow();
           }
         });
