@@ -287,11 +287,12 @@ const getUserData = async () => {
     let currentUser = null;
     const userData = await response.json();
     currentUser = userData[0];
-    console.log(currentUser.website_url, "userData in getUserData");
-    return currentUser.website_url;
+    console.log(currentUser, "userData in getUserData");
+    // Return the full user object to access user_links
+    return currentUser;
   } catch (error) {
     console.error("Failed to get interactions:", error);
-    return "";
+    return null;
   }
 };
 getUserData();
@@ -544,17 +545,49 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
   // ************************************************************************************************************************************************************************
 
-  // Function to check if current URL matches or contains RENDER_SCRIPT_URL
+  // Function to check if current URL matches or contains allowed domains
   async function shouldRenderScript() {
     const currentUrl = window.location.href;
-    const renderUrl = await getUserData();
+    const userData = await getUserData();
 
-    // Check if URL matches or contains RENDER_SCRIPT_URL
-    const urlMatches = currentUrl.includes(renderUrl);
+    if (!userData) {
+      console.log("URL Check: No user data found");
+      return false;
+    }
+
+    // Get the list of allowed domains from domains array
+    const allowedDomains = userData.domains || [];
+
+    if (allowedDomains.length === 0) {
+      console.log("URL Check: No domains configured");
+      return false;
+    }
+
+    // Check if current URL matches any of the allowed domains
+    const urlMatches = allowedDomains.some((domain) => {
+      if (!domain) return false;
+      
+      try {
+        const currentUrlObj = new URL(currentUrl);
+        const domainUrlObj = new URL(domain);
+        
+        // Compare protocol, hostname, and port (if specified)
+        const currentOrigin = `${currentUrlObj.protocol}//${currentUrlObj.host}`;
+        const domainOrigin = `${domainUrlObj.protocol}//${domainUrlObj.host}`;
+        
+        return currentOrigin === domainOrigin;
+      } catch (error) {
+        // If URL parsing fails, fallback to string comparison
+        const normalizedCurrent = currentUrl.replace(/\/$/, "");
+        const normalizedDomain = domain.replace(/\/$/, "");
+        return normalizedCurrent.startsWith(normalizedDomain) || 
+               normalizedCurrent === normalizedDomain;
+      }
+    });
 
     console.log("URL Check:", {
       currentUrl: currentUrl,
-      renderScriptUrl: renderUrl,
+      allowedDomains: allowedDomains,
       shouldRender: urlMatches,
     });
 
@@ -564,8 +597,8 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   // Initialize the application only if URL matches
   (async () => {
     const currentUrl = window.location.href;
-    // if (await shouldRenderScript()) {
-    if (true) {
+    if (await shouldRenderScript()) {
+    // if (true) {
       init().catch((error) => {
         console.error("Failed to initialize:", error);
       });
