@@ -566,22 +566,24 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     // Check if current URL matches any of the allowed domains
     const urlMatches = allowedDomains.some((domain) => {
       if (!domain) return false;
-      
+
       try {
         const currentUrlObj = new URL(currentUrl);
         const domainUrlObj = new URL(domain);
-        
+
         // Compare protocol, hostname, and port (if specified)
         const currentOrigin = `${currentUrlObj.protocol}//${currentUrlObj.host}`;
         const domainOrigin = `${domainUrlObj.protocol}//${domainUrlObj.host}`;
-        
+
         return currentOrigin === domainOrigin;
       } catch (error) {
         // If URL parsing fails, fallback to string comparison
         const normalizedCurrent = currentUrl.replace(/\/$/, "");
         const normalizedDomain = domain.replace(/\/$/, "");
-        return normalizedCurrent.startsWith(normalizedDomain) || 
-               normalizedCurrent === normalizedDomain;
+        return (
+          normalizedCurrent.startsWith(normalizedDomain) ||
+          normalizedCurrent === normalizedDomain
+        );
       }
     });
 
@@ -598,7 +600,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
   (async () => {
     const currentUrl = window.location.href;
     if (await shouldRenderScript()) {
-    // if (true) {
+      // if (true) {
       init().catch((error) => {
         console.error("Failed to initialize:", error);
       });
@@ -2985,10 +2987,10 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:14px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:205px;">
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:14px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:fit-content;">
               <img src=${config.imageUrl} style="height:205px;width:205px;border-radius:10px;margin-bottom:12px;object-fit: cover; margin-left: auto; margin-right: auto;"/>
-              <div id="text-area" style="width: 100%;">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;width: 100%;">${config.text}</div>
+              <div id="text-area" style="width: 205px;">
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;width: 205px;">${config.text}</div>
               </div>
             </div>
           `;
