@@ -2952,13 +2952,14 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     } else {
       let innerHTML = `<></>`;
       innerHTML = `
-            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:200px;">
-              <img src=${config.imageUrl} style="height:200px;width:200px;border-radius:10px;margin-bottom:12px"/>
-              <div id="text-area">
-                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px">${config.text}</div>
+            <div style="display:flex;flex-direction:column;background:${TOOLTIP_BG};padding:14px;border-radius:12px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.3);width:205px;">
+              <img src=${config.imageUrl} style="height:205px;width:205px;border-radius:10px;margin-bottom:12px;object-fit: cover; margin-left: auto; margin-right: auto;"/>
+              <div id="text-area" style="width: 100%;">
+                <div style="color:${TOOLTIP_COLOR};font-size: 14px;line-height:20px;width: 100%;">${config.text}</div>
               </div>
             </div>
           `;
+      console.log("innerHTML", innerHTML);
       showOverlay(
         config.id,
         config.format,
@@ -3168,7 +3169,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       const closeButtonContainer = document.createElement("div");
       closeButtonContainer.style.position = "absolute";
       closeButtonContainer.style.top = "-6px";
-      closeButtonContainer.style.right = "-12px";
+      closeButtonContainer.style.left = "-12px";
       closeButtonContainer.style.display = "flex";
       closeButtonContainer.style.justifyContent = "center";
       closeButtonContainer.style.alignItems = "center";
@@ -3269,7 +3270,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
 
     document.body.appendChild(tooltipContainer);
     tooltipContainer.style.right = isMobile ? "100px" : "180px";
-    tooltipContainer.style.bottom = isMobile ? "50px" : "120px";
+    tooltipContainer.style.bottom = isMobile ? "50px" : "105px";
     tooltipContainer.style.display = "block";
 
     if (time) {
@@ -3306,6 +3307,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     tooltipContainer.style.lineHeight = isMobile ? "18px" : "20px";
     tooltipContainer.style.fontFamily = "sans-serif";
     tooltipContainer.innerHTML = innerHTML;
+    tooltipContainer.style.zIndex = "9999";
 
     // Get the inner div (the one with the image and content) and make it position relative
     const innerDiv = tooltipContainer.querySelector("div");
@@ -3330,7 +3332,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
       closeBtn.style.border = "none";
       closeBtn.style.position = "absolute";
       closeBtn.style.top = "-12px";
-      closeBtn.style.right = "-12px";
+      closeBtn.style.left = "-12px";
       closeBtn.style.width = "26px";
       closeBtn.style.height = "26px";
       closeBtn.style.fontSize = "10px";
@@ -3457,7 +3459,7 @@ async function uploadAudioToStorage(audioBlob, interactionName) {
     document.body.appendChild(tooltipContainer);
     const canvas = document.getElementById("threejs-canvas");
     const canvasBounds = canvas.getBoundingClientRect();
-    tooltipContainer.style.right = isMobile ? "90px" : "120px";
+    tooltipContainer.style.right = isMobile ? "90px" : "105px";
     tooltipContainer.style.bottom = isMobile ? "12px" : "20px";
     tooltipContainer.style.display = "block";
 
